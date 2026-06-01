@@ -21,7 +21,17 @@ export type ToolDefinition<TSchema extends z.ZodType = z.ZodType> = {
   handler: (input: z.infer<TSchema>, context: ToolContext) => Promise<unknown>;
 };
 
-export function defineTool<TSchema extends z.ZodType>(definition: ToolDefinition<TSchema>): ToolDefinition<TSchema> {
+export type DefinedTool<
+  TName extends string,
+  TSchema extends z.ZodType,
+> = ToolDefinition<TSchema> & {
+  name: TName;
+};
+
+export function defineTool<
+  const TName extends string,
+  TSchema extends z.ZodType,
+>(definition: DefinedTool<TName, TSchema>): DefinedTool<TName, TSchema> {
   return definition;
 }
 
@@ -29,32 +39,50 @@ export function asTextResult(value: unknown): ToolResult {
   return { content: [{ type: "text", text: JSON.stringify(value, null, 2) }] };
 }
 
-export function registerTool(server: McpServer, tool: ToolDefinition, baseContext: Omit<ToolContext, "requestId">): void {
+export function registerTool(
+  server: McpServer,
+  tool: ToolDefinition,
+  baseContext: Omit<ToolContext, "requestId">,
+): void {
   server.registerTool(
     tool.name,
     {
       description: tool.description,
-      inputSchema: zodObjectShape(tool.inputSchema)
+      inputSchema: zodObjectShape(tool.inputSchema),
     },
     async (rawInput: unknown) => {
       const requestId = crypto.randomUUID();
       const startedAt = performance.now();
-      const logger = baseContext.logger.child({ requestId, toolName: tool.name });
+      const logger = baseContext.logger.child({
+        requestId,
+        toolName: tool.name,
+      });
       logger.debug("tool invocation started");
       try {
         const input = tool.inputSchema.parse(rawInput);
-        const result = await tool.handler(input, { ...baseContext, logger, requestId });
-        logger.debug({ durationMs: Math.round(performance.now() - startedAt) }, "tool invocation completed");
+        const result = await tool.handler(input, {
+          ...baseContext,
+          logger,
+          requestId,
+        });
+        logger.debug(
+          { durationMs: Math.round(performance.now() - startedAt) },
+          "tool invocation completed",
+        );
         return asTextResult(result);
       } catch (error) {
         const appError = toAppError(error);
         logger.warn(
-          { durationMs: Math.round(performance.now() - startedAt), errorType: appError.name, details: appError.details },
-          appError.message
+          {
+            durationMs: Math.round(performance.now() - startedAt),
+            errorType: appError.name,
+            details: appError.details,
+          },
+          appError.message,
         );
         throw toMcpError(appError);
       }
-    }
+    },
   );
 }
 

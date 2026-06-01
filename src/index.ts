@@ -1,6 +1,11 @@
-import { createServer as createHttpServer, type IncomingMessage, type ServerResponse } from "node:http";
+import {
+  createServer as createHttpServer,
+  type IncomingMessage,
+  type ServerResponse,
+} from "node:http";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { ZodError } from "zod";
 import { loadConfig } from "./config.js";
 import { handleHealth, writeJson } from "./health.js";
@@ -22,8 +27,8 @@ async function main(): Promise<void> {
     return;
   }
 
-  const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
-  await app.mcp.connect(transport);
+  const transport = new StreamableHTTPServerTransport();
+  await app.mcp.connect(transport as Transport);
   let accepting = true;
   let inFlight = 0;
 
@@ -39,7 +44,10 @@ async function main(): Promise<void> {
     try {
       await handleMcpRequest(transport, req, res);
     } catch (error) {
-      logger.error({ errorType: error instanceof Error ? error.name : "UnknownError" }, "unhandled HTTP transport error");
+      logger.error(
+        { errorType: error instanceof Error ? error.name : "UnknownError" },
+        "unhandled HTTP transport error",
+      );
       if (!res.headersSent) {
         writeJson(res, 500, { error: "internal server error" });
       }
@@ -67,7 +75,7 @@ async function main(): Promise<void> {
 async function handleMcpRequest(
   transport: StreamableHTTPServerTransport,
   req: IncomingMessage,
-  res: ServerResponse
+  res: ServerResponse,
 ): Promise<void> {
   const body = await readJsonBody(req);
   await transport.handleRequest(req, res, body);
@@ -87,7 +95,10 @@ async function readJsonBody(req: IncomingMessage): Promise<unknown> {
   return JSON.parse(Buffer.concat(chunks).toString("utf8")) as unknown;
 }
 
-function setupShutdown(close: () => Promise<void>, logger: ReturnType<typeof createLogger>): void {
+function setupShutdown(
+  close: () => Promise<void>,
+  logger: ReturnType<typeof createLogger>,
+): void {
   let closing = false;
   const shutdown = (signal: NodeJS.Signals): void => {
     if (closing) {
@@ -101,7 +112,10 @@ function setupShutdown(close: () => Promise<void>, logger: ReturnType<typeof cre
         process.exit(0);
       })
       .catch((error: unknown) => {
-        logger.error({ errorType: error instanceof Error ? error.name : "UnknownError" }, "shutdown failed");
+        logger.error(
+          { errorType: error instanceof Error ? error.name : "UnknownError" },
+          "shutdown failed",
+        );
         process.exit(1);
       });
   };
@@ -114,7 +128,10 @@ main().catch((error: unknown) => {
   if (error instanceof ZodError) {
     fallbackLogger.error({ issues: error.issues }, "invalid configuration");
   } else {
-    fallbackLogger.error({ errorType: error instanceof Error ? error.name : "UnknownError" }, "fatal startup error");
+    fallbackLogger.error(
+      { errorType: error instanceof Error ? error.name : "UnknownError" },
+      "fatal startup error",
+    );
   }
   process.exit(1);
 });

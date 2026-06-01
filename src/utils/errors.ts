@@ -1,7 +1,10 @@
-import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
+import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
 import { ZodError } from "zod";
 
-export type ErrorDetails = Record<string, string | number | boolean | undefined>;
+export type ErrorDetails = Record<
+  string,
+  string | number | boolean | undefined
+>;
 
 export class AppError extends Error {
   public readonly details: ErrorDetails | undefined;
@@ -34,7 +37,9 @@ export function toAppError(error: unknown): AppError {
   }
   if (error instanceof ZodError) {
     return new ValidationError("Input or response validation failed.", {
-      issues: error.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`).join("; ")
+      issues: error.issues
+        .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
+        .join("; "),
     });
   }
   if (error instanceof Error) {
@@ -46,19 +51,43 @@ export function toAppError(error: unknown): AppError {
 export function toMcpError(error: unknown): McpError {
   const appError = toAppError(error);
   if (appError instanceof ValidationError) {
-    return new McpError(ErrorCode.InvalidParams, appError.message, appError.details);
+    return new McpError(
+      ErrorCode.InvalidParams,
+      appError.message,
+      appError.details,
+    );
   }
   if (appError instanceof AuthError) {
-    return new McpError(ErrorCode.InvalidRequest, appError.message, appError.details);
+    return new McpError(
+      ErrorCode.InvalidRequest,
+      appError.message,
+      appError.details,
+    );
   }
   if (appError instanceof NotFoundError) {
-    return new McpError(ErrorCode.InvalidRequest, appError.message, appError.details);
+    return new McpError(
+      ErrorCode.InvalidRequest,
+      appError.message,
+      appError.details,
+    );
   }
   if (appError instanceof RateLimitError) {
-    return new McpError(ErrorCode.InternalError, appError.message, appError.details);
+    return new McpError(
+      ErrorCode.InternalError,
+      appError.message,
+      appError.details,
+    );
   }
   if (appError instanceof TrelloApiError) {
-    return new McpError(ErrorCode.InternalError, appError.message, appError.details);
+    return new McpError(
+      ErrorCode.InternalError,
+      appError.message,
+      appError.details,
+    );
   }
-  return new McpError(ErrorCode.InternalError, appError.message, appError.details);
+  return new McpError(
+    ErrorCode.InternalError,
+    appError.message,
+    appError.details,
+  );
 }

@@ -24,7 +24,7 @@
     "zod": "latest"
   },
   "devDependencies": {
-    "@biomejs/biome": "latest",
+    "@biomejs/biome": "2.0.6",
     "@types/node": "latest",
     "@vitest/coverage-v8": "latest",
     "tsx": "latest",

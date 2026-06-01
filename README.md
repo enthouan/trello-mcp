@@ -34,7 +34,6 @@ The setup script enables Corepack, activates the pinned pnpm version, installs d
 | --- | --- | --- | --- |
 | `TRELLO_API_KEY` | yes | | Trello API key. |
 | `TRELLO_TOKEN` | yes | | Trello token for token auth. |
-| `TRELLO_OAUTH_TOKEN` | no | | Optional OAuth token path for future deployments. |
 | `TRANSPORT` | no | `http` | `http` or `stdio`. |
 | `PORT` | no | `3000` | HTTP port. |
 | `LOG_LEVEL` | no | `info` | Pino log level. |

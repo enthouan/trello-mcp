@@ -13,7 +13,7 @@ export type AppServer = {
 export function createServer(config: Config, logger: Logger): AppServer {
   const mcp = new McpServer({
     name: "trello-mcp",
-    version: "0.1.0"
+    version: "0.1.0",
   });
   const trello = new TrelloClient(config);
   const tools = [...cardTools];
