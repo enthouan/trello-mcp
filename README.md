@@ -10,7 +10,7 @@ This repository is currently at the reviewed vertical-slice milestone: config va
 docker run --rm -p 3000:3000 \
   -e TRELLO_API_KEY=your-key \
   -e TRELLO_TOKEN=your-token \
-  ghcr.io/OWNER/trello-mcp:latest
+  ghcr.io/enthouan/trello-mcp:latest
 ```
 
 
