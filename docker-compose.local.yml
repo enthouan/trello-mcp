@@ -1,6 +1,8 @@
 services:
   trello-mcp:
-    image: ghcr.io/enthouan/trello-mcp:latest
+    build:
+      context: .
+    image: trello-mcp:local
     restart: unless-stopped
     env_file:
       - .env

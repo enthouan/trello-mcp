@@ -6,6 +6,20 @@ This repository is currently at the reviewed vertical-slice milestone: config va
 
 ## Quick start
 
+Create a `.env` file with your Trello credentials, then run the published image:
+
+```bash
+docker compose up -d
+```
+
+To build the image locally instead:
+
+```bash
+docker compose -f docker-compose.local.yml up --build
+```
+
+You can also run the published image directly:
+
 ```bash
 docker run --rm -p 3000:3000 \
   -e TRELLO_API_KEY=your-key \
@@ -13,6 +27,7 @@ docker run --rm -p 3000:3000 \
   ghcr.io/enthouan/trello-mcp:latest
 ```
 
+The default `docker-compose.yml` uses `ghcr.io/enthouan/trello-mcp:latest`. Use `docker-compose.local.yml` when developing or testing local Dockerfile changes.
 
 ## Codex cloud environments
 

@@ -218,7 +218,9 @@ If changing CI:
 
 ## Docker Notes
 
-- `Dockerfile` and `docker-compose.yml` are part of the deploy surface.
+- `Dockerfile`, `docker-compose.yml`, and `docker-compose.local.yml` are part of the deploy surface.
+- `docker-compose.yml` should use the published image for normal deployment.
+- `docker-compose.local.yml` should build from the local Dockerfile for development and local verification.
 - Keep container defaults aligned with README env vars.
 - Do not bake credentials into images or compose files.
 - The app should continue to support stateless container operation.
