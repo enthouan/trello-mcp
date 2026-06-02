@@ -4,9 +4,7 @@ A self-hostable Model Context Protocol server that lets MCP-compatible clients w
 
 I built this for my own Trello workflows, but it is intentionally self-hostable and reusable. Feel free to adapt it for your own setup, open issues, or send PRs with improvements.
 
-## v0.1 Scope
-
-This is the current v0.1 feature set.
+## Features
 
 ### Board Discovery
 
