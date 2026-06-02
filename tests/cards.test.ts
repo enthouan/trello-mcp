@@ -70,6 +70,46 @@ describe("card tools", () => {
     );
   });
 
+  it("adds comments to cards through Trello comment actions", async () => {
+    const tool = getCardTool("trello_card_comment_add");
+    const trello = {
+      request: vi.fn(async () => ({
+        id: "action1",
+        type: "commentCard",
+        data: { text: "Looks good" },
+      })),
+    };
+
+    await expect(
+      tool.handler(
+        { cardId: "card1", text: "Looks good" },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual({
+      id: "action1",
+      type: "commentCard",
+      data: { text: "Looks good" },
+    });
+    expect(trello.request).toHaveBeenCalledWith(
+      "/cards/card1/actions/comments",
+      expect.anything(),
+      expect.objectContaining({
+        method: "POST",
+        query: { text: "Looks good" },
+        resourceType: "card",
+        resourceId: "card1",
+      }),
+    );
+  });
+
+  it("rejects empty card comments before requesting Trello", () => {
+    const tool = getCardTool("trello_card_comment_add");
+
+    expect(() =>
+      tool.inputSchema.parse({ cardId: "card1", text: "" }),
+    ).toThrow();
+  });
+
   it("allows Trello API errors to be mapped by the tool factory", async () => {
     const tool = getCardTool("trello_card_get");
     const error = new TrelloApiError(500, "Trello failed", { status: 500 });
