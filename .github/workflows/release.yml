@@ -30,8 +30,18 @@ jobs:
             type=sha,format=long
             type=semver,pattern={{version}}
           labels: |
+            org.opencontainers.image.title=trello-mcp
+            org.opencontainers.image.description=Self-hostable MCP server for Trello, built for LLM clients and local workflows.
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.url=https://trello-mcp.antoinemenard.com
             org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.licenses=MIT
+            io.github.actions.run.url=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          annotations: |
+            org.opencontainers.image.description=Self-hostable MCP server for Trello, built for LLM clients and local workflows.
+            io.github.actions.run.url=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        env:
+          DOCKER_METADATA_ANNOTATIONS_LEVELS: index
       - uses: docker/build-push-action@v7
         with:
           context: .
@@ -39,3 +49,4 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          annotations: ${{ steps.meta.outputs.annotations }}
