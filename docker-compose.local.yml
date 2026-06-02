@@ -11,7 +11,6 @@
 
 ### Service-Specific
 # - TRELLO_MCP_HOST_PORT
-# - TRELLO_MCP_HOST_BIND_IP
 # - TRELLO_MCP_NETWORK
 # - TRANSPORT
 # - LOG_LEVEL
@@ -33,7 +32,7 @@ services:
       context: .
     image: trello-mcp:local
     ports:
-      - "${TRELLO_MCP_HOST_BIND_IP:-127.0.0.1}:${TRELLO_MCP_HOST_PORT:-3000}:3000"
+      - "${TRELLO_MCP_HOST_PORT:-3000}:3000"
     environment:
       - TZ=${TIMEZONE:-UTC}
       - TRELLO_API_KEY=${TRELLO_API_KEY:?Set TRELLO_API_KEY in .env}

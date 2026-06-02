@@ -94,7 +94,6 @@ TRELLO_TOKEN=your-token
 TIMEZONE=UTC
 TRANSPORT=http
 LOG_LEVEL=info
-TRELLO_MCP_HOST_BIND_IP=127.0.0.1
 TRELLO_MCP_HOST_PORT=3000
 TRELLO_MCP_IMAGE_TAG=latest
 TRELLO_MCP_NETWORK=trello_mcp
@@ -112,9 +111,7 @@ The default `docker-compose.yml` uses:
 ghcr.io/enthouan/trello-mcp:latest
 ```
 
-Docker Compose values such as image tag, host bind IP, host port, and network name can be overridden with environment variables or the `.env` file. The compose files document their defaults at the top; for example, `TRELLO_MCP_IMAGE_TAG` defaults to the `latest` tag in `docker-compose.yml` (`latest` follows the `main` branch, and you can set a version tag such as `0.1.1` for a pinned release), `TRELLO_MCP_HOST_BIND_IP` defaults to `127.0.0.1` for local-only access, `TRELLO_MCP_HOST_PORT` defaults to `3000` and maps the host port to the container's fixed `3000` listener, while `TRELLO_MCP_NETWORK` defaults to `trello_mcp`.
-
-To expose the Compose service on all host network interfaces, set `TRELLO_MCP_HOST_BIND_IP=0.0.0.0`.
+Docker Compose values such as image tag, host port, and network name can be overridden with environment variables or the `.env` file. The compose files document their defaults at the top; for example, `TRELLO_MCP_IMAGE_TAG` defaults to the `latest` tag in `docker-compose.yml` (`latest` follows the `main` branch, and you can set a version tag such as `0.1.1` for a pinned release), `TRELLO_MCP_HOST_PORT` defaults to `3000` and maps the host port to the container's fixed `3000` listener, while `TRELLO_MCP_NETWORK` defaults to `trello_mcp`.
 
 You can also run the published image directly without Compose:
 
@@ -280,7 +277,6 @@ Use this mode when the server runs as a service or container.
 
 ```bash
 TRANSPORT=http
-TRELLO_MCP_HOST_BIND_IP=127.0.0.1
 TRELLO_MCP_HOST_PORT=3000
 ```
 
@@ -349,7 +345,6 @@ Example MCP config shape:
 | `TIMEZONE` | no | `UTC` | Time zone passed to the container as `TZ`. |
 | `TRANSPORT` | no | `http` | `http` or `stdio`. |
 | `LOG_LEVEL` | no | `info` | Pino log level. |
-| `TRELLO_MCP_HOST_BIND_IP` | no | `127.0.0.1` | Docker Compose host interface to bind. Use `0.0.0.0` to expose on all host interfaces. |
 | `TRELLO_MCP_HOST_PORT` | no | `3000` | Docker Compose host port mapped to the container's fixed `3000` listener. |
 | `TRELLO_MCP_IMAGE_TAG` | no | `latest` | Published image tag; `latest` follows `main`, or use a version tag to pin. |
 | `TRELLO_MCP_NETWORK` | no | `trello_mcp` | Docker Compose bridge network name. |
