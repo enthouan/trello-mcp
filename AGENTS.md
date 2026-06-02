@@ -228,7 +228,7 @@ If changing CI:
 ## Dependency Guidance
 
 - Avoid dependency churn.
-- Dependencies currently use `latest` ranges except Biome, but `pnpm-lock.yaml` provides the resolved set.
+- Keep top-level dependency ranges pinned to exact versions for release reproducibility.
 - If a dependency update is required, update and commit `pnpm-lock.yaml`.
 - Be extra cautious with `@modelcontextprotocol/sdk` and TypeScript updates because SDK declaration changes can affect transport and tool typing.
 
