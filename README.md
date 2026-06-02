@@ -272,14 +272,14 @@ This server currently uses Trello API key + token authentication. See Trello's [
 
 ### Streamable HTTP
 
-Use this mode when the server runs as a service or container.
+Use this mode when the server runs as a service or container. For Docker Compose, set `TRELLO_MCP_HOST_PORT` to choose the published host port; the container listens internally on port `3000`.
 
 ```bash
 TRANSPORT=http
 TRELLO_MCP_HOST_PORT=3000
 ```
 
-Start the container, then point an MCP client with Streamable HTTP support to:
+Start the Compose service, then point an MCP client with Streamable HTTP support to:
 
 ```text
 http://localhost:3000/mcp
