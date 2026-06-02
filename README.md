@@ -51,9 +51,15 @@ TRELLO_API_KEY=your-api-key
 TRELLO_TOKEN=your-token
 ```
 
-### 2. Create Your `.env`
+### 2. Choose an Install Path
+
+#### Option A: Run the Published Docker Image
+
+Use this path if you just want to run the server. It pulls the prebuilt image from GHCR and does not build anything locally.
 
 ```bash
+git clone https://github.com/enthouan/trello-mcp.git
+cd trello-mcp
 cp .env.example .env
 ```
 
@@ -67,11 +73,7 @@ PORT=3000
 LOG_LEVEL=info
 ```
 
-Treat the token like a password. Do not commit it, paste it in logs, or share it in PRs.
-
-### 3. Run the Server
-
-Use the published image:
+Start the published image:
 
 ```bash
 docker compose up -d
@@ -83,22 +85,49 @@ The default `docker-compose.yml` uses:
 ghcr.io/enthouan/trello-mcp:latest
 ```
 
-Or build from your local checkout:
+You can also run the published image directly without Compose:
+
+```bash
+docker run --rm -p 3000:3000 \
+  -e TRELLO_API_KEY=your-api-key \
+  -e TRELLO_TOKEN=your-token \
+  ghcr.io/enthouan/trello-mcp:latest
+```
+
+#### Option B: Build Locally from Source
+
+Use this path if you want to develop the project, test local changes, or build the Docker image yourself.
+
+```bash
+git clone https://github.com/enthouan/trello-mcp.git
+cd trello-mcp
+cp .env.example .env
+```
+
+Edit `.env` with your Trello credentials, then build and run locally:
 
 ```bash
 docker compose -f docker-compose.local.yml up --build
 ```
 
-Or run the published image directly:
+This uses `docker-compose.local.yml`, which builds from the local `Dockerfile` and tags the image as `trello-mcp:local`.
+
+For a non-Docker local build:
 
 ```bash
-docker run --rm -p 3000:3000 \
-  -e TRELLO_API_KEY=your-key \
-  -e TRELLO_TOKEN=your-token \
-  ghcr.io/enthouan/trello-mcp:latest
+corepack pnpm install
+corepack pnpm build
 ```
 
-### 4. Connect Your MCP Client
+Then run the compiled server directly:
+
+```bash
+TRELLO_API_KEY=your-api-key TRELLO_TOKEN=your-token TRANSPORT=stdio node dist/index.js
+```
+
+Treat the token like a password. Do not commit it, paste it in logs, or share it in PRs.
+
+### 3. Connect Your MCP Client
 
 For Streamable HTTP clients, point the client to:
 
@@ -120,7 +149,7 @@ TRELLO_API_KEY=your-api-key
 TRELLO_TOKEN=your-token
 ```
 
-### 5. Verify
+### 4. Verify
 
 Check the HTTP server:
 
