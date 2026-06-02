@@ -1,0 +1,11 @@
+.git
+.github
+node_modules
+dist
+coverage
+.env
+*.log
+.DS_Store
+tests
+*.test.ts
+.vitest
