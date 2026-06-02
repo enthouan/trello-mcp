@@ -91,9 +91,12 @@ Edit `.env` and replace the placeholder values:
 ```bash
 TRELLO_API_KEY=your-api-key
 TRELLO_TOKEN=your-token
+TIMEZONE=UTC
 TRANSPORT=http
-TRELLO_MCP_HOST_PORT=3000
 LOG_LEVEL=info
+TRELLO_MCP_HOST_PORT=3000
+TRELLO_MCP_IMAGE_TAG=latest
+TRELLO_MCP_NETWORK=trello_mcp
 ```
 
 Start the published image:
@@ -108,7 +111,7 @@ The default `docker-compose.yml` uses:
 ghcr.io/enthouan/trello-mcp:latest
 ```
 
-Docker Compose values such as image tag, container name, HTTP port, and network name can be overridden with environment variables or the `.env` file. The compose files document their defaults at the top; for example, `TRELLO_MCP_IMAGE` defaults to the `latest` tag in `docker-compose.yml` (`latest` follows the `main` branch, and you can set a version tag such as `0.1.1` for a pinned release), `TRELLO_MCP_HOST_PORT` defaults to `3000` and is passed through to the container as `PORT`, while `TRELLO_MCP_NETWORK` defaults to `trello-mcp_network` in `docker-compose.yml` and `trello-mcp-local_network` in `docker-compose.local.yml`.
+Docker Compose values such as image tag, host port, and network name can be overridden with environment variables or the `.env` file. The compose files document their defaults at the top; for example, `TRELLO_MCP_IMAGE_TAG` defaults to the `latest` tag in `docker-compose.yml` (`latest` follows the `main` branch, and you can set a version tag such as `0.1.1` for a pinned release), `TRELLO_MCP_HOST_PORT` defaults to `3000` and maps the host port to the container's fixed `3000` listener, while `TRELLO_MCP_NETWORK` defaults to `trello_mcp`.
 
 You can also run the published image directly without Compose:
 
@@ -135,7 +138,7 @@ Edit `.env` with your Trello credentials, then build and run locally:
 docker compose -f docker-compose.local.yml up --build
 ```
 
-This uses `docker-compose.local.yml`, which builds from the local `Dockerfile` and tags the image as `trello-mcp:local` by default. Override `TRELLO_MCP_IMAGE` with another tag value if needed.
+This uses `docker-compose.local.yml`, which builds from the local `Dockerfile` and tags the image as `trello-mcp:local`.
 
 For a non-Docker local build:
 
@@ -250,8 +253,8 @@ TRELLO_TOKEN=your-token
 Check the HTTP server:
 
 ```bash
-curl http://localhost:3000/healthz
-curl http://localhost:3000/readyz
+curl "http://localhost:${TRELLO_MCP_HOST_PORT:-3000}/healthz"
+curl "http://localhost:${TRELLO_MCP_HOST_PORT:-3000}/readyz"
 ```
 
 Check your Trello credentials:
@@ -274,7 +277,7 @@ Use this mode when the server runs as a service or container.
 
 ```bash
 TRANSPORT=http
-PORT=3000
+TRELLO_MCP_HOST_PORT=3000
 ```
 
 Start the container, then point an MCP client with Streamable HTTP support to:
@@ -339,10 +342,12 @@ Example MCP config shape:
 | --- | --- | --- | --- |
 | `TRELLO_API_KEY` | yes | | Trello API key. |
 | `TRELLO_TOKEN` | yes | | Trello token for token auth. |
+| `TIMEZONE` | no | `UTC` | Time zone passed to the container as `TZ`. |
 | `TRANSPORT` | no | `http` | `http` or `stdio`. |
-| `PORT` | no | `3000` | HTTP port. |
-| `TRELLO_MCP_HOST_PORT` | no | `3000` | Docker Compose HTTP port; Compose passes this through to the container as `PORT`. |
 | `LOG_LEVEL` | no | `info` | Pino log level. |
+| `TRELLO_MCP_HOST_PORT` | no | `3000` | Docker Compose host port mapped to the container's fixed `3000` listener. |
+| `TRELLO_MCP_IMAGE_TAG` | no | `latest` | Published image tag; `latest` follows `main`, or use a version tag to pin. |
+| `TRELLO_MCP_NETWORK` | no | `trello_mcp` | Docker Compose bridge network name. |
 
 ## Usage Examples
 

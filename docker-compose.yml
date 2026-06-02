@@ -1,30 +1,49 @@
-# Default Compose values (override through environment variables or .env):
-# - TRELLO_MCP_IMAGE:-latest
-#   latest follows main; set to a version tag like 0.1.1 for a pinned release.
-# - TRELLO_MCP_CONTAINER_NAME:-trello-mcp
-# - TRELLO_MCP_HOST_PORT:-3000
-# - TRELLO_MCP_NETWORK:-trello-mcp_network
+######################
+# Environment        #
+######################
+
+### Required
+# - TRELLO_API_KEY
+# - TRELLO_TOKEN
+
+### Common
+# - TIMEZONE
+
+### Service-Specific
+# - TRELLO_MCP_HOST_PORT
+# - TRELLO_MCP_IMAGE_TAG
+# - TRELLO_MCP_NETWORK
+# - TRANSPORT
+# - LOG_LEVEL
+
+#########################
+# Global Configurations #
+#########################
+
+## Network
+networks:
+  trello_mcp:
+    name: ${TRELLO_MCP_NETWORK:-trello_mcp}
+    driver: bridge
 
 services:
   trello-mcp:
-    image: ghcr.io/enthouan/trello-mcp:${TRELLO_MCP_IMAGE:-latest}
-    container_name: ${TRELLO_MCP_CONTAINER_NAME:-trello-mcp}
-    restart: unless-stopped
-    env_file:
-      - .env
-    environment:
-      PORT: ${TRELLO_MCP_HOST_PORT:-3000}
+    container_name: trello-mcp
+    image: ghcr.io/enthouan/trello-mcp:${TRELLO_MCP_IMAGE_TAG:-latest}
     ports:
-      - "${TRELLO_MCP_HOST_PORT:-3000}:${TRELLO_MCP_HOST_PORT:-3000}"
+      - "${TRELLO_MCP_HOST_PORT:-3000}:3000"
+    environment:
+      - TZ=${TIMEZONE:-UTC}
+      - TRELLO_API_KEY=${TRELLO_API_KEY:?Set TRELLO_API_KEY in .env}
+      - TRELLO_TOKEN=${TRELLO_TOKEN:?Set TRELLO_TOKEN in .env}
+      - TRANSPORT=${TRANSPORT:-http}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
     networks:
-      - trello-mcp-network
+      - trello_mcp
+    restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:${TRELLO_MCP_HOST_PORT:-3000}/healthz"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/healthz"]
       interval: 30s
       timeout: 3s
       retries: 3
       start_period: 5s
-
-networks:
-  trello-mcp-network:
-    name: ${TRELLO_MCP_NETWORK:-trello-mcp_network}
