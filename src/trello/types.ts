@@ -10,6 +10,25 @@ export const TrelloMemberSchema = z.object({
   avatarUrl: z.string().nullable().optional(),
 });
 
+export const TrelloBoardSchema = z.object({
+  id: TrelloIdSchema,
+  name: z.string(),
+  desc: z.string().optional(),
+  closed: z.boolean().optional(),
+  idOrganization: TrelloIdSchema.nullable().optional(),
+  url: z.string().url().optional(),
+  shortUrl: z.string().url().optional(),
+  dateLastActivity: z.string().nullable().optional(),
+});
+
+export const TrelloListSchema = z.object({
+  id: TrelloIdSchema,
+  name: z.string(),
+  closed: z.boolean().optional(),
+  idBoard: TrelloIdSchema.optional(),
+  pos: z.union([z.number(), z.string()]).optional(),
+});
+
 export const TrelloAttachmentSchema = z.object({
   id: TrelloIdSchema,
   name: z.string().nullable().optional(),
@@ -61,6 +80,8 @@ export const TrelloCardSchema = z.object({
 });
 
 export const TrelloCardListSchema = z.array(TrelloCardSchema);
+export const TrelloBoardListSchema = z.array(TrelloBoardSchema);
+export const TrelloListListSchema = z.array(TrelloListSchema);
 export const TrelloMemberListSchema = z.array(TrelloMemberSchema);
 export const TrelloAttachmentListSchema = z.array(TrelloAttachmentSchema);
 export const TrelloChecklistListSchema = z.array(TrelloChecklistSchema);

@@ -323,6 +323,8 @@ Example MCP config shape:
 Once connected to an MCP client, ask for Trello actions in natural language:
 
 ```text
+Show me my Trello boards.
+Show me the lists on my job scout board.
 Show me the cards in my "Today" list.
 Create a card called "Review invoices" in the bookkeeping list.
 Move this card to Done.
@@ -331,13 +333,16 @@ Show the recent activity for this card.
 Add this public URL as an attachment to the card.
 ```
 
-The exact wording depends on your MCP client. When a tool needs a Trello list ID, card ID, or member ID, provide it directly or use a client workflow that already has that context.
+The exact wording depends on your MCP client. The server can discover your boards and board lists first, then use those ids for card workflows.
 
 ## Tool Catalog
 
 <!-- tools:start -->
 | Name | When to use | Key inputs |
 | --- | --- | --- |
+| `trello_list_boards` | Use first when the user has not provided a board, list, card id, or Trello URL; returns boards visible to the authenticated Trello member. | filter, fields |
+| `trello_board_get` | Use when you need basic metadata for a known Trello board before listing its lists or summarizing it. | boardId, fields |
+| `trello_board_lists` | Use when you need the lists on a known Trello board so you can find the right list id before listing or creating cards. | boardId, filter, fields |
 | `trello_card_get` | Use when you need the current details of one Trello card by id, short id, or URL before editing or summarizing it. | cardId, fields |
 | `trello_list_cards` | Use when you need cards in a specific Trello list; prefer board-level tools later when you need every list on a board. | listId, limit, filter |
 | `trello_card_create` | Use when the user asks to create a new Trello card in a known list; accepts title, description, due date, members, and labels. | listId, name, desc, due, pos, memberIds, labelIds |
@@ -376,6 +381,7 @@ MCP client
 - `src/index.ts` starts stdio or HTTP transport.
 - `src/server.ts` creates the MCP server and registers tools.
 - `src/trello/client.ts` owns Trello HTTP requests, auth query parameters, retries, and response parsing.
+- `src/trello/boards.ts` defines board and board-list discovery tools.
 - `src/trello/cards.ts` defines the card tools.
 - `src/trello/types.ts` contains Trello response schemas.
 - `src/utils/*` contains logging, error mapping, pagination, and tool registration helpers.
