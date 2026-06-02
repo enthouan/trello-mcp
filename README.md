@@ -92,7 +92,7 @@ Edit `.env` and replace the placeholder values:
 TRELLO_API_KEY=your-api-key
 TRELLO_TOKEN=your-token
 TRANSPORT=http
-PORT=3000
+TRELLO_MCP_HOST_PORT=3000
 LOG_LEVEL=info
 ```
 
@@ -108,7 +108,7 @@ The default `docker-compose.yml` uses:
 ghcr.io/enthouan/trello-mcp:latest
 ```
 
-Docker Compose values such as image, container name, host port, container port, and network name can be overridden with environment variables or the `.env` file. The compose files document their defaults at the top; for example, `TRELLO_MCP_NETWORK` defaults to `trello-mcp_network` in `docker-compose.yml` and `trello-mcp-local_network` in `docker-compose.local.yml`.
+Docker Compose values such as image tag, container name, HTTP port, and network name can be overridden with environment variables or the `.env` file. The compose files document their defaults at the top; for example, `TRELLO_MCP_IMAGE` defaults to the `latest` tag in `docker-compose.yml` (`latest` follows the `main` branch, and you can set a version tag such as `0.1.1` for a pinned release), `TRELLO_MCP_HOST_PORT` defaults to `3000` and is passed through to the container as `PORT`, while `TRELLO_MCP_NETWORK` defaults to `trello-mcp_network` in `docker-compose.yml` and `trello-mcp-local_network` in `docker-compose.local.yml`.
 
 You can also run the published image directly without Compose:
 
@@ -135,7 +135,7 @@ Edit `.env` with your Trello credentials, then build and run locally:
 docker compose -f docker-compose.local.yml up --build
 ```
 
-This uses `docker-compose.local.yml`, which builds from the local `Dockerfile` and tags the image as `trello-mcp:local`.
+This uses `docker-compose.local.yml`, which builds from the local `Dockerfile` and tags the image as `trello-mcp:local` by default. Override `TRELLO_MCP_IMAGE` with another tag value if needed.
 
 For a non-Docker local build:
 
@@ -341,6 +341,7 @@ Example MCP config shape:
 | `TRELLO_TOKEN` | yes | | Trello token for token auth. |
 | `TRANSPORT` | no | `http` | `http` or `stdio`. |
 | `PORT` | no | `3000` | HTTP port. |
+| `TRELLO_MCP_HOST_PORT` | no | `3000` | Docker Compose HTTP port; Compose passes this through to the container as `PORT`. |
 | `LOG_LEVEL` | no | `info` | Pino log level. |
 
 ## Usage Examples

@@ -1,25 +1,27 @@
 # Default Compose values (override through environment variables or .env):
-# - TRELLO_MCP_IMAGE:-trello-mcp:local
+# - TRELLO_MCP_IMAGE:-local
+#   local tags the locally built trello-mcp image; set to another local tag if needed.
 # - TRELLO_MCP_CONTAINER_NAME:-trello-mcp-local
 # - TRELLO_MCP_HOST_PORT:-3000
 # - TRELLO_MCP_NETWORK:-trello-mcp-local_network
-# - PORT:-3000
 
 services:
   trello-mcp:
     build:
       context: .
-    image: ${TRELLO_MCP_IMAGE:-trello-mcp:local}
+    image: trello-mcp:${TRELLO_MCP_IMAGE:-local}
     container_name: ${TRELLO_MCP_CONTAINER_NAME:-trello-mcp-local}
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      PORT: ${TRELLO_MCP_HOST_PORT:-3000}
     ports:
-      - "${TRELLO_MCP_HOST_PORT:-3000}:${PORT:-3000}"
+      - "${TRELLO_MCP_HOST_PORT:-3000}:${TRELLO_MCP_HOST_PORT:-3000}"
     networks:
       - trello-mcp-network
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:${PORT:-3000}/healthz"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:${TRELLO_MCP_HOST_PORT:-3000}/healthz"]
       interval: 30s
       timeout: 3s
       retries: 3
