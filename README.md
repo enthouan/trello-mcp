@@ -4,7 +4,15 @@ A self-hostable Model Context Protocol server that lets MCP-compatible clients w
 
 I built this for my own Trello workflows, but it is intentionally self-hostable and reusable. Feel free to adapt it for your own setup, open issues, or send PRs with improvements.
 
-## Features
+## v0.1 Scope
+
+This is the current v0.1 feature set.
+
+### Board Discovery
+
+- List boards visible to the authenticated Trello member.
+- Read basic board metadata.
+- List open, closed, or all lists on a board.
 
 ### Card Workflows
 
@@ -28,8 +36,11 @@ I built this for my own Trello workflows, but it is intentionally self-hostable 
 - Build locally with a separate Compose file.
 - Use Streamable HTTP for container deployments.
 - Use stdio for local MCP clients that launch the server as a child process.
+- Keep stdio logs on stderr so local MCP clients receive protocol-only stdout.
+- Expose HTTP health and readiness endpoints.
 - Validate config, tool input, and Trello API responses with Zod.
 - Redact Trello credentials from logs.
+- Run typecheck, lint, build, tests, and coverage in GitHub Actions.
 
 ## Quick Start
 
