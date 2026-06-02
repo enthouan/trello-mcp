@@ -33,13 +33,45 @@ I built this for my own Trello workflows, but it is intentionally self-hostable 
 
 ## Quick Start
 
-Create a `.env` file with your Trello credentials:
+### 1. Get Trello API Credentials
+
+Trello API keys are created from a Power-Up or integration. Each person running this server should use their own Trello account and token.
+
+1. Visit [Trello Power-Up admin](https://trello.com/power-ups/admin) and create a new Power-Up or integration.
+2. Fill in the required form fields. A name like `Trello MCP` is fine. If Trello asks for an iframe connector URL, use `https://localhost`; this server does not use that URL.
+3. Open the Power-Up's **API key** tab.
+4. Generate an API key if one does not already exist, then copy it.
+5. Use the **Token** link near the API key to authorize access for your Trello account.
+6. Copy the generated token.
+
+You will use those values as:
+
+```bash
+TRELLO_API_KEY=your-api-key
+TRELLO_TOKEN=your-token
+```
+
+### 2. Create Your `.env`
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env`, then run the published image:
+Edit `.env` and replace the placeholder values:
+
+```bash
+TRELLO_API_KEY=your-api-key
+TRELLO_TOKEN=your-token
+TRANSPORT=http
+PORT=3000
+LOG_LEVEL=info
+```
+
+Treat the token like a password. Do not commit it, paste it in logs, or share it in PRs.
+
+### 3. Run the Server
+
+Use the published image:
 
 ```bash
 docker compose up -d
@@ -51,13 +83,13 @@ The default `docker-compose.yml` uses:
 ghcr.io/enthouan/trello-mcp:latest
 ```
 
-To build the image locally instead:
+Or build from your local checkout:
 
 ```bash
 docker compose -f docker-compose.local.yml up --build
 ```
 
-You can also run the published image directly:
+Or run the published image directly:
 
 ```bash
 docker run --rm -p 3000:3000 \
@@ -66,27 +98,48 @@ docker run --rm -p 3000:3000 \
   ghcr.io/enthouan/trello-mcp:latest
 ```
 
-## Trello Credentials
+### 4. Connect Your MCP Client
 
-This server currently uses Trello API key + token authentication.
+For Streamable HTTP clients, point the client to:
 
-1. Go to [Trello Power-Up admin](https://trello.com/power-ups/admin).
-2. Create a Power-Up, or open an existing one that should own this API key.
-3. Open the Power-Up's **API key** tab.
-4. Copy the API key into `TRELLO_API_KEY`.
-5. Click the **Token** link near the API key to open Trello's authorization page.
-6. Authorize access for your Trello account.
-7. Copy the generated token into `TRELLO_TOKEN`.
+```text
+http://localhost:3000/mcp
+```
 
-Treat the token like a password. Do not commit it, paste it in logs, or share it in PRs.
+For stdio clients, build locally and configure the client to run:
 
-Verify the credentials with:
+```bash
+node /absolute/path/to/trello-mcp/dist/index.js
+```
+
+with:
+
+```bash
+TRANSPORT=stdio
+TRELLO_API_KEY=your-api-key
+TRELLO_TOKEN=your-token
+```
+
+### 5. Verify
+
+Check the HTTP server:
+
+```bash
+curl http://localhost:3000/healthz
+curl http://localhost:3000/readyz
+```
+
+Check your Trello credentials:
 
 ```bash
 curl "https://api.trello.com/1/members/me?key=$TRELLO_API_KEY&token=$TRELLO_TOKEN"
 ```
 
-If the credentials are valid, Trello returns your member JSON. See Trello's [REST API getting started guide](https://support.atlassian.com/trello/docs/getting-started-with-trello-rest-api/) and [API introduction](https://developer.atlassian.com/cloud/trello/guides/rest-api/api-introduction/) for the official flow.
+If everything is configured correctly, the health endpoints return JSON status responses and Trello returns your member JSON.
+
+## Trello Credentials
+
+This server currently uses Trello API key + token authentication. See Trello's [REST API getting started guide](https://support.atlassian.com/trello/docs/getting-started-with-trello-rest-api/) and [API introduction](https://developer.atlassian.com/cloud/trello/guides/rest-api/api-introduction/) for the official credential flow.
 
 ## MCP Client Setup
 
