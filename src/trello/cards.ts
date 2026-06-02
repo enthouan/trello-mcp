@@ -14,7 +14,7 @@ import {
 
 const CardIdInput = z.object({
   cardId: TrelloIdSchema.describe(
-    "Trello card id, short link, or URL-safe short id.",
+    "Trello card id, short link, or Trello card URL.",
   ),
 });
 
@@ -129,7 +129,7 @@ export const cardTools = [
       "Use when you need the current details of one Trello card by id, short id, or URL before editing or summarizing it.",
     inputSchema: CardIdInput.merge(CardFieldsInput),
     handler: async ({ cardId, fields }, { trello }) =>
-      trello.request(`/cards/${encodeURIComponent(cardId)}`, TrelloCardSchema, {
+      trello.request(cardPath(cardId), TrelloCardSchema, {
         query: { fields },
         resourceType: "card",
         resourceId: cardId,
@@ -173,7 +173,7 @@ export const cardTools = [
       "Use when changing card metadata such as title, description, due date, due completion, or archive state without moving it.",
     inputSchema: UpdateCardInput,
     handler: async ({ cardId, ...input }, { trello }) =>
-      trello.request(`/cards/${encodeURIComponent(cardId)}`, TrelloCardSchema, {
+      trello.request(cardPath(cardId), TrelloCardSchema, {
         method: "PUT",
         query: input,
         resourceType: "card",
@@ -186,11 +186,11 @@ export const cardTools = [
       "Use only when the user explicitly asks to permanently delete a Trello card; archive instead for reversible removal.",
     inputSchema: CardIdInput,
     handler: async ({ cardId }, { trello }) =>
-      trello.request(
-        `/cards/${encodeURIComponent(cardId)}`,
-        DeleteResponseSchema,
-        { method: "DELETE", resourceType: "card", resourceId: cardId },
-      ),
+      trello.request(cardPath(cardId), DeleteResponseSchema, {
+        method: "DELETE",
+        resourceType: "card",
+        resourceId: cardId,
+      }),
   }),
   defineTool({
     name: "trello_card_move",
@@ -198,7 +198,7 @@ export const cardTools = [
       "Use when moving a card to another list, another board, or a different position; this is distinct from general card metadata updates.",
     inputSchema: MoveCardInput,
     handler: async ({ cardId, listId, boardId, pos }, { trello }) =>
-      trello.request(`/cards/${encodeURIComponent(cardId)}`, TrelloCardSchema, {
+      trello.request(cardPath(cardId), TrelloCardSchema, {
         method: "PUT",
         query: { idList: listId, idBoard: boardId, pos },
         resourceType: "card",
@@ -216,7 +216,7 @@ export const cardTools = [
         .describe("True archives the card; false restores it."),
     }),
     handler: async ({ cardId, closed }, { trello }) =>
-      trello.request(`/cards/${encodeURIComponent(cardId)}`, TrelloCardSchema, {
+      trello.request(cardPath(cardId), TrelloCardSchema, {
         method: "PUT",
         query: { closed },
         resourceType: "card",
@@ -229,7 +229,7 @@ export const cardTools = [
     inputSchema: CardIdInput,
     handler: async ({ cardId }, { trello }) =>
       trello.request(
-        `/cards/${encodeURIComponent(cardId)}/attachments`,
+        `${cardPath(cardId)}/attachments`,
         TrelloAttachmentListSchema,
         { resourceType: "card", resourceId: cardId },
       ),
@@ -241,7 +241,7 @@ export const cardTools = [
     inputSchema: CardAttachmentCreateInput,
     handler: async ({ cardId, ...input }, { trello }) =>
       trello.request(
-        `/cards/${encodeURIComponent(cardId)}/attachments`,
+        `${cardPath(cardId)}/attachments`,
         TrelloAttachmentListSchema.element,
         {
           method: "POST",
@@ -258,7 +258,7 @@ export const cardTools = [
     inputSchema: CardAttachmentDeleteInput,
     handler: async ({ cardId, attachmentId }, { trello }) =>
       trello.request(
-        `/cards/${encodeURIComponent(cardId)}/attachments/${encodeURIComponent(attachmentId)}`,
+        `${cardPath(cardId)}/attachments/${encodeURIComponent(attachmentId)}`,
         DeleteResponseSchema,
         {
           method: "DELETE",
@@ -274,7 +274,7 @@ export const cardTools = [
     inputSchema: CardIdInput,
     handler: async ({ cardId }, { trello }) =>
       trello.request(
-        `/cards/${encodeURIComponent(cardId)}/checklists`,
+        `${cardPath(cardId)}/checklists`,
         TrelloChecklistListSchema,
         { resourceType: "card", resourceId: cardId },
       ),
@@ -285,16 +285,12 @@ export const cardTools = [
       "Use when adding a new checklist to an existing card, optionally copied from another checklist.",
     inputSchema: CardChecklistCreateInput,
     handler: async ({ cardId, sourceChecklistId, name }, { trello }) =>
-      trello.request(
-        `/cards/${encodeURIComponent(cardId)}/checklists`,
-        TrelloChecklistSchema,
-        {
-          method: "POST",
-          query: { name, idChecklistSource: sourceChecklistId },
-          resourceType: "card",
-          resourceId: cardId,
-        },
-      ),
+      trello.request(`${cardPath(cardId)}/checklists`, TrelloChecklistSchema, {
+        method: "POST",
+        query: { name, idChecklistSource: sourceChecklistId },
+        resourceType: "card",
+        resourceId: cardId,
+      }),
   }),
   defineTool({
     name: "trello_card_members",
@@ -302,27 +298,22 @@ export const cardTools = [
       "Use when listing members assigned to a card; use add/remove member tools to change assignment.",
     inputSchema: CardIdInput,
     handler: async ({ cardId }, { trello }) =>
-      trello.request(
-        `/cards/${encodeURIComponent(cardId)}/members`,
-        TrelloMemberListSchema,
-        { resourceType: "card", resourceId: cardId },
-      ),
+      trello.request(`${cardPath(cardId)}/members`, TrelloMemberListSchema, {
+        resourceType: "card",
+        resourceId: cardId,
+      }),
   }),
   defineTool({
     name: "trello_card_member_add",
     description: "Use when assigning a Trello member to a card by member id.",
     inputSchema: CardMemberInput,
     handler: async ({ cardId, memberId }, { trello }) =>
-      trello.request(
-        `/cards/${encodeURIComponent(cardId)}/idMembers`,
-        TrelloCardSchema,
-        {
-          method: "POST",
-          query: { value: memberId },
-          resourceType: "card",
-          resourceId: cardId,
-        },
-      ),
+      trello.request(`${cardPath(cardId)}/idMembers`, TrelloCardSchema, {
+        method: "POST",
+        query: { value: memberId },
+        resourceType: "card",
+        resourceId: cardId,
+      }),
   }),
   defineTool({
     name: "trello_card_member_remove",
@@ -331,7 +322,7 @@ export const cardTools = [
     inputSchema: CardMemberInput,
     handler: async ({ cardId, memberId }, { trello }) =>
       trello.request(
-        `/cards/${encodeURIComponent(cardId)}/idMembers/${encodeURIComponent(memberId)}`,
+        `${cardPath(cardId)}/idMembers/${encodeURIComponent(memberId)}`,
         DeleteResponseSchema,
         {
           method: "DELETE",
@@ -358,14 +349,28 @@ export const cardTools = [
         .describe("Maximum number of actions to return."),
     }),
     handler: async ({ cardId, filter, limit }, { trello }) =>
-      trello.request(
-        `/cards/${encodeURIComponent(cardId)}/actions`,
-        TrelloActionListSchema,
-        {
-          query: { filter, limit },
-          resourceType: "card",
-          resourceId: cardId,
-        },
-      ),
+      trello.request(`${cardPath(cardId)}/actions`, TrelloActionListSchema, {
+        query: { filter, limit },
+        resourceType: "card",
+        resourceId: cardId,
+      }),
   }),
 ];
+
+function cardPath(cardId: string): string {
+  return `/cards/${encodeURIComponent(cardIdentifier(cardId))}`;
+}
+
+function cardIdentifier(cardId: string): string {
+  const value = cardId.trim();
+  try {
+    const url = new URL(value);
+    const pathParts = url.pathname.split("/").filter(Boolean);
+    if (url.hostname.endsWith("trello.com") && pathParts[0] === "c") {
+      return pathParts[1] ?? value;
+    }
+  } catch {
+    // Treat non-URL values as Trello ids or short links.
+  }
+  return value;
+}

@@ -45,6 +45,31 @@ describe("card tools", () => {
     );
   });
 
+  it("normalizes Trello card URLs before requesting card details", async () => {
+    const tool = getCardTool("trello_card_get");
+    const trello = {
+      request: vi.fn(async () => ({ id: "card1", name: "Existing card" })),
+    };
+
+    await expect(
+      tool.handler(
+        {
+          cardId: "https://trello.com/c/AbCd1234/example-card",
+          fields: "all",
+        },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual({ id: "card1", name: "Existing card" });
+    expect(trello.request).toHaveBeenCalledWith(
+      "/cards/AbCd1234",
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({ fields: "all" }),
+        resourceType: "card",
+      }),
+    );
+  });
+
   it("allows Trello API errors to be mapped by the tool factory", async () => {
     const tool = getCardTool("trello_card_get");
     const error = new TrelloApiError(500, "Trello failed", { status: 500 });
