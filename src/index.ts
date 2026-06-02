@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import {
   createServer as createHttpServer,
   type IncomingMessage,
@@ -15,9 +16,9 @@ import { createLogger } from "./utils/logger.js";
 async function main(): Promise<void> {
   const config = loadConfig();
   const logger = createLogger(config);
-  const app = createServer(config, logger);
 
   if (config.TRANSPORT === "stdio") {
+    const app = createServer(config, logger);
     const transport = new StdioServerTransport();
     await app.mcp.connect(transport);
     logger.info("trello MCP server started on stdio");
@@ -27,8 +28,7 @@ async function main(): Promise<void> {
     return;
   }
 
-  const transport = new StreamableHTTPServerTransport();
-  await app.mcp.connect(transport as Transport);
+  const sessions = new Map<string, HttpSession>();
   let accepting = true;
   let inFlight = 0;
 
@@ -42,7 +42,7 @@ async function main(): Promise<void> {
     }
     inFlight += 1;
     try {
-      await handleMcpRequest(transport, req, res);
+      await handleMcpRequest({ config, logger, sessions }, req, res);
     } catch (error) {
       logger.error(
         { errorType: error instanceof Error ? error.name : "UnknownError" },
@@ -68,17 +68,97 @@ async function main(): Promise<void> {
     while (inFlight > 0) {
       await new Promise((resolve) => setTimeout(resolve, 25));
     }
-    await app.mcp.close();
+    await Promise.all(
+      [...sessions.values()].map(async ({ app }) => {
+        await app.mcp.close();
+      }),
+    );
+    sessions.clear();
   }, logger);
 }
 
+type HttpSession = {
+  app: ReturnType<typeof createServer>;
+  transport: StreamableHTTPServerTransport;
+};
+
+type HttpContext = {
+  config: ReturnType<typeof loadConfig>;
+  logger: ReturnType<typeof createLogger>;
+  sessions: Map<string, HttpSession>;
+};
+
 async function handleMcpRequest(
-  transport: StreamableHTTPServerTransport,
+  context: HttpContext,
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
   const body = await readJsonBody(req);
-  await transport.handleRequest(req, res, body);
+  const sessionId = readSessionId(req);
+  const session = sessionId ? context.sessions.get(sessionId) : undefined;
+
+  if (session) {
+    await session.transport.handleRequest(req, res, body);
+    return;
+  }
+
+  if (sessionId) {
+    writeJson(res, 404, { error: "MCP session not found" });
+    return;
+  }
+
+  if (!isInitializeRequest(body)) {
+    writeJson(res, 400, { error: "Mcp-Session-Id header is required" });
+    return;
+  }
+
+  const nextSession = await createHttpSession(context);
+  await nextSession.transport.handleRequest(req, res, body);
+  if (nextSession.transport.sessionId) {
+    context.sessions.set(nextSession.transport.sessionId, nextSession);
+  }
+}
+
+async function createHttpSession(context: HttpContext): Promise<HttpSession> {
+  const transport = new StreamableHTTPServerTransport({
+    sessionIdGenerator: randomUUID,
+  });
+  const app = createServer(context.config, context.logger);
+
+  transport.onclose = () => {
+    if (transport.sessionId) {
+      context.sessions.delete(transport.sessionId);
+    }
+  };
+  transport.onerror = (error) => {
+    context.logger.warn(
+      { errorType: error.name },
+      "HTTP MCP transport reported an error",
+    );
+  };
+
+  const session = { app, transport };
+  await app.mcp.connect(transport as Transport);
+  return session;
+}
+
+function readSessionId(req: IncomingMessage): string | undefined {
+  const value = req.headers["mcp-session-id"];
+  if (Array.isArray(value)) {
+    return value[0];
+  }
+  return value;
+}
+
+function isInitializeRequest(body: unknown): boolean {
+  const messages = Array.isArray(body) ? body : [body];
+  return messages.some(
+    (message) =>
+      typeof message === "object" &&
+      message !== null &&
+      "method" in message &&
+      message.method === "initialize",
+  );
 }
 
 async function readJsonBody(req: IncomingMessage): Promise<unknown> {
