@@ -25,6 +25,7 @@ Most of this project was built with Codex under my close supervision.
 - List boards visible to the authenticated Trello member.
 - Read basic board metadata.
 - List open, closed, or all lists on a board.
+- Create, inspect, rename, archive, unarchive, and move lists between boards.
 
 ### Card Workflows
 
@@ -366,6 +367,11 @@ The exact wording depends on your MCP client. The server can discover your board
 | `trello_list_boards` | Use first when the user has not provided a board, list, card id, or Trello URL; returns boards visible to the authenticated Trello member. | filter, fields |
 | `trello_board_get` | Use when you need basic metadata for a known Trello board before listing its lists or summarizing it. | boardId, fields |
 | `trello_board_lists` | Use when you need the lists on a known Trello board so you can find the right list id before listing or creating cards. | boardId, filter, fields |
+| `trello_list_get` | Use when you need metadata for a known Trello list before creating cards in it or changing it. | listId, fields |
+| `trello_list_create` | Use when creating a new Trello list on an existing board. | boardId, name, pos |
+| `trello_list_update` | Use when renaming a Trello list, changing its position, or setting its archive state. | listId, name, closed, pos |
+| `trello_list_archive` | Use when archiving or unarchiving a Trello list while keeping its cards recoverable. | listId, closed |
+| `trello_list_move_to_board` | Use when moving an existing Trello list to another board. | listId, boardId |
 | `trello_card_get` | Use when you need the current details of one Trello card by id, short id, or URL before editing or summarizing it. | cardId, fields |
 | `trello_list_cards` | Use when you need cards in a specific Trello list; prefer board-level tools later when you need every list on a board. | listId, limit, filter |
 | `trello_card_create` | Use when the user asks to create a new Trello card in a known list; accepts title, description, due date, members, and labels. | listId, name, desc, due, pos, memberIds, labelIds |
