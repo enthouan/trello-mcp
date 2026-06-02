@@ -4,6 +4,20 @@ A self-hostable Model Context Protocol server that lets MCP-compatible clients w
 
 I built this for my own Trello workflows, but it is intentionally self-hostable and reusable. Feel free to adapt it for your own setup, open issues, or send PRs with improvements.
 
+## Disclaimer
+
+This is an independent, unofficial open source project. It is not affiliated with, associated with, authorized by, endorsed by, or sponsored by Trello, Atlassian, or any related company. Trello, Atlassian, and related names, logos, product names, and trademarks belong to their respective owners.
+
+This project exists to make it easier for MCP-compatible LLM clients to interface with Trello through Trello's public API and user-provided API credentials.
+
+## Personal Note
+
+I have been using Trello since the early launch-era, pre-Atlassian days, across college, work, and day-to-day life. I have always found ways to integrate it into my workflow in one form or another.
+
+As I have been using AI and LLM tools more often, having a reliable MCP server for Trello became necessary. I have built many small bridge scripts before, but this repository is my first attempt to make the integration clean, reusable, and self-hostable. Other Trello MCP solutions already exist; I built this because I was not fully satisfied with the options I tried.
+
+Most of this project was built with Codex under my close supervision.
+
 ## Features
 
 ### Board Discovery
