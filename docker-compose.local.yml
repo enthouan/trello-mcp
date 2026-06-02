@@ -6,14 +6,11 @@
 # - TRELLO_API_KEY
 # - TRELLO_TOKEN
 
-### Common
-# - TIMEZONE
-
 ### Service-Specific
-# - TRELLO_MCP_HOST_PORT
-# - TRELLO_MCP_NETWORK
-# - TRANSPORT
-# - LOG_LEVEL
+# - TRELLO_MCP_HOST_PORT:-3000
+# - TRELLO_MCP_NETWORK:-trello_mcp_network
+# - TRANSPORT:-http
+# - LOG_LEVEL:-info
 
 #########################
 # Global Configurations #
@@ -22,7 +19,7 @@
 ## Network
 networks:
   trello_mcp:
-    name: ${TRELLO_MCP_NETWORK:-trello_mcp}
+    name: ${TRELLO_MCP_NETWORK:-trello_mcp_network}
     driver: bridge
 
 services:
@@ -34,7 +31,6 @@ services:
     ports:
       - "${TRELLO_MCP_HOST_PORT:-3000}:3000"
     environment:
-      - TZ=${TIMEZONE:-UTC}
       - TRELLO_API_KEY=${TRELLO_API_KEY:?Set TRELLO_API_KEY in .env}
       - TRELLO_TOKEN=${TRELLO_TOKEN:?Set TRELLO_TOKEN in .env}
       - TRANSPORT=${TRANSPORT:-http}
