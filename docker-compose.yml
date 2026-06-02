@@ -9,7 +9,7 @@
 ### Service-Specific
 # - TRELLO_MCP_HOST_PORT:-3000
 # - TRELLO_MCP_IMAGE_TAG:-latest
-# - TRELLO_MCP_NETWORK:-trello_mcp_network
+# - TRELLO_MCP_NETWORK:-trello-mcp_network
 # - TRANSPORT:-http
 # - LOG_LEVEL:-info
 
@@ -20,7 +20,7 @@
 ## Network
 networks:
   trello-mcp_network:
-    name: ${TRELLO_MCP_NETWORK:-trello_mcp_network}
+    name: ${TRELLO_MCP_NETWORK:-trello-mcp_network}
     driver: bridge
 
 services:
