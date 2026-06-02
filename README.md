@@ -108,6 +108,8 @@ The default `docker-compose.yml` uses:
 ghcr.io/enthouan/trello-mcp:latest
 ```
 
+Docker Compose values such as image, container name, host port, container port, and network name can be overridden with environment variables or the `.env` file. The compose files document their defaults at the top; for example, `TRELLO_MCP_NETWORK` defaults to `trello-mcp_network` in `docker-compose.yml` and `trello-mcp-local_network` in `docker-compose.local.yml`.
+
 You can also run the published image directly without Compose:
 
 ```bash

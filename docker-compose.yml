@@ -1,17 +1,28 @@
+# Default Compose values (override through environment variables or .env):
+# - TRELLO_MCP_IMAGE:-ghcr.io/enthouan/trello-mcp:latest
+# - TRELLO_MCP_CONTAINER_NAME:-trello-mcp
+# - TRELLO_MCP_HOST_PORT:-3000
+# - TRELLO_MCP_NETWORK:-trello-mcp_network
+# - PORT:-3000
+
 services:
   trello-mcp:
-    image: ghcr.io/enthouan/trello-mcp:latest
+    image: ${TRELLO_MCP_IMAGE:-ghcr.io/enthouan/trello-mcp:latest}
+    container_name: ${TRELLO_MCP_CONTAINER_NAME:-trello-mcp}
     restart: unless-stopped
     env_file:
       - .env
-    environment:
-      TRANSPORT: http
-      PORT: 3000
     ports:
-      - "3000:3000"
+      - "${TRELLO_MCP_HOST_PORT:-3000}:${PORT:-3000}"
+    networks:
+      - trello-mcp-network
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/healthz"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:${PORT:-3000}/healthz"]
       interval: 30s
       timeout: 3s
       retries: 3
       start_period: 5s
+
+networks:
+  trello-mcp-network:
+    name: ${TRELLO_MCP_NETWORK:-trello-mcp_network}
