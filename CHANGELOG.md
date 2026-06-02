@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.1.1
+
+Packaging metadata patch release.
+
+- Add GHCR-supported OCI image labels for source, description, and license metadata.
+- Add OCI index annotations so the package description is available on the multi-platform image.
+- Add an inspectable GitHub Actions run URL to published image metadata.
+
 ## v0.1.0
 
 Initial self-hostable Trello MCP server release.
