@@ -28,6 +28,28 @@ Codex cloud tasks run a setup script before the agent starts, and can run an opt
 
 The setup script enables Corepack, activates the pinned pnpm version, installs dependencies with `--frozen-lockfile` when `pnpm-lock.yaml` exists (or a normal install before the lockfile is committed), and runs `pnpm typecheck`. The maintenance script repeats the dependency sync and typecheck for cached containers so branch changes do not use stale dependencies.
 
+## Trello credentials
+
+This server currently supports Trello API key + token authentication only.
+
+1. Go to [Trello Power-Up admin](https://trello.com/power-ups/admin).
+2. Create a Power-Up, or open an existing one that should own this API key.
+3. Open the Power-Up's **API key** tab.
+4. Copy the API key into `TRELLO_API_KEY`.
+5. Click the **Token** link near the API key to open Trello's authorization page.
+6. Authorize access for your Trello account.
+7. Copy the generated token into `TRELLO_TOKEN`.
+
+Treat the token like a password. Do not commit it, paste it in logs, or share it in PRs.
+
+You can verify the credentials with:
+
+```bash
+curl "https://api.trello.com/1/members/me?key=$TRELLO_API_KEY&token=$TRELLO_TOKEN"
+```
+
+If the credentials are valid, Trello returns your member JSON. See Trello's [REST API getting started guide](https://support.atlassian.com/trello/docs/getting-started-with-trello-rest-api/) and [API introduction](https://developer.atlassian.com/cloud/trello/guides/rest-api/api-introduction/) for the official flow.
+
 ## Environment
 
 | Variable | Required | Default | Description |
