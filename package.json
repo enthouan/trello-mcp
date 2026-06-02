@@ -19,17 +19,17 @@
     "docs:tools": "tsx scripts/generate-tool-docs.ts"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "latest",
-    "pino": "latest",
-    "zod": "latest"
+    "@modelcontextprotocol/sdk": "1.29.0",
+    "pino": "10.3.1",
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "@biomejs/biome": "2.0.6",
-    "@types/node": "latest",
-    "@vitest/coverage-v8": "latest",
-    "tsx": "latest",
-    "typescript": "latest",
-    "vitest": "latest"
+    "@types/node": "22.19.19",
+    "@vitest/coverage-v8": "4.1.8",
+    "tsx": "4.22.4",
+    "typescript": "6.0.3",
+    "vitest": "4.1.8"
   },
   "packageManager": "pnpm@10.12.1"
 }
