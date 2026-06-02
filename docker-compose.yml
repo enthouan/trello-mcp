@@ -1,14 +1,42 @@
+######################
+# Environment        #
+######################
+
+### Required
+# - TRELLO_API_KEY
+# - TRELLO_TOKEN
+
+### Service-Specific
+# - TRELLO_MCP_HOST_PORT:-3000
+# - TRELLO_MCP_IMAGE_TAG:-latest
+# - TRELLO_MCP_NETWORK:-trello-mcp_network
+# - TRANSPORT:-http
+# - LOG_LEVEL:-info
+
+#########################
+# Global Configurations #
+#########################
+
+## Network
+networks:
+  trello-mcp_network:
+    name: ${TRELLO_MCP_NETWORK:-trello-mcp_network}
+    driver: bridge
+
 services:
   trello-mcp:
-    image: ghcr.io/enthouan/trello-mcp:latest
-    restart: unless-stopped
-    env_file:
-      - .env
-    environment:
-      TRANSPORT: http
-      PORT: 3000
+    container_name: trello-mcp
+    image: ghcr.io/enthouan/trello-mcp:${TRELLO_MCP_IMAGE_TAG:-latest}
     ports:
-      - "3000:3000"
+      - "${TRELLO_MCP_HOST_PORT:-3000}:3000"
+    environment:
+      - TRELLO_API_KEY=${TRELLO_API_KEY:?Set TRELLO_API_KEY in .env}
+      - TRELLO_TOKEN=${TRELLO_TOKEN:?Set TRELLO_TOKEN in .env}
+      - TRANSPORT=${TRANSPORT:-http}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    networks:
+      - trello-mcp_network
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/healthz"]
       interval: 30s

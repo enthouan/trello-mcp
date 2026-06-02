@@ -92,8 +92,10 @@ Edit `.env` and replace the placeholder values:
 TRELLO_API_KEY=your-api-key
 TRELLO_TOKEN=your-token
 TRANSPORT=http
-PORT=3000
 LOG_LEVEL=info
+TRELLO_MCP_HOST_PORT=3000
+TRELLO_MCP_IMAGE_TAG=latest
+TRELLO_MCP_NETWORK=trello-mcp_network
 ```
 
 Start the published image:
@@ -107,6 +109,8 @@ The default `docker-compose.yml` uses:
 ```text
 ghcr.io/enthouan/trello-mcp:latest
 ```
+
+Docker Compose values such as image tag, host port, and network name can be overridden with environment variables or the `.env` file. The compose files document their defaults at the top; for example, `TRELLO_MCP_IMAGE_TAG` defaults to the `latest` tag in `docker-compose.yml` (`latest` follows the `main` branch, and you can set a version tag such as `0.1.1` for a pinned release), `TRELLO_MCP_HOST_PORT` defaults to `3000` and maps the host port to the container's fixed `3000` listener, while `TRELLO_MCP_NETWORK` defaults to `trello-mcp_network`.
 
 You can also run the published image directly without Compose:
 
@@ -252,6 +256,8 @@ curl http://localhost:3000/healthz
 curl http://localhost:3000/readyz
 ```
 
+If you changed `TRELLO_MCP_HOST_PORT`, replace `3000` with that host port.
+
 Check your Trello credentials:
 
 ```bash
@@ -268,14 +274,14 @@ This server currently uses Trello API key + token authentication. See Trello's [
 
 ### Streamable HTTP
 
-Use this mode when the server runs as a service or container.
+Use this mode when the server runs as a service or container. For Docker Compose, set `TRELLO_MCP_HOST_PORT` to choose the published host port; the container listens internally on port `3000`.
 
 ```bash
 TRANSPORT=http
-PORT=3000
+TRELLO_MCP_HOST_PORT=3000
 ```
 
-Start the container, then point an MCP client with Streamable HTTP support to:
+Start the Compose service, then point an MCP client with Streamable HTTP support to:
 
 ```text
 http://localhost:3000/mcp
@@ -338,8 +344,10 @@ Example MCP config shape:
 | `TRELLO_API_KEY` | yes | | Trello API key. |
 | `TRELLO_TOKEN` | yes | | Trello token for token auth. |
 | `TRANSPORT` | no | `http` | `http` or `stdio`. |
-| `PORT` | no | `3000` | HTTP port. |
 | `LOG_LEVEL` | no | `info` | Pino log level. |
+| `TRELLO_MCP_HOST_PORT` | no | `3000` | Docker Compose host port mapped to the container's fixed `3000` listener. |
+| `TRELLO_MCP_IMAGE_TAG` | no | `latest` | Published image tag; `latest` follows `main`, or use a version tag to pin. |
+| `TRELLO_MCP_NETWORK` | no | `trello-mcp_network` | Docker Compose bridge network name. |
 
 ## Usage Examples
 
