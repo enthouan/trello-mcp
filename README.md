@@ -1,15 +1,54 @@
 # Trello MCP Server
 
-A self-hostable Model Context Protocol server exposing Trello tools to LLM clients.
+A self-hostable Model Context Protocol server that lets MCP-compatible clients work with Trello cards, lists, attachments, checklists, members, and card activity.
 
 I built this for my own Trello workflows, but it is intentionally self-hostable and reusable. Feel free to adapt it for your own setup, open issues, or send PRs with improvements.
 
-## Quick start
+## Features
 
-Create a `.env` file with your Trello credentials, then run the published image:
+### Card Workflows
+
+- Read cards by id, short id, or Trello card URL.
+- Create cards with title, description, due date, position, members, and labels.
+- Update card metadata including title, description, due date, due completion, and archived state.
+- Move cards between lists or boards.
+- Permanently delete cards only when explicitly requested.
+
+### Card Context
+
+- List cards in a Trello list.
+- List card attachments and add public URL attachments.
+- List and create card checklists.
+- List card members and add or remove members.
+- Read card actions and activity history.
+
+### Self-Hosted Runtime
+
+- Run with Docker Compose using the published GHCR image.
+- Build locally with a separate Compose file.
+- Use Streamable HTTP for container deployments.
+- Use stdio for local MCP clients that launch the server as a child process.
+- Validate config, tool input, and Trello API responses with Zod.
+- Redact Trello credentials from logs.
+
+## Quick Start
+
+Create a `.env` file with your Trello credentials:
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env`, then run the published image:
 
 ```bash
 docker compose up -d
+```
+
+The default `docker-compose.yml` uses:
+
+```text
+ghcr.io/enthouan/trello-mcp:latest
 ```
 
 To build the image locally instead:
@@ -27,25 +66,9 @@ docker run --rm -p 3000:3000 \
   ghcr.io/enthouan/trello-mcp:latest
 ```
 
-The default `docker-compose.yml` uses `ghcr.io/enthouan/trello-mcp:latest`. Use `docker-compose.local.yml` when developing or testing local Dockerfile changes.
+## Trello Credentials
 
-## Codex cloud environments
-
-Codex cloud tasks run a setup script before the agent starts, and can run an optional maintenance script when a cached container resumes on a task branch. Use these repository scripts in the Codex environment settings:
-
-```bash
-./scripts/codex/setup.sh
-```
-
-```bash
-./scripts/codex/maintenance.sh
-```
-
-The setup script enables Corepack, activates the pinned pnpm version, installs dependencies with `--frozen-lockfile` when `pnpm-lock.yaml` exists (or a normal install before the lockfile is committed), and runs `pnpm typecheck`. The maintenance script repeats the dependency sync and typecheck for cached containers so branch changes do not use stale dependencies.
-
-## Trello credentials
-
-This server currently supports Trello API key + token authentication only.
+This server currently uses Trello API key + token authentication.
 
 1. Go to [Trello Power-Up admin](https://trello.com/power-ups/admin).
 2. Create a Power-Up, or open an existing one that should own this API key.
@@ -57,13 +80,80 @@ This server currently supports Trello API key + token authentication only.
 
 Treat the token like a password. Do not commit it, paste it in logs, or share it in PRs.
 
-You can verify the credentials with:
+Verify the credentials with:
 
 ```bash
 curl "https://api.trello.com/1/members/me?key=$TRELLO_API_KEY&token=$TRELLO_TOKEN"
 ```
 
 If the credentials are valid, Trello returns your member JSON. See Trello's [REST API getting started guide](https://support.atlassian.com/trello/docs/getting-started-with-trello-rest-api/) and [API introduction](https://developer.atlassian.com/cloud/trello/guides/rest-api/api-introduction/) for the official flow.
+
+## MCP Client Setup
+
+### Streamable HTTP
+
+Use this mode when the server runs as a service or container.
+
+```bash
+TRANSPORT=http
+PORT=3000
+```
+
+Start the container, then point an MCP client with Streamable HTTP support to:
+
+```text
+http://localhost:3000/mcp
+```
+
+Health endpoints:
+
+```text
+http://localhost:3000/healthz
+http://localhost:3000/readyz
+```
+
+### stdio
+
+Use this mode when an MCP client launches the server process directly.
+
+Build the project:
+
+```bash
+corepack pnpm install
+corepack pnpm build
+```
+
+Then configure your client to run:
+
+```bash
+node /absolute/path/to/trello-mcp/dist/index.js
+```
+
+with these environment variables:
+
+```bash
+TRANSPORT=stdio
+TRELLO_API_KEY=your-key
+TRELLO_TOKEN=your-token
+```
+
+Example MCP config shape:
+
+```json
+{
+  "mcpServers": {
+    "trello": {
+      "command": "node",
+      "args": ["/absolute/path/to/trello-mcp/dist/index.js"],
+      "env": {
+        "TRANSPORT": "stdio",
+        "TRELLO_API_KEY": "your-key",
+        "TRELLO_TOKEN": "your-token"
+      }
+    }
+  }
+}
+```
 
 ## Environment
 
@@ -75,7 +165,22 @@ If the credentials are valid, Trello returns your member JSON. See Trello's [RES
 | `PORT` | no | `3000` | HTTP port. |
 | `LOG_LEVEL` | no | `info` | Pino log level. |
 
-## Tool catalog
+## Usage Examples
+
+Once connected to an MCP client, ask for Trello actions in natural language:
+
+```text
+Show me the cards in my "Today" list.
+Create a card called "Review invoices" in the bookkeeping list.
+Move this card to Done.
+Archive the card about the old onboarding checklist.
+Show the recent activity for this card.
+Add this public URL as an attachment to the card.
+```
+
+The exact wording depends on your MCP client. When a tool needs a Trello list ID, card ID, or member ID, provide it directly or use a client workflow that already has that context.
+
+## Tool Catalog
 
 <!-- tools:start -->
 | Name | When to use | Key inputs |
@@ -98,4 +203,127 @@ If the credentials are valid, Trello returns your member JSON. See Trello's [RES
 | `trello_card_actions` | Use when auditing recent activity or comments for a card; set filter to commentCard for comments only. | cardId, filter, limit |
 <!-- tools:end -->
 
-Regenerate the catalog with `pnpm docs:tools`.
+Regenerate the catalog with:
+
+```bash
+corepack pnpm docs:tools
+```
+
+## Architecture
+
+```text
+MCP client
+  -> stdio or Streamable HTTP transport
+  -> MCP server and tool registry
+  -> Trello tool handlers
+  -> Trello REST client
+  -> Trello REST API
+```
+
+- `src/index.ts` starts stdio or HTTP transport.
+- `src/server.ts` creates the MCP server and registers tools.
+- `src/trello/client.ts` owns Trello HTTP requests, auth query parameters, retries, and response parsing.
+- `src/trello/cards.ts` defines the card tools.
+- `src/trello/types.ts` contains Trello response schemas.
+- `src/utils/*` contains logging, error mapping, pagination, and tool registration helpers.
+
+## Security Notes
+
+- Trello credentials stay in your environment or MCP client config.
+- Logs redact `TRELLO_API_KEY`, `TRELLO_TOKEN`, and common key/token fields.
+- Trello API requests use HTTPS.
+- Tests use mocks and injected fetchers instead of live Trello calls.
+- Do not publish `.env` files or paste tokens into issues and PRs.
+
+## Development
+
+Install dependencies:
+
+```bash
+corepack pnpm install
+```
+
+Run the local checks:
+
+```bash
+corepack pnpm typecheck
+corepack pnpm lint
+corepack pnpm build
+corepack pnpm test
+```
+
+Run coverage:
+
+```bash
+corepack pnpm test:coverage
+```
+
+Run locally in watch mode:
+
+```bash
+TRELLO_API_KEY=your-key TRELLO_TOKEN=your-token corepack pnpm dev
+```
+
+Build the Docker image locally:
+
+```bash
+corepack pnpm docker:build
+```
+
+## Codex Cloud Environments
+
+Codex cloud tasks run a setup script before the agent starts, and can run an optional maintenance script when a cached container resumes on a task branch. Use these repository scripts in the Codex environment settings:
+
+```bash
+./scripts/codex/setup.sh
+```
+
+```bash
+./scripts/codex/maintenance.sh
+```
+
+The setup script enables Corepack, activates the pinned pnpm version, installs dependencies with `--frozen-lockfile` when `pnpm-lock.yaml` exists, and runs `pnpm typecheck`. The maintenance script repeats dependency sync and typecheck for cached containers so branch changes do not use stale dependencies.
+
+## Troubleshooting
+
+### The server starts but my MCP client does not show tools
+
+- Confirm the client is using the right transport.
+- For stdio, set `TRANSPORT=stdio`.
+- For HTTP, point the client to `/mcp`, not `/healthz` or `/readyz`.
+- Restart the MCP client after changing its config.
+
+### Trello says the credentials are invalid
+
+- Re-run the `members/me` curl check from the credential setup section.
+- Confirm the token was generated from the same Power-Up/API key.
+- Regenerate the token if it was revoked.
+
+### Docker Compose cannot find `.env`
+
+- Copy `.env.example` to `.env`.
+- Fill in `TRELLO_API_KEY` and `TRELLO_TOKEN`.
+- Keep `.env` uncommitted.
+
+### I hit Trello rate limits
+
+- The client retries `429` responses with backoff.
+- Wait a few minutes before retrying large workflows.
+- Prefer narrower prompts that touch fewer cards or lists at once.
+
+## Contributing
+
+PRs are welcome. Keep changes focused, add tests for behavior changes, and avoid committing secrets or generated output.
+
+Before opening a PR, run:
+
+```bash
+corepack pnpm typecheck
+corepack pnpm lint
+corepack pnpm build
+corepack pnpm test
+```
+
+## License
+
+MIT License. See [LICENSE](./LICENSE).
