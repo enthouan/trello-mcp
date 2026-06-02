@@ -98,7 +98,7 @@ corepack pnpm exec biome check --write path/to/file.ts
 - `scripts/generate-tool-docs.ts`: regenerates the README tool catalog.
 - `scripts/codex/setup.sh`: Codex cloud fresh-container setup.
 - `scripts/codex/maintenance.sh`: Codex cloud cached-container maintenance.
-- `.github/workflows/ci.yml`: Build and Test workflow.
+- `.github/workflows/build-and-test.yml`: Build and Test workflow.
 - `.github/workflows/release.yml`: GHCR Docker image publishing.
 
 ## Architecture Rules
