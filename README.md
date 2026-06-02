@@ -14,7 +14,7 @@ This project exists to make it easier for MCP-compatible LLM clients to interfac
 
 I have been using Trello since the early launch-era, pre-Atlassian days, across college, work, and day-to-day life. I have always found ways to integrate it into my workflow in one form or another.
 
-As I have been using AI and LLM tools more often, having a reliable MCP server for Trello became necessary. I have built many small bridge scripts before, but this repository is my first attempt to make the integration clean, reusable, and self-hostable. Other Trello MCP solutions already exist; I built this because I was not fully satisfied with the options I tried.
+As I have been using AI and LLM tools more often, having a reliable MCP server for Trello became necessary. I have built many small bridge scripts before, but this repository is my first attempt to make the integration clean, reusable, and self-hostable. Other Trello MCP solutions already exist; I built this because I was not fully satisfied with the options I tried, and because I wanted to learn how to build an MCP server from scratch.
 
 Most of this project was built with Codex under my close supervision.
 
