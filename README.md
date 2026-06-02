@@ -129,19 +129,90 @@ Treat the token like a password. Do not commit it, paste it in logs, or share it
 
 ### 3. Connect Your MCP Client
 
-For Streamable HTTP clients, point the client to:
+Choose your client below. For stdio examples, replace `/absolute/path/to/trello-mcp` with the path to your local clone and run `corepack pnpm build` first.
+
+#### Claude Code
+
+```bash
+claude mcp add-json trello '{"type":"stdio","command":"node","args":["/absolute/path/to/trello-mcp/dist/index.js"],"env":{"TRANSPORT":"stdio","TRELLO_API_KEY":"your-api-key","TRELLO_TOKEN":"your-token"}}'
+```
+
+#### Codex
+
+If you are running the Docker/HTTP server:
+
+```bash
+codex mcp add trello --url http://localhost:3000/mcp
+```
+
+If you want Codex to launch the local stdio server:
+
+```bash
+codex mcp add trello \
+  --env TRANSPORT=stdio \
+  --env TRELLO_API_KEY=your-api-key \
+  --env TRELLO_TOKEN=your-token \
+  -- node /absolute/path/to/trello-mcp/dist/index.js
+```
+
+#### OpenCode
+
+Add this to `opencode.json` or your OpenCode config:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "trello": {
+      "type": "local",
+      "command": ["node", "/absolute/path/to/trello-mcp/dist/index.js"],
+      "enabled": true,
+      "environment": {
+        "TRANSPORT": "stdio",
+        "TRELLO_API_KEY": "your-api-key",
+        "TRELLO_TOKEN": "your-token"
+      }
+    }
+  }
+}
+```
+
+#### Cursor
+
+Add this to `.cursor/mcp.json` in a project or to `~/.cursor/mcp.json` globally:
+
+```json
+{
+  "mcpServers": {
+    "trello": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["/absolute/path/to/trello-mcp/dist/index.js"],
+      "env": {
+        "TRANSPORT": "stdio",
+        "TRELLO_API_KEY": "your-api-key",
+        "TRELLO_TOKEN": "your-token"
+      }
+    }
+  }
+}
+```
+
+#### Other / Manual
+
+For any MCP client that supports Streamable HTTP, point it to:
 
 ```text
 http://localhost:3000/mcp
 ```
 
-For stdio clients, build locally and configure the client to run:
+For any MCP client that supports stdio, use this command:
 
 ```bash
 node /absolute/path/to/trello-mcp/dist/index.js
 ```
 
-with:
+with this environment:
 
 ```bash
 TRANSPORT=stdio
