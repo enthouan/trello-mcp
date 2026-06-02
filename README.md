@@ -252,9 +252,11 @@ TRELLO_TOKEN=your-token
 Check the HTTP server:
 
 ```bash
-curl "http://localhost:${TRELLO_MCP_HOST_PORT:-3000}/healthz"
-curl "http://localhost:${TRELLO_MCP_HOST_PORT:-3000}/readyz"
+curl http://localhost:3000/healthz
+curl http://localhost:3000/readyz
 ```
+
+If you changed `TRELLO_MCP_HOST_PORT`, replace `3000` with that host port.
 
 Check your Trello credentials:
 
