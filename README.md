@@ -2,7 +2,7 @@
 
 A self-hostable Model Context Protocol server exposing Trello tools to LLM clients.
 
-This repository is currently at the reviewed vertical-slice milestone: config validation, Trello client auth/rate-limit/error handling, tool factory, card tools, HTTP/stdio transports, tests, Docker, and CI/CD scaffolding.
+I built this for my own Trello workflows, but it is intentionally self-hostable and reusable. Feel free to adapt it for your own setup, open issues, or send PRs with improvements.
 
 ## Quick start
 
