@@ -18,8 +18,6 @@ This project is still in the initial scaffold/vertical-slice phase. Keep changes
 
 ## Hard Constraints
 
-- Do not introduce Trello OAuth yet. Authentication should remain `TRELLO_API_KEY` + `TRELLO_TOKEN` only.
-- Do not add `TRELLO_OAUTH_TOKEN`, OAuth redirects, token refresh, OAuth scopes, or OAuth setup docs until explicitly requested.
 - Do not log Trello credentials, request URLs containing credentials, raw environment objects, or full query strings that include auth.
 - Do not make live Trello API calls in tests. Use injected fetchers/mocks.
 - Do not bypass Zod validation for tool inputs or Trello API responses.
@@ -199,7 +197,6 @@ Avoid:
 - Keep README quick-start and environment tables current.
 - If MCP tools are added, removed, renamed, or their key inputs change, run `corepack pnpm docs:tools` and commit the README update.
 - Keep `.env.example` limited to supported environment variables.
-- Do not document OAuth until OAuth is intentionally implemented.
 
 ## CI And Release
 
