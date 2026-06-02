@@ -18,7 +18,7 @@
 
 ## Network
 networks:
-  trello_mcp:
+  trello-mcp_network:
     name: ${TRELLO_MCP_NETWORK:-trello_mcp_network}
     driver: bridge
 
@@ -36,7 +36,7 @@ services:
       - TRANSPORT=${TRANSPORT:-http}
       - LOG_LEVEL=${LOG_LEVEL:-info}
     networks:
-      - trello_mcp
+      - trello-mcp_network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/healthz"]
