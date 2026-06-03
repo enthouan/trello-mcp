@@ -70,6 +70,101 @@ describe("card tools", () => {
     );
   });
 
+  it("adds a card comment through the Trello comments endpoint", async () => {
+    const tool = getCardTool("trello_card_comment_add");
+    const trello = {
+      request: vi.fn(async () => ({
+        id: "action1",
+        type: "commentCard",
+        data: { text: "Looks good" },
+      })),
+    };
+
+    await expect(
+      tool.handler(
+        { cardId: "card1", text: "Looks good" },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual({
+      id: "action1",
+      type: "commentCard",
+      data: { text: "Looks good" },
+    });
+    expect(trello.request).toHaveBeenCalledWith(
+      "/cards/card1/actions/comments",
+      expect.anything(),
+      expect.objectContaining({
+        method: "POST",
+        query: { text: "Looks good" },
+        resourceType: "card",
+        resourceId: "card1",
+      }),
+    );
+  });
+
+  it("updates a card comment by comment action id", async () => {
+    const tool = getCardTool("trello_card_comment_update");
+    const trello = {
+      request: vi.fn(async () => ({
+        id: "action1",
+        type: "commentCard",
+        data: { text: "Updated" },
+      })),
+    };
+
+    await expect(
+      tool.handler(
+        { cardId: "card1", actionId: "action1", text: "Updated" },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual({
+      id: "action1",
+      type: "commentCard",
+      data: { text: "Updated" },
+    });
+    expect(trello.request).toHaveBeenCalledWith(
+      "/cards/card1/actions/action1/comments",
+      expect.anything(),
+      expect.objectContaining({
+        method: "PUT",
+        query: { text: "Updated" },
+        resourceType: "card comment",
+        resourceId: "action1",
+      }),
+    );
+  });
+
+  it("deletes a card comment by comment action id", async () => {
+    const tool = getCardTool("trello_card_comment_delete");
+    const trello = {
+      request: vi.fn(async () => ({ _value: null })),
+    };
+
+    await expect(
+      tool.handler(
+        { cardId: "card1", actionId: "action1" },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual({ _value: null });
+    expect(trello.request).toHaveBeenCalledWith(
+      "/cards/card1/actions/action1/comments",
+      expect.anything(),
+      expect.objectContaining({
+        method: "DELETE",
+        resourceType: "card comment",
+        resourceId: "action1",
+      }),
+    );
+  });
+
+  it("rejects empty card comment text before requesting Trello", () => {
+    const tool = getCardTool("trello_card_comment_add");
+
+    expect(() =>
+      tool.inputSchema.parse({ cardId: "card1", text: "" }),
+    ).toThrow();
+  });
+
   it("allows Trello API errors to be mapped by the tool factory", async () => {
     const tool = getCardTool("trello_card_get");
     const error = new TrelloApiError(500, "Trello failed", { status: 500 });

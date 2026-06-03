@@ -41,6 +41,7 @@ Most of this project was built with Codex under my close supervision.
 - List and create card checklists.
 - List card members and add or remove members.
 - Read card actions and activity history.
+- Add, edit, and delete Trello card comments.
 
 ### Self-Hosted Runtime
 
@@ -353,6 +354,8 @@ Create a card called "Review invoices" in the bookkeeping list.
 Move this card to Done.
 Archive the card about the old onboarding checklist.
 Show the recent activity for this card.
+Add a comment to this card saying the invoices are ready for review.
+Edit this card comment to include the updated invoice total.
 Add this public URL as an attachment to the card.
 ```
 
@@ -381,7 +384,10 @@ The exact wording depends on your MCP client. The server can discover your board
 | `trello_card_members` | Use when listing members assigned to a card; use add/remove member tools to change assignment. | cardId |
 | `trello_card_member_add` | Use when assigning a Trello member to a card by member id. | cardId, memberId |
 | `trello_card_member_remove` | Use when unassigning a Trello member from a card by member id. | cardId, memberId |
-| `trello_card_actions` | Use when auditing recent activity or comments for a card; set filter to commentCard for comments only. | cardId, filter, limit |
+| `trello_card_comment_add` | Use when adding a new comment to a Trello card discussion; returns the created comment action. | cardId, text |
+| `trello_card_comment_update` | Use when editing the text of an existing Trello card comment by its comment action id. | cardId, text, actionId |
+| `trello_card_comment_delete` | Use when deleting an existing Trello card comment by its comment action id. | cardId, actionId |
+| `trello_card_actions` | Use when auditing recent activity or comments for a card; set filter to commentCard for comments only. Use comment tools to add, edit, or delete comments. | cardId, filter, limit |
 <!-- tools:end -->
 
 Regenerate the catalog with:

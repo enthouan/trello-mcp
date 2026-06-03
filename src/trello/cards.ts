@@ -122,6 +122,22 @@ const CardChecklistCreateInput = CardIdInput.extend({
   ),
 });
 
+const CardCommentCreateInput = CardIdInput.extend({
+  text: z.string().min(1).describe("Comment text to add to the card."),
+});
+
+const CardCommentUpdateInput = CardCommentCreateInput.extend({
+  actionId: TrelloIdSchema.describe(
+    "Trello comment action id to update on the card.",
+  ),
+});
+
+const CardCommentDeleteInput = CardIdInput.extend({
+  actionId: TrelloIdSchema.describe(
+    "Trello comment action id to delete from the card.",
+  ),
+});
+
 export const cardTools = [
   defineTool({
     name: "trello_card_get",
@@ -332,9 +348,59 @@ export const cardTools = [
       ),
   }),
   defineTool({
+    name: "trello_card_comment_add",
+    description:
+      "Use when adding a new comment to a Trello card discussion; returns the created comment action.",
+    inputSchema: CardCommentCreateInput,
+    handler: async ({ cardId, text }, { trello }) =>
+      trello.request(
+        `${cardPath(cardId)}/actions/comments`,
+        TrelloActionListSchema.element,
+        {
+          method: "POST",
+          query: { text },
+          resourceType: "card",
+          resourceId: cardId,
+        },
+      ),
+  }),
+  defineTool({
+    name: "trello_card_comment_update",
+    description:
+      "Use when editing the text of an existing Trello card comment by its comment action id.",
+    inputSchema: CardCommentUpdateInput,
+    handler: async ({ cardId, actionId, text }, { trello }) =>
+      trello.request(
+        `${cardPath(cardId)}/actions/${encodeURIComponent(actionId)}/comments`,
+        TrelloActionListSchema.element,
+        {
+          method: "PUT",
+          query: { text },
+          resourceType: "card comment",
+          resourceId: actionId,
+        },
+      ),
+  }),
+  defineTool({
+    name: "trello_card_comment_delete",
+    description:
+      "Use when deleting an existing Trello card comment by its comment action id.",
+    inputSchema: CardCommentDeleteInput,
+    handler: async ({ cardId, actionId }, { trello }) =>
+      trello.request(
+        `${cardPath(cardId)}/actions/${encodeURIComponent(actionId)}/comments`,
+        DeleteResponseSchema,
+        {
+          method: "DELETE",
+          resourceType: "card comment",
+          resourceId: actionId,
+        },
+      ),
+  }),
+  defineTool({
     name: "trello_card_actions",
     description:
-      "Use when auditing recent activity or comments for a card; set filter to commentCard for comments only.",
+      "Use when auditing recent activity or comments for a card; set filter to commentCard for comments only. Use comment tools to add, edit, or delete comments.",
     inputSchema: CardIdInput.extend({
       filter: z
         .string()
