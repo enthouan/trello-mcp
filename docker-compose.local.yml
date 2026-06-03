@@ -7,6 +7,7 @@
 # - TRELLO_TOKEN
 
 ### Service-Specific
+# - TRELLO_MCP_HOST_BIND_IP:-127.0.0.1
 # - TRELLO_MCP_HOST_PORT:-3000
 # - TRELLO_MCP_NETWORK:-trello-mcp_network
 # - TRANSPORT:-http
@@ -29,7 +30,7 @@ services:
       context: .
     image: trello-mcp:local
     ports:
-      - "${TRELLO_MCP_HOST_PORT:-3000}:3000"
+      - "${TRELLO_MCP_HOST_BIND_IP:-127.0.0.1}:${TRELLO_MCP_HOST_PORT:-3000}:3000"
     environment:
       - TRELLO_API_KEY=${TRELLO_API_KEY:?Set TRELLO_API_KEY in .env}
       - TRELLO_TOKEN=${TRELLO_TOKEN:?Set TRELLO_TOKEN in .env}
