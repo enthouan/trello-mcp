@@ -6,6 +6,9 @@ import {
   TrelloAttachmentListSchema,
   TrelloCardListSchema,
   TrelloCardSchema,
+  TrelloChecklistItemListSchema,
+  TrelloChecklistItemSchema,
+  TrelloChecklistItemStateSchema,
   TrelloChecklistListSchema,
   TrelloChecklistSchema,
   TrelloIdSchema,
@@ -121,6 +124,84 @@ const CardChecklistCreateInput = CardIdInput.extend({
     "Existing checklist id to copy items from.",
   ),
 });
+
+const ChecklistIdInput = z.object({
+  checklistId: TrelloIdSchema.describe("Trello checklist id."),
+});
+
+const ChecklistItemIdInput = z.object({
+  checkItemId: TrelloIdSchema.describe("Trello checklist item id."),
+});
+
+const ChecklistItemPositionInput = z
+  .union([z.literal("top"), z.literal("bottom"), z.number()])
+  .optional()
+  .describe("Position of the checklist item within its checklist.");
+
+const CardChecklistItemCreateInput = ChecklistIdInput.extend({
+  name: z.string().min(1).describe("Checklist item text."),
+  pos: ChecklistItemPositionInput,
+  checked: z
+    .boolean()
+    .optional()
+    .describe("Whether the checklist item should start checked."),
+  due: z
+    .string()
+    .datetime()
+    .optional()
+    .describe("Optional ISO-8601 due date for the checklist item."),
+  dueReminder: z
+    .number()
+    .int()
+    .optional()
+    .describe("Optional reminder offset in minutes for the item due date."),
+  memberId: TrelloIdSchema.optional().describe(
+    "Optional Trello member id assigned to the checklist item.",
+  ),
+});
+
+const CardChecklistItemUpdateInput = CardIdInput.merge(
+  ChecklistItemIdInput,
+).extend({
+  name: z.string().min(1).optional().describe("Updated checklist item text."),
+  state: TrelloChecklistItemStateSchema.optional().describe(
+    "Set to complete to check the item or incomplete to uncheck it.",
+  ),
+  checklistId: TrelloIdSchema.optional().describe(
+    "Destination checklist id; include to move the item to another checklist on the card.",
+  ),
+  pos: ChecklistItemPositionInput,
+  due: z
+    .string()
+    .datetime()
+    .nullable()
+    .optional()
+    .describe("New ISO-8601 item due date, or null to clear it."),
+  dueReminder: z
+    .number()
+    .int()
+    .nullable()
+    .optional()
+    .describe("New reminder offset in minutes, or null to clear it."),
+  memberId: TrelloIdSchema.nullable()
+    .optional()
+    .describe("Trello member id assigned to the item, or null to unassign."),
+});
+
+const CardChecklistItemStateInput = CardIdInput.merge(
+  ChecklistItemIdInput,
+).extend({
+  checked: z.boolean().describe("True checks the item; false unchecks it."),
+});
+
+const CardChecklistItemMoveInput = CardIdInput.merge(
+  ChecklistItemIdInput,
+).extend({
+  checklistId: TrelloIdSchema.describe("Destination checklist id on the card."),
+  pos: ChecklistItemPositionInput,
+});
+
+const CardChecklistItemDeleteInput = CardIdInput.merge(ChecklistItemIdInput);
 
 const CardCommentCreateInput = CardIdInput.extend({
   text: z.string().min(1).describe("Comment text to add to the card."),
@@ -304,6 +385,119 @@ export const cardTools = [
         resourceType: "card",
         resourceId: cardId,
       }),
+  }),
+
+  defineTool({
+    name: "trello_card_checklist_item_create",
+    description:
+      "Use when adding a new item to an existing Trello checklist on a card.",
+    inputSchema: CardChecklistItemCreateInput,
+    handler: async ({ checklistId, memberId, ...input }, { trello }) =>
+      trello.request(
+        `/checklists/${encodeURIComponent(checklistId)}/checkItems`,
+        TrelloChecklistItemSchema,
+        {
+          method: "POST",
+          query: { ...input, idMember: memberId },
+          resourceType: "checklist",
+          resourceId: checklistId,
+        },
+      ),
+  }),
+  defineTool({
+    name: "trello_card_checklist_items",
+    description:
+      "Use when listing the items in one Trello checklist, including complete and incomplete items by default.",
+    inputSchema: ChecklistIdInput.extend({
+      filter: z
+        .enum(["all", "checked", "none", "unchecked"])
+        .default("all")
+        .describe("Which checklist items to include."),
+      fields: z
+        .string()
+        .default("all")
+        .describe("Comma-separated checklist item fields to return."),
+    }),
+    handler: async ({ checklistId, filter, fields }, { trello }) =>
+      trello.request(
+        `/checklists/${encodeURIComponent(checklistId)}/checkItems`,
+        TrelloChecklistItemListSchema,
+        {
+          query: { filter, fields },
+          resourceType: "checklist",
+          resourceId: checklistId,
+        },
+      ),
+  }),
+  defineTool({
+    name: "trello_card_checklist_item_update",
+    description:
+      "Use when editing a Trello card checklist item text, due date, member assignment, completion state, checklist, or position.",
+    inputSchema: CardChecklistItemUpdateInput,
+    handler: async (
+      { cardId, checkItemId, checklistId, memberId, ...input },
+      { trello },
+    ) =>
+      trello.request(
+        `${cardPath(cardId)}/checkItem/${encodeURIComponent(checkItemId)}`,
+        TrelloChecklistItemSchema,
+        {
+          method: "PUT",
+          query: { ...input, idChecklist: checklistId, idMember: memberId },
+          resourceType: "checklist item",
+          resourceId: checkItemId,
+        },
+      ),
+  }),
+  defineTool({
+    name: "trello_card_checklist_item_set_checked",
+    description:
+      "Use when checking or unchecking a Trello card checklist item without changing other item fields.",
+    inputSchema: CardChecklistItemStateInput,
+    handler: async ({ cardId, checkItemId, checked }, { trello }) =>
+      trello.request(
+        `${cardPath(cardId)}/checkItem/${encodeURIComponent(checkItemId)}`,
+        TrelloChecklistItemSchema,
+        {
+          method: "PUT",
+          query: { state: checked ? "complete" : "incomplete" },
+          resourceType: "checklist item",
+          resourceId: checkItemId,
+        },
+      ),
+  }),
+  defineTool({
+    name: "trello_card_checklist_item_move",
+    description:
+      "Use when moving a Trello checklist item to another checklist on the same card or to a different position.",
+    inputSchema: CardChecklistItemMoveInput,
+    handler: async ({ cardId, checkItemId, checklistId, pos }, { trello }) =>
+      trello.request(
+        `${cardPath(cardId)}/checkItem/${encodeURIComponent(checkItemId)}`,
+        TrelloChecklistItemSchema,
+        {
+          method: "PUT",
+          query: { idChecklist: checklistId, pos },
+          resourceType: "checklist item",
+          resourceId: checkItemId,
+        },
+      ),
+  }),
+  defineTool({
+    name: "trello_card_checklist_item_delete",
+    description:
+      "Use when deleting a checklist item from a Trello card checklist.",
+    inputSchema: CardChecklistItemDeleteInput,
+    handler: async ({ cardId, checkItemId }, { trello }) =>
+      trello.request(
+        `${cardPath(cardId)}/checkItem/${encodeURIComponent(checkItemId)}`,
+        DeleteResponseSchema,
+        {
+          method: "DELETE",
+          resourceType: "checklist item",
+          resourceId: checkItemId,
+        },
+      ),
   }),
   defineTool({
     name: "trello_card_members",

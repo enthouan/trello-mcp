@@ -67,11 +67,20 @@ export const TrelloActionSchema = z.object({
   memberCreator: TrelloMemberSchema.optional(),
 });
 
+export const TrelloChecklistItemStateSchema = z.enum([
+  "complete",
+  "incomplete",
+]);
+
 export const TrelloChecklistItemSchema = z.object({
   id: TrelloIdSchema,
+  idChecklist: TrelloIdSchema.optional(),
   name: z.string(),
-  state: z.enum(["complete", "incomplete"]).optional(),
-  pos: z.number().optional(),
+  state: TrelloChecklistItemStateSchema.optional(),
+  pos: z.union([z.number(), z.string()]).optional(),
+  due: z.string().nullable().optional(),
+  dueReminder: z.number().nullable().optional(),
+  idMember: TrelloIdSchema.nullable().optional(),
 });
 
 export const TrelloChecklistSchema = z.object({
@@ -107,6 +116,7 @@ export const TrelloMemberListSchema = z.array(TrelloMemberSchema);
 export const TrelloLabelListSchema = z.array(TrelloLabelSchema);
 export const TrelloAttachmentListSchema = z.array(TrelloAttachmentSchema);
 export const TrelloChecklistListSchema = z.array(TrelloChecklistSchema);
+export const TrelloChecklistItemListSchema = z.array(TrelloChecklistItemSchema);
 export const TrelloActionListSchema = z.array(TrelloActionSchema);
 export const DeleteResponseSchema = z
   .object({ _value: z.union([z.string(), z.null()]).optional() })

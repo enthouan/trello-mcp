@@ -165,6 +165,230 @@ describe("card tools", () => {
     ).toThrow();
   });
 
+  it("creates checklist items on an existing checklist", async () => {
+    const tool = getCardTool("trello_card_checklist_item_create");
+    const trello = {
+      request: vi.fn(async () => ({
+        id: "item1",
+        idChecklist: "checklist1",
+        name: "Ship it",
+        state: "incomplete",
+      })),
+    };
+
+    await expect(
+      tool.handler(
+        {
+          checklistId: "checklist1",
+          name: "Ship it",
+          pos: "bottom",
+          checked: false,
+          memberId: "member1",
+        },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual({
+      id: "item1",
+      idChecklist: "checklist1",
+      name: "Ship it",
+      state: "incomplete",
+    });
+    expect(trello.request).toHaveBeenCalledWith(
+      "/checklists/checklist1/checkItems",
+      expect.anything(),
+      expect.objectContaining({
+        method: "POST",
+        query: expect.objectContaining({
+          name: "Ship it",
+          pos: "bottom",
+          checked: false,
+          idMember: "member1",
+        }),
+        resourceType: "checklist",
+        resourceId: "checklist1",
+      }),
+    );
+  });
+
+  it("sets checklist item state through the card check item endpoint", async () => {
+    const tool = getCardTool("trello_card_checklist_item_set_checked");
+    const trello = {
+      request: vi.fn(async () => ({
+        id: "item1",
+        idChecklist: "checklist1",
+        name: "Ship it",
+        state: "complete",
+      })),
+    };
+
+    await expect(
+      tool.handler(
+        { cardId: "card1", checkItemId: "item1", checked: true },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual({
+      id: "item1",
+      idChecklist: "checklist1",
+      name: "Ship it",
+      state: "complete",
+    });
+    expect(trello.request).toHaveBeenCalledWith(
+      "/cards/card1/checkItem/item1",
+      expect.anything(),
+      expect.objectContaining({
+        method: "PUT",
+        query: { state: "complete" },
+        resourceType: "checklist item",
+        resourceId: "item1",
+      }),
+    );
+  });
+
+  it("unchecks checklist items through the card check item endpoint", async () => {
+    const tool = getCardTool("trello_card_checklist_item_set_checked");
+    const trello = {
+      request: vi.fn(async () => ({
+        id: "item1",
+        idChecklist: "checklist1",
+        name: "Ship it",
+        state: "incomplete",
+      })),
+    };
+
+    await expect(
+      tool.handler(
+        { cardId: "card1", checkItemId: "item1", checked: false },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual(
+      expect.objectContaining({ id: "item1", state: "incomplete" }),
+    );
+    expect(trello.request).toHaveBeenCalledWith(
+      "/cards/card1/checkItem/item1",
+      expect.anything(),
+      expect.objectContaining({
+        method: "PUT",
+        query: { state: "incomplete" },
+      }),
+    );
+  });
+
+  it("updates and moves checklist items on cards", async () => {
+    const tool = getCardTool("trello_card_checklist_item_update");
+    const trello = {
+      request: vi.fn(async () => ({
+        id: "item1",
+        idChecklist: "checklist2",
+        name: "Updated",
+        state: "incomplete",
+        pos: 16384,
+      })),
+    };
+
+    await expect(
+      tool.handler(
+        {
+          cardId: "card1",
+          checkItemId: "item1",
+          checklistId: "checklist2",
+          name: "Updated",
+          pos: 16384,
+          memberId: null,
+        },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual({
+      id: "item1",
+      idChecklist: "checklist2",
+      name: "Updated",
+      state: "incomplete",
+      pos: 16384,
+    });
+    expect(trello.request).toHaveBeenCalledWith(
+      "/cards/card1/checkItem/item1",
+      expect.anything(),
+      expect.objectContaining({
+        method: "PUT",
+        query: expect.objectContaining({
+          idChecklist: "checklist2",
+          name: "Updated",
+          pos: 16384,
+          idMember: null,
+        }),
+        resourceType: "checklist item",
+        resourceId: "item1",
+      }),
+    );
+  });
+
+  it("moves checklist items with the dedicated move tool", async () => {
+    const tool = getCardTool("trello_card_checklist_item_move");
+    const trello = {
+      request: vi.fn(async () => ({
+        id: "item1",
+        idChecklist: "checklist2",
+        name: "Ship it",
+        state: "incomplete",
+        pos: "top",
+      })),
+    };
+
+    await expect(
+      tool.handler(
+        {
+          cardId: "card1",
+          checkItemId: "item1",
+          checklistId: "checklist2",
+          pos: "top",
+        },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual(expect.objectContaining({ idChecklist: "checklist2" }));
+    expect(trello.request).toHaveBeenCalledWith(
+      "/cards/card1/checkItem/item1",
+      expect.anything(),
+      expect.objectContaining({
+        method: "PUT",
+        query: { idChecklist: "checklist2", pos: "top" },
+      }),
+    );
+  });
+
+  it("deletes checklist items from cards", async () => {
+    const tool = getCardTool("trello_card_checklist_item_delete");
+    const trello = {
+      request: vi.fn(async () => ({ _value: null })),
+    };
+
+    await expect(
+      tool.handler(
+        { cardId: "card1", checkItemId: "item1" },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual({ _value: null });
+    expect(trello.request).toHaveBeenCalledWith(
+      "/cards/card1/checkItem/item1",
+      expect.anything(),
+      expect.objectContaining({
+        method: "DELETE",
+        resourceType: "checklist item",
+        resourceId: "item1",
+      }),
+    );
+  });
+
+  it("rejects invalid checklist item state before requesting Trello", () => {
+    const tool = getCardTool("trello_card_checklist_item_update");
+
+    expect(() =>
+      tool.inputSchema.parse({
+        cardId: "card1",
+        checkItemId: "item1",
+        state: "done",
+      }),
+    ).toThrow();
+  });
+
   it("allows Trello API errors to be mapped by the tool factory", async () => {
     const tool = getCardTool("trello_card_get");
     const error = new TrelloApiError(500, "Trello failed", { status: 500 });
