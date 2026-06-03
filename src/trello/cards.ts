@@ -49,12 +49,19 @@ const CardDueDateInput = CardIdInput.extend({
     .string()
     .datetime()
     .nullable()
+    .optional()
     .describe("ISO-8601 due date to set, or null to clear the card due date."),
   dueComplete: z
     .boolean()
     .optional()
     .describe("Whether the due date should be marked complete."),
-});
+}).refine(
+  (input) => input.due !== undefined || input.dueComplete !== undefined,
+  {
+    message: "Provide at least one of due or dueComplete.",
+    path: ["due"],
+  },
+);
 
 const CardPositionInput = CardIdInput.extend({
   pos: z
@@ -369,7 +376,10 @@ export const cardTools = [
     handler: async ({ cardId, due, dueComplete }, { trello }) =>
       trello.request(cardPath(cardId), TrelloCardSchema, {
         method: "PUT",
-        query: { due, dueComplete },
+        query: {
+          ...(due !== undefined ? { due } : {}),
+          ...(dueComplete !== undefined ? { dueComplete } : {}),
+        },
         resourceType: "card",
         resourceId: cardId,
       }),
