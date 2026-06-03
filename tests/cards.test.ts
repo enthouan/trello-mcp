@@ -490,6 +490,40 @@ describe("card tools", () => {
     );
   });
 
+  it("marks due completion without requiring the due date value", async () => {
+    const tool = getCardTool("trello_card_due_date_set");
+    const trello = {
+      request: vi.fn(async () => ({
+        id: "card1",
+        name: "Due soon",
+        dueComplete: true,
+      })),
+    };
+
+    await expect(
+      tool.handler(
+        tool.inputSchema.parse({ cardId: "card1", dueComplete: true }),
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual(expect.objectContaining({ dueComplete: true }));
+    expect(trello.request).toHaveBeenCalledWith(
+      "/cards/card1",
+      expect.anything(),
+      expect.objectContaining({
+        method: "PUT",
+        query: { dueComplete: true },
+      }),
+    );
+  });
+
+  it("rejects no-op focused due date updates", () => {
+    const tool = getCardTool("trello_card_due_date_set");
+
+    expect(() => tool.inputSchema.parse({ cardId: "card1" })).toThrow(
+      "Provide at least one of due or dueComplete.",
+    );
+  });
+
   it("sets card position without moving lists or boards", async () => {
     const tool = getCardTool("trello_card_position_set");
     const trello = {
