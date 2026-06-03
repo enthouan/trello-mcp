@@ -10,6 +10,47 @@ export const TrelloMemberSchema = z.object({
   avatarUrl: z.string().nullable().optional(),
 });
 
+export const TrelloBoardPreferencesSchema = z
+  .object({
+    permissionLevel: z.string().optional(),
+    hideVotes: z.boolean().optional(),
+    voting: z.string().optional(),
+    comments: z.string().optional(),
+    invitations: z.string().optional(),
+    selfJoin: z.boolean().optional(),
+    cardCovers: z.boolean().optional(),
+    isTemplate: z.boolean().optional(),
+    cardAging: z.string().optional(),
+    calendarFeedEnabled: z.boolean().optional(),
+    background: z.string().nullable().optional(),
+    backgroundImage: z.string().nullable().optional(),
+    backgroundTile: z.boolean().optional(),
+    backgroundBrightness: z.string().optional(),
+    backgroundBottomColor: z.string().nullable().optional(),
+    backgroundTopColor: z.string().nullable().optional(),
+    canBePublic: z.boolean().optional(),
+    canBeEnterprise: z.boolean().optional(),
+    canBeOrg: z.boolean().optional(),
+    canBePrivate: z.boolean().optional(),
+    canInvite: z.boolean().optional(),
+  })
+  .passthrough();
+
+export const TrelloBoardLabelNamesSchema = z
+  .object({
+    green: z.string().optional(),
+    yellow: z.string().optional(),
+    orange: z.string().optional(),
+    red: z.string().optional(),
+    purple: z.string().optional(),
+    blue: z.string().optional(),
+    sky: z.string().optional(),
+    lime: z.string().optional(),
+    pink: z.string().optional(),
+    black: z.string().optional(),
+  })
+  .passthrough();
+
 export const TrelloBoardSchema = z.object({
   id: TrelloIdSchema,
   name: z.string(),
@@ -19,6 +60,9 @@ export const TrelloBoardSchema = z.object({
   url: z.string().url().optional(),
   shortUrl: z.string().url().optional(),
   dateLastActivity: z.string().nullable().optional(),
+  prefs: TrelloBoardPreferencesSchema.optional(),
+  labelNames: TrelloBoardLabelNamesSchema.optional(),
+  subscribed: z.boolean().optional(),
 });
 
 export const TrelloListSchema = z.object({
@@ -92,6 +136,15 @@ export const TrelloChecklistSchema = z.object({
   checkItems: z.array(TrelloChecklistItemSchema).optional(),
 });
 
+export const TrelloBoardMembershipSchema = z.object({
+  id: TrelloIdSchema,
+  idMember: TrelloIdSchema.optional(),
+  memberType: z.string().optional(),
+  unconfirmed: z.boolean().optional(),
+  deactivated: z.boolean().optional(),
+  member: TrelloMemberSchema.optional(),
+});
+
 export const TrelloCardSchema = z.object({
   id: TrelloIdSchema,
   name: z.string(),
@@ -113,6 +166,9 @@ export const TrelloCardListSchema = z.array(TrelloCardSchema);
 export const TrelloBoardListSchema = z.array(TrelloBoardSchema);
 export const TrelloListListSchema = z.array(TrelloListSchema);
 export const TrelloMemberListSchema = z.array(TrelloMemberSchema);
+export const TrelloBoardMembershipListSchema = z.array(
+  TrelloBoardMembershipSchema,
+);
 export const TrelloLabelListSchema = z.array(TrelloLabelSchema);
 export const TrelloAttachmentListSchema = z.array(TrelloAttachmentSchema);
 export const TrelloChecklistListSchema = z.array(TrelloChecklistSchema);

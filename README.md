@@ -383,8 +383,13 @@ The exact wording depends on your MCP client. The server can discover your board
 | Name | When to use | Key inputs |
 | --- | --- | --- |
 | `trello_list_boards` | Use first when the user has not provided a board, list, card id, or Trello URL; returns boards visible to the authenticated Trello member. | filter, fields |
-| `trello_board_get` | Use when you need basic metadata for a known Trello board before listing its lists or summarizing it. | boardId, fields |
+| `trello_board_get` | Use when you need board details, common board preferences, or label names for a known Trello board before listing or summarizing it. | boardId, fields |
+| `trello_board_field_get` | Use when you need one specific board field, such as prefs, labelNames, subscribed, name, description, or URL. | boardId, field |
 | `trello_board_lists` | Use when you need the lists on a known Trello board so you can find the right list id before listing or creating cards. | boardId, filter, fields |
+| `trello_board_cards` | Use when you need cards across all lists on a known Trello board for personal planning, review, or summarization. | boardId, filter, fields |
+| `trello_board_labels` | Use when discovering labels available on a board before creating or updating cards with labels. | boardId, limit, fields |
+| `trello_board_members` | Use when you need the members who can access a known Trello board before assigning cards or reviewing collaboration. | boardId, filter, fields |
+| `trello_board_memberships` | Use when you need board membership records, member roles, or permission context for a known Trello board. | boardId, filter, member, memberFields |
 | `trello_list_get` | Use when you need metadata for a known Trello list before creating cards in it or changing it. | listId, fields |
 | `trello_list_create` | Use when creating a new Trello list on an existing board. | boardId, name, pos |
 | `trello_list_update` | Use when renaming a Trello list, changing its position, or setting its archive state. | listId, name, closed, pos |
@@ -415,7 +420,6 @@ The exact wording depends on your MCP client. The server can discover your board
 | `trello_card_comment_update` | Use when editing the text of an existing Trello card comment by its comment action id. | actionId, text |
 | `trello_card_comment_delete` | Use when deleting an existing Trello card comment by its comment action id. | actionId |
 | `trello_card_actions` | Use when auditing recent activity or comments for a card; set filter to commentCard for comments only. Use comment tools to add, edit, or delete comments. | cardId, filter, limit |
-| `trello_board_labels` | Use when discovering labels available on a board before creating or updating cards with labels. | boardId, limit |
 | `trello_label_get` | Use when you need the current name, color, or board for a specific Trello label before editing it. | labelId |
 | `trello_label_create` | Use when creating a new reusable label on a Trello board before applying it to cards. | boardId, name, color |
 | `trello_label_update` | Use when renaming a Trello label or changing its color without changing any card assignments. | labelId, name, color |
