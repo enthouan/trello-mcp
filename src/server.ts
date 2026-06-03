@@ -3,6 +3,8 @@ import type { Config } from "./config.js";
 import { boardTools } from "./trello/boards.js";
 import { cardTools } from "./trello/cards.js";
 import { TrelloClient } from "./trello/client.js";
+import { labelTools } from "./trello/labels.js";
+import { listTools } from "./trello/lists.js";
 import type { Logger } from "./utils/logger.js";
 import { registerTool, type ToolDefinition } from "./utils/tool.js";
 
@@ -17,7 +19,7 @@ export function createServer(config: Config, logger: Logger): AppServer {
     version: "0.1.0",
   });
   const trello = new TrelloClient(config);
-  const tools = [...boardTools, ...cardTools];
+  const tools = [...boardTools, ...listTools, ...cardTools, ...labelTools];
 
   for (const tool of tools) {
     registerTool(mcp, tool, { trello, logger });

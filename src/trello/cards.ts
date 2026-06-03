@@ -350,7 +350,7 @@ export const cardTools = [
   defineTool({
     name: "trello_card_comment_add",
     description:
-      "Use when adding a new comment to a Trello card discussion; returns the created comment action.",
+      "Use when adding a new comment to a Trello card; returns the created comment action.",
     inputSchema: CardCommentCreateInput,
     handler: async ({ cardId, text }, { trello }) =>
       trello.request(

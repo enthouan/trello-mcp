@@ -70,7 +70,7 @@ describe("card tools", () => {
     );
   });
 
-  it("adds a card comment through the Trello comments endpoint", async () => {
+  it("adds comments to cards through Trello comment actions", async () => {
     const tool = getCardTool("trello_card_comment_add");
     const trello = {
       request: vi.fn(async () => ({
