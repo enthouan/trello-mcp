@@ -192,7 +192,7 @@ describe("board tools", () => {
       "/boards/board1/members",
       expect.anything(),
       expect.objectContaining({
-        query: expect.objectContaining({ filter: "all" }),
+        query: { fields: "username,fullName,initials,avatarUrl" },
         resourceType: "board",
         resourceId: "board1",
       }),
@@ -229,6 +229,17 @@ describe("board tools", () => {
         resourceId: "board1",
       }),
     );
+  });
+
+  it("accepts Trello-supported board membership filters only", () => {
+    const tool = getBoardTool("trello_board_memberships");
+
+    expect(
+      tool.inputSchema.parse({ boardId: "board1", filter: "admins" }).filter,
+    ).toBe("admins");
+    expect(() =>
+      tool.inputSchema.parse({ boardId: "board1", filter: "active" }),
+    ).toThrow();
   });
 
   it("propagates board permission errors from Trello", async () => {

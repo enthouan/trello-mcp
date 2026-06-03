@@ -388,7 +388,7 @@ The exact wording depends on your MCP client. The server can discover your board
 | `trello_board_lists` | Use when you need the lists on a known Trello board so you can find the right list id before listing or creating cards. | boardId, filter, fields |
 | `trello_board_cards` | Use when you need cards across all lists on a known Trello board for personal planning, review, or summarization. | boardId, filter, fields |
 | `trello_board_labels` | Use when discovering labels available on a board before creating or updating cards with labels. | boardId, limit, fields |
-| `trello_board_members` | Use when you need the members who can access a known Trello board before assigning cards or reviewing collaboration. | boardId, filter, fields |
+| `trello_board_members` | Use when you need the members who can access a known Trello board before assigning cards or reviewing collaboration. | boardId, fields |
 | `trello_board_memberships` | Use when you need board membership records, member roles, or permission context for a known Trello board. | boardId, filter, member, memberFields |
 | `trello_list_get` | Use when you need metadata for a known Trello list before creating cards in it or changing it. | listId, fields |
 | `trello_list_create` | Use when creating a new Trello list on an existing board. | boardId, name, pos |

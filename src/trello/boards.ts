@@ -91,10 +91,6 @@ const BoardCardsInput = BoardIdInput.extend({
 });
 
 const BoardMembersInput = BoardIdInput.extend({
-  filter: z
-    .enum(["admins", "all", "normal", "owners", "none"])
-    .default("all")
-    .describe("Which members to include from the board."),
   fields: z
     .string()
     .default("username,fullName,initials,avatarUrl")
@@ -103,7 +99,7 @@ const BoardMembersInput = BoardIdInput.extend({
 
 const BoardMembershipsInput = BoardIdInput.extend({
   filter: z
-    .enum(["active", "admin", "all", "deactivated", "me", "normal"])
+    .enum(["admins", "all", "none", "normal"])
     .default("all")
     .describe("Which board memberships to include."),
   member: z
@@ -227,12 +223,12 @@ export const boardTools = [
     description:
       "Use when you need the members who can access a known Trello board before assigning cards or reviewing collaboration.",
     inputSchema: BoardMembersInput,
-    handler: async ({ boardId, filter, fields }, { trello }) =>
+    handler: async ({ boardId, fields }, { trello }) =>
       trello.request(
         `/boards/${encodeURIComponent(boardId)}/members`,
         TrelloMemberListSchema,
         {
-          query: { filter, fields },
+          query: { fields },
           resourceType: "board",
           resourceId: boardId,
         },
