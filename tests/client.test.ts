@@ -39,6 +39,25 @@ describe("TrelloClient", () => {
     expect(calledUrl.searchParams.get("fields")).toBe("name");
   });
 
+  it("preserves null query values for Trello clear operations", async () => {
+    const fetcher = vi.fn<typeof fetch>(async () => jsonResponse({ ok: true }));
+    const client = new TrelloClient(config, { fetcher });
+
+    await client.request("/cards/card1/checkItem/item1", OkSchema, {
+      query: { due: null, dueReminder: null, idMember: null, pos: undefined },
+    });
+
+    const calledUrl = fetcher.mock.calls[0]?.[0];
+    expect(calledUrl).toBeInstanceOf(URL);
+    if (!(calledUrl instanceof URL)) {
+      throw new TypeError("Expected fetcher to be called with a URL");
+    }
+    expect(calledUrl.searchParams.get("due")).toBe("null");
+    expect(calledUrl.searchParams.get("dueReminder")).toBe("null");
+    expect(calledUrl.searchParams.get("idMember")).toBe("null");
+    expect(calledUrl.searchParams.has("pos")).toBe(false);
+  });
+
   it("throttles through the token bucket", async () => {
     const fetcher = vi.fn(async () => jsonResponse({ ok: true }));
     const sleep = vi.fn(async () => undefined);
