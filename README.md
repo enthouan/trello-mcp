@@ -26,6 +26,7 @@ Most of this project was built with Codex under my close supervision.
 - Read basic board metadata.
 - List open, closed, or all lists on a board.
 - List, create, inspect, update, and delete board labels.
+- Create, inspect, rename, archive, unarchive, and move lists between boards.
 
 ### Card Workflows
 
@@ -43,6 +44,7 @@ Most of this project was built with Codex under my close supervision.
 - List and create card checklists.
 - List card members and add or remove members.
 - Read card actions and activity history.
+- Add comments to cards and return the created comment action.
 
 ### Self-Hosted Runtime
 
@@ -94,8 +96,10 @@ Edit `.env` and replace the placeholder values:
 TRELLO_API_KEY=your-api-key
 TRELLO_TOKEN=your-token
 TRANSPORT=http
-PORT=3000
 LOG_LEVEL=info
+TRELLO_MCP_HOST_PORT=3000
+TRELLO_MCP_IMAGE_TAG=latest
+TRELLO_MCP_NETWORK=trello-mcp_network
 ```
 
 Start the published image:
@@ -109,6 +113,8 @@ The default `docker-compose.yml` uses:
 ```text
 ghcr.io/enthouan/trello-mcp:latest
 ```
+
+Docker Compose values such as image tag, host port, and network name can be overridden with environment variables or the `.env` file. The compose files document their defaults at the top; for example, `TRELLO_MCP_IMAGE_TAG` defaults to the `latest` tag in `docker-compose.yml` (`latest` follows the `main` branch, and you can set a version tag such as `0.1.1` for a pinned release), `TRELLO_MCP_HOST_PORT` defaults to `3000` and maps the host port to the container's fixed `3000` listener, while `TRELLO_MCP_NETWORK` defaults to `trello-mcp_network`.
 
 You can also run the published image directly without Compose:
 
@@ -254,6 +260,8 @@ curl http://localhost:3000/healthz
 curl http://localhost:3000/readyz
 ```
 
+If you changed `TRELLO_MCP_HOST_PORT`, replace `3000` with that host port.
+
 Check your Trello credentials:
 
 ```bash
@@ -270,14 +278,14 @@ This server currently uses Trello API key + token authentication. See Trello's [
 
 ### Streamable HTTP
 
-Use this mode when the server runs as a service or container.
+Use this mode when the server runs as a service or container. For Docker Compose, set `TRELLO_MCP_HOST_PORT` to choose the published host port; the container listens internally on port `3000`.
 
 ```bash
 TRANSPORT=http
-PORT=3000
+TRELLO_MCP_HOST_PORT=3000
 ```
 
-Start the container, then point an MCP client with Streamable HTTP support to:
+Start the Compose service, then point an MCP client with Streamable HTTP support to:
 
 ```text
 http://localhost:3000/mcp
@@ -340,8 +348,10 @@ Example MCP config shape:
 | `TRELLO_API_KEY` | yes | | Trello API key. |
 | `TRELLO_TOKEN` | yes | | Trello token for token auth. |
 | `TRANSPORT` | no | `http` | `http` or `stdio`. |
-| `PORT` | no | `3000` | HTTP port. |
 | `LOG_LEVEL` | no | `info` | Pino log level. |
+| `TRELLO_MCP_HOST_PORT` | no | `3000` | Docker Compose host port mapped to the container's fixed `3000` listener. |
+| `TRELLO_MCP_IMAGE_TAG` | no | `latest` | Published image tag; `latest` follows `main`, or use a version tag to pin. |
+| `TRELLO_MCP_NETWORK` | no | `trello-mcp_network` | Docker Compose bridge network name. |
 
 ## Usage Examples
 
@@ -368,6 +378,11 @@ The exact wording depends on your MCP client. The server can discover your board
 | `trello_list_boards` | Use first when the user has not provided a board, list, card id, or Trello URL; returns boards visible to the authenticated Trello member. | filter, fields |
 | `trello_board_get` | Use when you need basic metadata for a known Trello board before listing its lists or summarizing it. | boardId, fields |
 | `trello_board_lists` | Use when you need the lists on a known Trello board so you can find the right list id before listing or creating cards. | boardId, filter, fields |
+| `trello_list_get` | Use when you need metadata for a known Trello list before creating cards in it or changing it. | listId, fields |
+| `trello_list_create` | Use when creating a new Trello list on an existing board. | boardId, name, pos |
+| `trello_list_update` | Use when renaming a Trello list, changing its position, or setting its archive state. | listId, name, closed, pos |
+| `trello_list_archive` | Use when archiving or unarchiving a Trello list while keeping its cards recoverable. | listId, closed |
+| `trello_list_move_to_board` | Use when moving an existing Trello list to another board. | listId, boardId |
 | `trello_card_get` | Use when you need the current details of one Trello card by id, short id, or URL before editing or summarizing it. | cardId, fields |
 | `trello_list_cards` | Use when you need cards in a specific Trello list; prefer board-level tools later when you need every list on a board. | listId, limit, filter |
 | `trello_card_create` | Use when the user asks to create a new Trello card in a known list; accepts title, description, due date, members, and labels. | listId, name, desc, due, pos, memberIds, labelIds |
@@ -383,6 +398,7 @@ The exact wording depends on your MCP client. The server can discover your board
 | `trello_card_members` | Use when listing members assigned to a card; use add/remove member tools to change assignment. | cardId |
 | `trello_card_member_add` | Use when assigning a Trello member to a card by member id. | cardId, memberId |
 | `trello_card_member_remove` | Use when unassigning a Trello member from a card by member id. | cardId, memberId |
+| `trello_card_comment_add` | Use when adding a new comment to a Trello card; returns the created comment action. | cardId, text |
 | `trello_card_actions` | Use when auditing recent activity or comments for a card; set filter to commentCard for comments only. | cardId, filter, limit |
 | `trello_board_labels` | Use when discovering labels available on a board before creating or updating cards with labels. | boardId, limit |
 | `trello_label_get` | Use when you need the current name, color, or board for a specific Trello label before editing it. | labelId |
