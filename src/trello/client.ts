@@ -143,8 +143,8 @@ export class TrelloClient {
     url.searchParams.set("key", this.config.TRELLO_API_KEY);
     url.searchParams.set("token", this.config.TRELLO_TOKEN);
     for (const [key, value] of Object.entries(query ?? {})) {
-      if (value !== undefined && value !== null) {
-        url.searchParams.set(key, String(value));
+      if (value !== undefined) {
+        url.searchParams.set(key, value === null ? "null" : String(value));
       }
     }
     return url;

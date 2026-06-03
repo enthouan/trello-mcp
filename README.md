@@ -43,7 +43,7 @@ Most of this project was built with Codex under my close supervision.
 
 - List cards in a Trello list.
 - List card attachments and add public URL attachments.
-- List and create card checklists.
+- List and create card checklists, and manage checklist items.
 - List card members and add or remove members.
 - Read card actions and activity history.
 - Add, edit, and delete Trello card comments.
@@ -402,6 +402,12 @@ The exact wording depends on your MCP client. The server can discover your board
 | `trello_card_attachment_delete` | Use when removing a specific attachment from a card by attachment id. | cardId, attachmentId |
 | `trello_card_checklists` | Use when viewing all checklists and checklist items currently on a card. | cardId |
 | `trello_card_checklist_create` | Use when adding a new checklist to an existing card, optionally copied from another checklist. | cardId, name, sourceChecklistId |
+| `trello_card_checklist_item_create` | Use when adding a new item to an existing Trello checklist on a card. | checklistId, name, pos, checked, due, dueReminder, memberId |
+| `trello_card_checklist_items` | Use when listing the items in one Trello checklist, including complete and incomplete items by default. | checklistId, filter, fields |
+| `trello_card_checklist_item_update` | Use when editing a Trello card checklist item text, due date, member assignment, completion state, checklist, or position. | cardId, checkItemId, name, state, checklistId, pos, due, dueReminder, memberId |
+| `trello_card_checklist_item_set_checked` | Use when checking or unchecking a Trello card checklist item without changing other item fields. | cardId, checkItemId, checked |
+| `trello_card_checklist_item_move` | Use when moving a Trello checklist item to another checklist on the same card or to a different position. | cardId, checkItemId, checklistId, pos |
+| `trello_card_checklist_item_delete` | Use when deleting a checklist item from a Trello card checklist. | cardId, checkItemId |
 | `trello_card_members` | Use when listing members assigned to a card; use add/remove member tools to change assignment. | cardId |
 | `trello_card_member_add` | Use when assigning a Trello member to a card by member id. | cardId, memberId |
 | `trello_card_member_remove` | Use when unassigning a Trello member from a card by member id. | cardId, memberId |
