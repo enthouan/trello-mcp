@@ -38,6 +38,27 @@ export const TrelloAttachmentSchema = z.object({
   mimeType: z.string().nullable().optional(),
 });
 
+export const TrelloLabelColorSchema = z.enum([
+  "yellow",
+  "purple",
+  "blue",
+  "red",
+  "green",
+  "orange",
+  "black",
+  "sky",
+  "pink",
+  "lime",
+]);
+
+export const TrelloLabelSchema = z.object({
+  id: TrelloIdSchema,
+  idBoard: TrelloIdSchema.optional(),
+  name: z.string().nullable().optional(),
+  color: TrelloLabelColorSchema.nullable().optional(),
+  uses: z.number().optional(),
+});
+
 export const TrelloActionSchema = z.object({
   id: TrelloIdSchema,
   type: z.string(),
@@ -83,6 +104,7 @@ export const TrelloCardListSchema = z.array(TrelloCardSchema);
 export const TrelloBoardListSchema = z.array(TrelloBoardSchema);
 export const TrelloListListSchema = z.array(TrelloListSchema);
 export const TrelloMemberListSchema = z.array(TrelloMemberSchema);
+export const TrelloLabelListSchema = z.array(TrelloLabelSchema);
 export const TrelloAttachmentListSchema = z.array(TrelloAttachmentSchema);
 export const TrelloChecklistListSchema = z.array(TrelloChecklistSchema);
 export const TrelloActionListSchema = z.array(TrelloActionSchema);

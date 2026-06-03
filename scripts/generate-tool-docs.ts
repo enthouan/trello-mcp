@@ -1,13 +1,14 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { boardTools } from "../src/trello/boards.js";
 import { cardTools } from "../src/trello/cards.js";
+import { labelTools } from "../src/trello/labels.js";
 import { listTools } from "../src/trello/lists.js";
 
 const readmePath = new URL("../README.md", import.meta.url);
 const readme = await readFile(readmePath, "utf8");
 const rows = ["| Name | When to use | Key inputs |", "| --- | --- | --- |"];
 
-for (const tool of [...boardTools, ...listTools, ...cardTools]) {
+for (const tool of [...boardTools, ...listTools, ...cardTools, ...labelTools]) {
   const keys =
     "shape" in tool.inputSchema
       ? Object.keys(tool.inputSchema.shape as Record<string, unknown>).join(

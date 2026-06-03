@@ -1,6 +1,6 @@
 # Trello MCP Server
 
-A self-hostable Model Context Protocol server that lets MCP-compatible clients work with Trello cards, lists, attachments, checklists, members, and card activity.
+A self-hostable Model Context Protocol server that lets MCP-compatible clients work with Trello cards, lists, labels, attachments, checklists, members, and card activity.
 
 I built this for my own Trello workflows, but it is intentionally self-hostable and reusable. Feel free to adapt it for your own setup, open issues, or send PRs with improvements.
 
@@ -25,6 +25,7 @@ Most of this project was built with Codex under my close supervision.
 - List boards visible to the authenticated Trello member.
 - Read basic board metadata.
 - List open, closed, or all lists on a board.
+- List, create, inspect, update, and delete board labels.
 - Create, inspect, rename, archive, unarchive, and move lists between boards.
 
 ### Card Workflows
@@ -33,6 +34,7 @@ Most of this project was built with Codex under my close supervision.
 - Create cards with title, description, due date, position, members, and labels.
 - Update card metadata including title, description, due date, due completion, and archived state.
 - Move cards between lists or boards.
+- Apply and remove existing labels on cards.
 - Permanently delete cards only when explicitly requested.
 
 ### Card Context
@@ -398,6 +400,13 @@ The exact wording depends on your MCP client. The server can discover your board
 | `trello_card_member_remove` | Use when unassigning a Trello member from a card by member id. | cardId, memberId |
 | `trello_card_comment_add` | Use when adding a new comment to a Trello card; returns the created comment action. | cardId, text |
 | `trello_card_actions` | Use when auditing recent activity or comments for a card; set filter to commentCard for comments only. | cardId, filter, limit |
+| `trello_board_labels` | Use when discovering labels available on a board before creating or updating cards with labels. | boardId, limit |
+| `trello_label_get` | Use when you need the current name, color, or board for a specific Trello label before editing it. | labelId |
+| `trello_label_create` | Use when creating a new reusable label on a Trello board before applying it to cards. | boardId, name, color |
+| `trello_label_update` | Use when renaming a Trello label or changing its color without changing any card assignments. | labelId, name, color |
+| `trello_label_delete` | Use only when the user explicitly asks to permanently delete a board label from Trello. | labelId |
+| `trello_card_label_add` | Use when applying an existing Trello label to a card by label id. | cardId, labelId |
+| `trello_card_label_remove` | Use when removing an existing Trello label from a card by label id. | cardId, labelId |
 <!-- tools:end -->
 
 Regenerate the catalog with:
