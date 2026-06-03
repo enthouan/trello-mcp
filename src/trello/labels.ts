@@ -5,7 +5,6 @@ import {
   TrelloCardSchema,
   TrelloIdSchema,
   TrelloLabelColorSchema,
-  TrelloLabelListSchema,
   TrelloLabelSchema,
 } from "./types.js";
 
@@ -24,16 +23,6 @@ const CardLabelInput = z.object({
   labelId: TrelloIdSchema.describe("Trello label id to add or remove."),
 });
 
-const ListBoardLabelsInput = BoardIdInput.extend({
-  limit: z
-    .number()
-    .int()
-    .min(1)
-    .max(1000)
-    .default(50)
-    .describe("Maximum number of labels to return."),
-});
-
 const CreateLabelInput = BoardIdInput.extend({
   name: z.string().min(1).describe("Human-readable label name."),
   color: TrelloLabelColorSchema.describe("Trello label color."),
@@ -47,22 +36,6 @@ const UpdateLabelInput = LabelIdInput.extend({
 });
 
 export const labelTools = [
-  defineTool({
-    name: "trello_board_labels",
-    description:
-      "Use when discovering labels available on a board before creating or updating cards with labels.",
-    inputSchema: ListBoardLabelsInput,
-    handler: async ({ boardId, limit }, { trello }) =>
-      trello.request(
-        `/boards/${encodeURIComponent(boardId)}/labels`,
-        TrelloLabelListSchema,
-        {
-          query: { limit },
-          resourceType: "board",
-          resourceId: boardId,
-        },
-      ),
-  }),
   defineTool({
     name: "trello_label_get",
     description:

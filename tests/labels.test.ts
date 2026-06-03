@@ -14,34 +14,6 @@ function getLabelTool<TName extends LabelTool["name"]>(
 }
 
 describe("label tools", () => {
-  it("lists board labels with a default limit", async () => {
-    const tool = getLabelTool("trello_board_labels");
-    const trello = {
-      request: vi.fn(async () => [
-        { id: "label1", idBoard: "board1", name: "Urgent", color: "red" },
-      ]),
-    };
-
-    await expect(
-      tool.handler(tool.inputSchema.parse({ boardId: "board1" }), {
-        trello: trello as never,
-        logger: {} as never,
-        requestId: "req1",
-      }),
-    ).resolves.toEqual([
-      { id: "label1", idBoard: "board1", name: "Urgent", color: "red" },
-    ]);
-    expect(trello.request).toHaveBeenCalledWith(
-      "/boards/board1/labels",
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({ limit: 50 }),
-        resourceType: "board",
-        resourceId: "board1",
-      }),
-    );
-  });
-
   it("creates labels on a board", async () => {
     const tool = getLabelTool("trello_label_create");
     const trello = {
