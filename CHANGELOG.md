@@ -1,8 +1,29 @@
 # Changelog
 
-## Unreleased
+## v0.2.0
 
+Core workflow completion release for boards, lists, labels, checklists, card
+comments, common card relationships, and safer Compose defaults.
+
+### Trello Tools
+
+- Add board-level read tools for board details, board fields, cards, labels, members, memberships, and lists.
+- Add list management tools to inspect, create, rename, archive, unarchive, and move Trello lists.
+- Add label management tools to inspect, create, update, delete, apply, and remove labels.
+- Add checklist item tools to create, list, update, check, uncheck, move, and delete checklist items.
 - Add tools to add, edit, and delete Trello card comments.
+- Add focused card relationship and mutation tools for card board, list, labels, due date, position, cover, and create-and-add label workflows.
+- Fix `trello_card_due_date_set` so `dueComplete` can be updated without resending `due`.
+
+### Deployment And Documentation
+
+- Refine Docker Compose environment handling so host port, image tag, and network names are explicit Compose settings.
+- Add `TRELLO_MCP_HOST_BIND_IP`, defaulting Docker Compose port publishing to `127.0.0.1` for local-only access.
+- Document the project roadmap and refreshed 0.2 tool catalog.
+
+### Runtime
+
+- Read the MCP server version from `package.json` so server metadata stays aligned with release metadata.
 
 ## v0.1.1
 
