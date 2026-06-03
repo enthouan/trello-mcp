@@ -4,6 +4,8 @@ A self-hostable Model Context Protocol server that lets MCP-compatible clients w
 
 I built this for my own Trello workflows, but it is intentionally self-hostable and reusable. Feel free to adapt it for your own setup, open issues, or send PRs with improvements.
 
+The roadmap is, of course, tracked on Trello, and `trello-mcp` helps keep it up to date: [trello-mcp roadmap](https://trello.com/b/GnKmvuHz/trello-mcp).
+
 ## Disclaimer
 
 This is an independent, unofficial open source project. It is not affiliated with, associated with, authorized by, endorsed by, or sponsored by Trello, Atlassian, or any related company. Trello, Atlassian, and related names, logos, product names, and trademarks belong to their respective owners.
