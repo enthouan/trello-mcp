@@ -126,16 +126,13 @@ const CardCommentCreateInput = CardIdInput.extend({
   text: z.string().min(1).describe("Comment text to add to the card."),
 });
 
-const CardCommentUpdateInput = CardCommentCreateInput.extend({
-  actionId: TrelloIdSchema.describe(
-    "Trello comment action id to update on the card.",
-  ),
+const CardCommentUpdateInput = z.object({
+  actionId: TrelloIdSchema.describe("Trello comment action id to update."),
+  text: z.string().min(1).describe("Updated comment text."),
 });
 
-const CardCommentDeleteInput = CardIdInput.extend({
-  actionId: TrelloIdSchema.describe(
-    "Trello comment action id to delete from the card.",
-  ),
+const CardCommentDeleteInput = z.object({
+  actionId: TrelloIdSchema.describe("Trello comment action id to delete."),
 });
 
 export const cardTools = [
@@ -369,13 +366,13 @@ export const cardTools = [
     description:
       "Use when editing the text of an existing Trello card comment by its comment action id.",
     inputSchema: CardCommentUpdateInput,
-    handler: async ({ cardId, actionId, text }, { trello }) =>
+    handler: async ({ actionId, text }, { trello }) =>
       trello.request(
-        `${cardPath(cardId)}/actions/${encodeURIComponent(actionId)}/comments`,
+        `/actions/${encodeURIComponent(actionId)}/text`,
         TrelloActionListSchema.element,
         {
           method: "PUT",
-          query: { text },
+          query: { value: text },
           resourceType: "card comment",
           resourceId: actionId,
         },
@@ -386,9 +383,9 @@ export const cardTools = [
     description:
       "Use when deleting an existing Trello card comment by its comment action id.",
     inputSchema: CardCommentDeleteInput,
-    handler: async ({ cardId, actionId }, { trello }) =>
+    handler: async ({ actionId }, { trello }) =>
       trello.request(
-        `${cardPath(cardId)}/actions/${encodeURIComponent(actionId)}/comments`,
+        `/actions/${encodeURIComponent(actionId)}`,
         DeleteResponseSchema,
         {
           method: "DELETE",

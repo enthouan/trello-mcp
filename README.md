@@ -401,8 +401,8 @@ The exact wording depends on your MCP client. The server can discover your board
 | `trello_card_member_add` | Use when assigning a Trello member to a card by member id. | cardId, memberId |
 | `trello_card_member_remove` | Use when unassigning a Trello member from a card by member id. | cardId, memberId |
 | `trello_card_comment_add` | Use when adding a new comment to a Trello card; returns the created comment action. | cardId, text |
-| `trello_card_comment_update` | Use when editing the text of an existing Trello card comment by its comment action id. | cardId, text, actionId |
-| `trello_card_comment_delete` | Use when deleting an existing Trello card comment by its comment action id. | cardId, actionId |
+| `trello_card_comment_update` | Use when editing the text of an existing Trello card comment by its comment action id. | actionId, text |
+| `trello_card_comment_delete` | Use when deleting an existing Trello card comment by its comment action id. | actionId |
 | `trello_card_actions` | Use when auditing recent activity or comments for a card; set filter to commentCard for comments only. Use comment tools to add, edit, or delete comments. | cardId, filter, limit |
 | `trello_board_labels` | Use when discovering labels available on a board before creating or updating cards with labels. | boardId, limit |
 | `trello_label_get` | Use when you need the current name, color, or board for a specific Trello label before editing it. | labelId |

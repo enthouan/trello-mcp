@@ -114,7 +114,7 @@ describe("card tools", () => {
 
     await expect(
       tool.handler(
-        { cardId: "card1", actionId: "action1", text: "Updated" },
+        { actionId: "action1", text: "Updated" },
         { trello: trello as never, logger: {} as never, requestId: "req1" },
       ),
     ).resolves.toEqual({
@@ -123,11 +123,11 @@ describe("card tools", () => {
       data: { text: "Updated" },
     });
     expect(trello.request).toHaveBeenCalledWith(
-      "/cards/card1/actions/action1/comments",
+      "/actions/action1/text",
       expect.anything(),
       expect.objectContaining({
         method: "PUT",
-        query: { text: "Updated" },
+        query: { value: "Updated" },
         resourceType: "card comment",
         resourceId: "action1",
       }),
@@ -142,12 +142,12 @@ describe("card tools", () => {
 
     await expect(
       tool.handler(
-        { cardId: "card1", actionId: "action1" },
+        { actionId: "action1" },
         { trello: trello as never, logger: {} as never, requestId: "req1" },
       ),
     ).resolves.toEqual({ _value: null });
     expect(trello.request).toHaveBeenCalledWith(
-      "/cards/card1/actions/action1/comments",
+      "/actions/action1",
       expect.anything(),
       expect.objectContaining({
         method: "DELETE",
