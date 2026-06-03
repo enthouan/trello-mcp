@@ -4,6 +4,8 @@ import {
   DeleteResponseSchema,
   TrelloActionListSchema,
   TrelloAttachmentListSchema,
+  TrelloBoardSchema,
+  TrelloCardLabelsSchema,
   TrelloCardListSchema,
   TrelloCardSchema,
   TrelloChecklistItemListSchema,
@@ -12,6 +14,9 @@ import {
   TrelloChecklistListSchema,
   TrelloChecklistSchema,
   TrelloIdSchema,
+  TrelloLabelColorSchema,
+  TrelloLabelSchema,
+  TrelloListSchema,
   TrelloMemberListSchema,
 } from "./types.js";
 
@@ -28,6 +33,48 @@ const CardFieldsInput = z.object({
     .describe(
       "Comma-separated Trello card fields to return; use 'all' unless minimizing output.",
     ),
+});
+
+const CardRelationshipFieldsInput = z.object({
+  fields: z
+    .string()
+    .default("all")
+    .describe(
+      "Comma-separated fields to return for the related Trello resource.",
+    ),
+});
+
+const CardDueDateInput = CardIdInput.extend({
+  due: z
+    .string()
+    .datetime()
+    .nullable()
+    .describe("ISO-8601 due date to set, or null to clear the card due date."),
+  dueComplete: z
+    .boolean()
+    .optional()
+    .describe("Whether the due date should be marked complete."),
+});
+
+const CardPositionInput = CardIdInput.extend({
+  pos: z
+    .union([z.literal("top"), z.literal("bottom"), z.number()])
+    .describe(
+      "New position for the card within its current or destination list.",
+    ),
+});
+
+const CardCoverInput = CardIdInput.extend({
+  attachmentId: TrelloIdSchema.nullable().describe(
+    "Attachment id to use as the card cover, or null to clear the attachment cover.",
+  ),
+});
+
+const CardLabelCreateInput = CardIdInput.extend({
+  name: z.string().min(1).describe("Human-readable label name."),
+  color: TrelloLabelColorSchema.describe(
+    "Trello label color for the new board label to create and apply.",
+  ),
 });
 
 const ListCardsInput = z.object({
@@ -110,6 +157,10 @@ const CardAttachmentCreateInput = CardIdInput.extend({
     .string()
     .optional()
     .describe("Optional display name for the attachment."),
+  setCover: z
+    .boolean()
+    .optional()
+    .describe("Whether Trello should make this URL attachment the card cover."),
 });
 
 const CardAttachmentDeleteInput = CardIdInput.extend({
@@ -230,6 +281,42 @@ export const cardTools = [
       }),
   }),
   defineTool({
+    name: "trello_card_board",
+    description:
+      "Use when you need the board relationship for a known Trello card before moving, labeling, or summarizing its context.",
+    inputSchema: CardIdInput.merge(CardRelationshipFieldsInput),
+    handler: async ({ cardId, fields }, { trello }) =>
+      trello.request(`${cardPath(cardId)}/board`, TrelloBoardSchema, {
+        query: { fields },
+        resourceType: "card",
+        resourceId: cardId,
+      }),
+  }),
+  defineTool({
+    name: "trello_card_list",
+    description:
+      "Use when you need the current list relationship for a known Trello card before moving or reporting its status.",
+    inputSchema: CardIdInput.merge(CardRelationshipFieldsInput),
+    handler: async ({ cardId, fields }, { trello }) =>
+      trello.request(`${cardPath(cardId)}/list`, TrelloListSchema, {
+        query: { fields },
+        resourceType: "card",
+        resourceId: cardId,
+      }),
+  }),
+  defineTool({
+    name: "trello_card_labels",
+    description:
+      "Use when listing the labels currently applied to a card, including label ids for add/remove workflows.",
+    inputSchema: CardIdInput,
+    handler: async ({ cardId }, { trello }) =>
+      trello.request(cardPath(cardId), TrelloCardLabelsSchema, {
+        query: { fields: "labels,idLabels" },
+        resourceType: "card",
+        resourceId: cardId,
+      }),
+  }),
+  defineTool({
     name: "trello_list_cards",
     description:
       "Use when you need cards in a specific Trello list; prefer board-level tools later when you need every list on a board.",
@@ -269,6 +356,58 @@ export const cardTools = [
     handler: async ({ cardId, ...input }, { trello }) =>
       trello.request(cardPath(cardId), TrelloCardSchema, {
         method: "PUT",
+        query: input,
+        resourceType: "card",
+        resourceId: cardId,
+      }),
+  }),
+  defineTool({
+    name: "trello_card_due_date_set",
+    description:
+      "Use when setting, clearing, or marking completion of a card due date without changing other card metadata.",
+    inputSchema: CardDueDateInput,
+    handler: async ({ cardId, due, dueComplete }, { trello }) =>
+      trello.request(cardPath(cardId), TrelloCardSchema, {
+        method: "PUT",
+        query: { due, dueComplete },
+        resourceType: "card",
+        resourceId: cardId,
+      }),
+  }),
+  defineTool({
+    name: "trello_card_position_set",
+    description:
+      "Use when changing only a card's position within its current list; use trello_card_move when changing lists or boards too.",
+    inputSchema: CardPositionInput,
+    handler: async ({ cardId, pos }, { trello }) =>
+      trello.request(cardPath(cardId), TrelloCardSchema, {
+        method: "PUT",
+        query: { pos },
+        resourceType: "card",
+        resourceId: cardId,
+      }),
+  }),
+  defineTool({
+    name: "trello_card_cover_set",
+    description:
+      "Use when setting a card cover to an existing attachment id or clearing the current attachment cover.",
+    inputSchema: CardCoverInput,
+    handler: async ({ cardId, attachmentId }, { trello }) =>
+      trello.request(cardPath(cardId), TrelloCardSchema, {
+        method: "PUT",
+        query: { idAttachmentCover: attachmentId },
+        resourceType: "card",
+        resourceId: cardId,
+      }),
+  }),
+  defineTool({
+    name: "trello_card_label_create_and_add",
+    description:
+      "Use when creating a new label on the card's board and applying it to the card in one Trello operation.",
+    inputSchema: CardLabelCreateInput,
+    handler: async ({ cardId, ...input }, { trello }) =>
+      trello.request(`${cardPath(cardId)}/labels`, TrelloLabelSchema, {
+        method: "POST",
         query: input,
         resourceType: "card",
         resourceId: cardId,
