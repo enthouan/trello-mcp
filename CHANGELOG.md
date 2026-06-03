@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Add tools to add, edit, and delete Trello card comments.
+
 ## v0.1.1
 
 Packaging metadata patch release.

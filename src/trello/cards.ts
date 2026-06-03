@@ -126,6 +126,15 @@ const CardCommentCreateInput = CardIdInput.extend({
   text: z.string().min(1).describe("Comment text to add to the card."),
 });
 
+const CardCommentUpdateInput = z.object({
+  actionId: TrelloIdSchema.describe("Trello comment action id to update."),
+  text: z.string().min(1).describe("Updated comment text."),
+});
+
+const CardCommentDeleteInput = z.object({
+  actionId: TrelloIdSchema.describe("Trello comment action id to delete."),
+});
+
 export const cardTools = [
   defineTool({
     name: "trello_card_get",
@@ -353,9 +362,42 @@ export const cardTools = [
       ),
   }),
   defineTool({
+    name: "trello_card_comment_update",
+    description:
+      "Use when editing the text of an existing Trello card comment by its comment action id.",
+    inputSchema: CardCommentUpdateInput,
+    handler: async ({ actionId, text }, { trello }) =>
+      trello.request(
+        `/actions/${encodeURIComponent(actionId)}/text`,
+        TrelloActionListSchema.element,
+        {
+          method: "PUT",
+          query: { value: text },
+          resourceType: "card comment",
+          resourceId: actionId,
+        },
+      ),
+  }),
+  defineTool({
+    name: "trello_card_comment_delete",
+    description:
+      "Use when deleting an existing Trello card comment by its comment action id.",
+    inputSchema: CardCommentDeleteInput,
+    handler: async ({ actionId }, { trello }) =>
+      trello.request(
+        `/actions/${encodeURIComponent(actionId)}`,
+        DeleteResponseSchema,
+        {
+          method: "DELETE",
+          resourceType: "card comment",
+          resourceId: actionId,
+        },
+      ),
+  }),
+  defineTool({
     name: "trello_card_actions",
     description:
-      "Use when auditing recent activity or comments for a card; set filter to commentCard for comments only.",
+      "Use when auditing recent activity or comments for a card; set filter to commentCard for comments only. Use comment tools to add, edit, or delete comments.",
     inputSchema: CardIdInput.extend({
       filter: z
         .string()
