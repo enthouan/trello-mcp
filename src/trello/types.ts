@@ -103,6 +103,20 @@ export const TrelloLabelSchema = z.object({
   uses: z.number().optional(),
 });
 
+export const TrelloCoverSchema = z
+  .object({
+    color: TrelloLabelColorSchema.nullable().optional(),
+    idAttachment: TrelloIdSchema.nullable().optional(),
+    idUploadedBackground: z
+      .union([TrelloIdSchema, z.boolean()])
+      .nullable()
+      .optional(),
+    size: z.string().nullable().optional(),
+    brightness: z.string().nullable().optional(),
+    isTemplate: z.boolean().optional(),
+  })
+  .passthrough();
+
 export const TrelloActionSchema = z.object({
   id: TrelloIdSchema,
   type: z.string(),
@@ -145,6 +159,11 @@ export const TrelloBoardMembershipSchema = z.object({
   member: TrelloMemberSchema.optional(),
 });
 
+const TrelloCardLabelIdSchema = z.union([
+  TrelloIdSchema,
+  z.object({ id: TrelloIdSchema }).passthrough(),
+]);
+
 export const TrelloCardSchema = z.object({
   id: TrelloIdSchema,
   name: z.string(),
@@ -153,7 +172,10 @@ export const TrelloCardSchema = z.object({
   idBoard: TrelloIdSchema.optional(),
   idList: TrelloIdSchema.optional(),
   idMembers: z.array(TrelloIdSchema).optional(),
-  idLabels: z.array(TrelloIdSchema).optional(),
+  idLabels: z.array(TrelloCardLabelIdSchema).optional(),
+  labels: z.array(TrelloLabelSchema).optional(),
+  cover: TrelloCoverSchema.optional(),
+  idAttachmentCover: TrelloIdSchema.nullable().optional(),
   url: z.string().url().optional(),
   shortUrl: z.string().url().optional(),
   due: z.string().nullable().optional(),
@@ -162,6 +184,11 @@ export const TrelloCardSchema = z.object({
   dateLastActivity: z.string().nullable().optional(),
 });
 
+export const TrelloCardLabelsSchema = z.object({
+  id: TrelloIdSchema,
+  idLabels: z.array(TrelloCardLabelIdSchema).optional(),
+  labels: z.array(TrelloLabelSchema).optional(),
+});
 export const TrelloCardListSchema = z.array(TrelloCardSchema);
 export const TrelloBoardListSchema = z.array(TrelloBoardSchema);
 export const TrelloListListSchema = z.array(TrelloListSchema);

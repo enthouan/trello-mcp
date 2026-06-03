@@ -396,14 +396,21 @@ The exact wording depends on your MCP client. The server can discover your board
 | `trello_list_archive` | Use when archiving or unarchiving a Trello list while keeping its cards recoverable. | listId, closed |
 | `trello_list_move_to_board` | Use when moving an existing Trello list to another board. | listId, boardId |
 | `trello_card_get` | Use when you need the current details of one Trello card by id, short id, or URL before editing or summarizing it. | cardId, fields |
+| `trello_card_board` | Use when you need the board relationship for a known Trello card before moving, labeling, or summarizing its context. | cardId, fields |
+| `trello_card_list` | Use when you need the current list relationship for a known Trello card before moving or reporting its status. | cardId, fields |
+| `trello_card_labels` | Use when listing the labels currently applied to a card, including label ids for add/remove workflows. | cardId |
 | `trello_list_cards` | Use when you need cards in a specific Trello list; prefer board-level tools later when you need every list on a board. | listId, limit, filter |
 | `trello_card_create` | Use when the user asks to create a new Trello card in a known list; accepts title, description, due date, members, and labels. | listId, name, desc, due, pos, memberIds, labelIds |
 | `trello_card_update` | Use when changing card metadata such as title, description, due date, due completion, or archive state without moving it. | cardId, name, desc, due, dueComplete, closed |
+| `trello_card_due_date_set` | Use when setting, clearing, or marking completion of a card due date without changing other card metadata. | cardId, due, dueComplete |
+| `trello_card_position_set` | Use when changing only a card's position within its current list; use trello_card_move when changing lists or boards too. | cardId, pos |
+| `trello_card_cover_set` | Use when setting a card cover to an existing attachment id or clearing the current attachment cover. | cardId, attachmentId |
+| `trello_card_label_create_and_add` | Use when creating a new label on the card's board and applying it to the card in one Trello operation. | cardId, name, color |
 | `trello_card_delete` | Use only when the user explicitly asks to permanently delete a Trello card; archive instead for reversible removal. | cardId |
 | `trello_card_move` | Use when moving a card to another list, another board, or a different position; this is distinct from general card metadata updates. | cardId, listId, boardId, pos |
 | `trello_card_archive` | Use when the user wants to archive or unarchive a card while keeping it recoverable; do not use for permanent deletion. | cardId, closed |
 | `trello_card_attachments` | Use when listing files or links attached to a card. | cardId |
-| `trello_card_attachment_add_url` | Use when attaching an existing public URL to a card; this does not upload local files. | cardId, url, name |
+| `trello_card_attachment_add_url` | Use when attaching an existing public URL to a card; this does not upload local files. | cardId, url, name, setCover |
 | `trello_card_attachment_delete` | Use when removing a specific attachment from a card by attachment id. | cardId, attachmentId |
 | `trello_card_checklists` | Use when viewing all checklists and checklist items currently on a card. | cardId |
 | `trello_card_checklist_create` | Use when adding a new checklist to an existing card, optionally copied from another checklist. | cardId, name, sourceChecklistId |

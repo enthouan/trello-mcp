@@ -389,6 +389,186 @@ describe("card tools", () => {
     ).toThrow();
   });
 
+  it("gets a card's board relationship", async () => {
+    const tool = getCardTool("trello_card_board");
+    const trello = {
+      request: vi.fn(async () => ({ id: "board1", name: "Project" })),
+    };
+
+    await expect(
+      tool.handler(
+        { cardId: "card1", fields: "name,url" },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual({ id: "board1", name: "Project" });
+    expect(trello.request).toHaveBeenCalledWith(
+      "/cards/card1/board",
+      expect.anything(),
+      expect.objectContaining({
+        query: { fields: "name,url" },
+        resourceType: "card",
+        resourceId: "card1",
+      }),
+    );
+  });
+
+  it("gets a card's list relationship", async () => {
+    const tool = getCardTool("trello_card_list");
+    const trello = {
+      request: vi.fn(async () => ({ id: "list1", name: "Doing" })),
+    };
+
+    await expect(
+      tool.handler(
+        { cardId: "card1", fields: "name,pos" },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual({ id: "list1", name: "Doing" });
+    expect(trello.request).toHaveBeenCalledWith(
+      "/cards/card1/list",
+      expect.anything(),
+      expect.objectContaining({
+        query: { fields: "name,pos" },
+        resourceType: "card",
+        resourceId: "card1",
+      }),
+    );
+  });
+
+  it("lists card labels through a focused card labels lookup", async () => {
+    const tool = getCardTool("trello_card_labels");
+    const trello = {
+      request: vi.fn(async () => ({
+        id: "card1",
+        idLabels: ["label1"],
+        labels: [{ id: "label1", name: "Urgent", color: "red" }],
+      })),
+    };
+
+    await expect(
+      tool.handler(
+        { cardId: "card1" },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual(expect.objectContaining({ idLabels: ["label1"] }));
+    expect(trello.request).toHaveBeenCalledWith(
+      "/cards/card1",
+      expect.anything(),
+      expect.objectContaining({
+        query: { fields: "labels,idLabels" },
+        resourceType: "card",
+        resourceId: "card1",
+      }),
+    );
+  });
+
+  it("sets card due dates without changing unrelated card fields", async () => {
+    const tool = getCardTool("trello_card_due_date_set");
+    const due = "2026-07-01T12:00:00.000Z";
+    const trello = {
+      request: vi.fn(async () => ({
+        id: "card1",
+        name: "Due soon",
+        due,
+        dueComplete: true,
+      })),
+    };
+
+    await expect(
+      tool.handler(
+        { cardId: "card1", due, dueComplete: true },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual(expect.objectContaining({ dueComplete: true }));
+    expect(trello.request).toHaveBeenCalledWith(
+      "/cards/card1",
+      expect.anything(),
+      expect.objectContaining({
+        method: "PUT",
+        query: { due, dueComplete: true },
+      }),
+    );
+  });
+
+  it("sets card position without moving lists or boards", async () => {
+    const tool = getCardTool("trello_card_position_set");
+    const trello = {
+      request: vi.fn(async () => ({ id: "card1", name: "Ranked", pos: "top" })),
+    };
+
+    await expect(
+      tool.handler(
+        { cardId: "card1", pos: "top" },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual(expect.objectContaining({ pos: "top" }));
+    expect(trello.request).toHaveBeenCalledWith(
+      "/cards/card1",
+      expect.anything(),
+      expect.objectContaining({
+        method: "PUT",
+        query: { pos: "top" },
+      }),
+    );
+  });
+
+  it("sets a card cover from an existing attachment", async () => {
+    const tool = getCardTool("trello_card_cover_set");
+    const trello = {
+      request: vi.fn(async () => ({
+        id: "card1",
+        name: "Covered",
+        idAttachmentCover: "attach1",
+      })),
+    };
+
+    await expect(
+      tool.handler(
+        { cardId: "card1", attachmentId: "attach1" },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual(
+      expect.objectContaining({ idAttachmentCover: "attach1" }),
+    );
+    expect(trello.request).toHaveBeenCalledWith(
+      "/cards/card1",
+      expect.anything(),
+      expect.objectContaining({
+        method: "PUT",
+        query: { idAttachmentCover: "attach1" },
+      }),
+    );
+  });
+
+  it("creates a board label and applies it to a card", async () => {
+    const tool = getCardTool("trello_card_label_create_and_add");
+    const trello = {
+      request: vi.fn(async () => ({
+        id: "label1",
+        idBoard: "board1",
+        name: "Blocked",
+        color: "black",
+      })),
+    };
+
+    await expect(
+      tool.handler(
+        { cardId: "card1", name: "Blocked", color: "black" },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual(expect.objectContaining({ id: "label1" }));
+    expect(trello.request).toHaveBeenCalledWith(
+      "/cards/card1/labels",
+      expect.anything(),
+      expect.objectContaining({
+        method: "POST",
+        query: { name: "Blocked", color: "black" },
+        resourceType: "card",
+        resourceId: "card1",
+      }),
+    );
+  });
+
   it("allows Trello API errors to be mapped by the tool factory", async () => {
     const tool = getCardTool("trello_card_get");
     const error = new TrelloApiError(500, "Trello failed", { status: 500 });
