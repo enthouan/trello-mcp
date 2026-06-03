@@ -122,6 +122,10 @@ const CardChecklistCreateInput = CardIdInput.extend({
   ),
 });
 
+const CardCommentCreateInput = CardIdInput.extend({
+  text: z.string().min(1).describe("Comment text to add to the card."),
+});
+
 export const cardTools = [
   defineTool({
     name: "trello_card_get",
@@ -328,6 +332,23 @@ export const cardTools = [
           method: "DELETE",
           resourceType: "card member",
           resourceId: memberId,
+        },
+      ),
+  }),
+  defineTool({
+    name: "trello_card_comment_add",
+    description:
+      "Use when adding a new comment to a Trello card; returns the created comment action.",
+    inputSchema: CardCommentCreateInput,
+    handler: async ({ cardId, text }, { trello }) =>
+      trello.request(
+        `${cardPath(cardId)}/actions/comments`,
+        TrelloActionListSchema.element,
+        {
+          method: "POST",
+          query: { text },
+          resourceType: "card",
+          resourceId: cardId,
         },
       ),
   }),
