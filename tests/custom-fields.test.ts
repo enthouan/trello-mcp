@@ -124,4 +124,43 @@ describe("custom field tools", () => {
       }),
     );
   });
+
+  it("normalizes option ids from the dedicated custom field options endpoint", async () => {
+    const tool = getCustomFieldTool("trello_custom_field_options");
+    const trello = {
+      request: vi.fn(
+        async (_path: string, schema: { parse: (value: unknown) => unknown }) =>
+          schema.parse([
+            {
+              _id: "option1",
+              value: { text: "High" },
+              color: "red",
+              pos: 16384,
+            },
+          ]),
+      ),
+    };
+
+    await expect(
+      tool.handler(
+        { customFieldId: "field1" },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual([
+      {
+        id: "option1",
+        value: { text: "High" },
+        color: "red",
+        pos: 16384,
+      },
+    ]);
+    expect(trello.request).toHaveBeenCalledWith(
+      "/customFields/field1/options",
+      expect.anything(),
+      expect.objectContaining({
+        resourceType: "custom field options",
+        resourceId: "field1",
+      }),
+    );
+  });
 });
