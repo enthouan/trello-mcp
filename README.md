@@ -375,9 +375,28 @@ Show the recent activity for this card.
 Add a comment to this card saying the invoices are ready for review.
 Edit this card comment to include the updated invoice total.
 Add this public URL as an attachment to the card.
+Show me the custom fields configured on this board.
+Set this card's Priority custom field to the High option.
+Clear this card's Estimate custom field.
 ```
 
 The exact wording depends on your MCP client. The server can discover your boards and board lists first, then use those ids for card workflows.
+
+## Custom Fields
+
+Custom field definitions live on Trello boards, and card values are exposed as card `customFieldItems`. Use `trello_board_custom_fields` to discover board-level field definitions and their ids, `trello_custom_field_options` to list dropdown/list options for a field, and `trello_card_custom_field_items` to inspect values currently set on a card.
+
+The write tool `trello_card_custom_field_set` accepts one custom field at a time with a type-specific input shape:
+
+| Custom field type | Input shape | Notes |
+| --- | --- | --- |
+| `text` | `{ "type": "text", "text": "Hello" }` | Plain text value. |
+| `number` | `{ "type": "number", "number": "42" }` | Trello expects numbers as strings. |
+| `date` | `{ "type": "date", "date": "2026-06-03T16:00:00.000Z" }` | Must be an ISO-8601 date/time string. |
+| `checkbox` | `{ "type": "checkbox", "checked": true }` | The server sends Trello the string value Trello expects. |
+| `list` | `{ "type": "list", "optionId": "<custom-field-option-id>" }` | Discover option ids with `trello_board_custom_fields` or `trello_custom_field_options`. |
+
+Use `trello_card_custom_field_clear` to clear an existing card custom field value. Trello clears custom field items with an empty PUT request shape rather than a DELETE request, so clearing is intentionally separate from setting values.
 
 ## Tool Catalog
 
@@ -389,6 +408,7 @@ The exact wording depends on your MCP client. The server can discover your board
 | `trello_board_field_get` | Use when you need one specific board field, such as prefs, labelNames, subscribed, name, description, or URL. | boardId, field |
 | `trello_board_lists` | Use when you need the lists on a known Trello board so you can find the right list id before listing or creating cards. | boardId, filter, fields |
 | `trello_board_cards` | Use when you need cards across all lists on a known Trello board for personal planning, review, or summarization. | boardId, filter, fields |
+| `trello_board_custom_fields` | Use when inspecting custom field definitions on a known Trello board, including dropdown/list options when Trello returns them. | boardId |
 | `trello_board_labels` | Use when discovering labels available on a board before creating or updating cards with labels. | boardId, limit, fields |
 | `trello_board_members` | Use when you need the members who can access a known Trello board before assigning cards or reviewing collaboration. | boardId, fields |
 | `trello_board_memberships` | Use when you need board membership records, member roles, or permission context for a known Trello board. | boardId, filter, member, memberFields |
@@ -422,6 +442,9 @@ The exact wording depends on your MCP client. The server can discover your board
 | `trello_card_checklist_item_set_checked` | Use when checking or unchecking a Trello card checklist item without changing other item fields. | cardId, checkItemId, checked |
 | `trello_card_checklist_item_move` | Use when moving a Trello checklist item to another checklist on the same card or to a different position. | cardId, checkItemId, checklistId, pos |
 | `trello_card_checklist_item_delete` | Use when deleting a checklist item from a Trello card checklist. | cardId, checkItemId |
+| `trello_card_custom_field_items` | Use when reading all custom field item values currently set on a Trello card. | cardId |
+| `trello_card_custom_field_set` | Use when setting or updating one Trello card custom field value. Use type-specific inputs: text, number string, ISO date, checkbox boolean, or list optionId. | cardId, customFieldId, type, text, number, date, checked, optionId |
+| `trello_card_custom_field_clear` | Use when clearing one Trello card custom field value; Trello clears custom field items with an empty PUT body shape rather than DELETE. | cardId, customFieldId |
 | `trello_card_members` | Use when listing members assigned to a card; use add/remove member tools to change assignment. | cardId |
 | `trello_card_member_add` | Use when assigning a Trello member to a card by member id. | cardId, memberId |
 | `trello_card_member_remove` | Use when unassigning a Trello member from a card by member id. | cardId, memberId |
@@ -435,6 +458,8 @@ The exact wording depends on your MCP client. The server can discover your board
 | `trello_label_delete` | Use only when the user explicitly asks to permanently delete a board label from Trello. | labelId |
 | `trello_card_label_add` | Use when applying an existing Trello label to a card by label id. | cardId, labelId |
 | `trello_card_label_remove` | Use when removing an existing Trello label from a card by label id. | cardId, labelId |
+| `trello_custom_field_get` | Use when you need one Trello custom field definition by id, including its type and any dropdown/list options Trello returns. | customFieldId |
+| `trello_custom_field_options` | Use when listing the available options for a Trello dropdown/list custom field before setting a card list custom field value. | customFieldId |
 <!-- tools:end -->
 
 Regenerate the catalog with:
@@ -457,8 +482,9 @@ MCP client
 - `src/index.ts` starts stdio or HTTP transport.
 - `src/server.ts` creates the MCP server and registers tools.
 - `src/trello/client.ts` owns Trello HTTP requests, auth query parameters, retries, and response parsing.
-- `src/trello/boards.ts` defines board and board-list discovery tools.
-- `src/trello/cards.ts` defines the card tools.
+- `src/trello/boards.ts` defines board and board-list discovery tools, including board custom field discovery.
+- `src/trello/cards.ts` defines the card tools, including card custom field item read/write helpers.
+- `src/trello/custom-fields.ts` defines custom field definition and option lookup tools.
 - `src/trello/types.ts` contains Trello response schemas.
 - `src/utils/*` contains logging, error mapping, pagination, and tool registration helpers.
 

@@ -13,6 +13,8 @@ import {
   TrelloChecklistItemStateSchema,
   TrelloChecklistListSchema,
   TrelloChecklistSchema,
+  TrelloCustomFieldItemListSchema,
+  TrelloCustomFieldItemSchema,
   TrelloIdSchema,
   TrelloLabelColorSchema,
   TrelloLabelSchema,
@@ -260,6 +262,56 @@ const CardChecklistItemMoveInput = CardIdInput.merge(
 });
 
 const CardChecklistItemDeleteInput = CardIdInput.merge(ChecklistItemIdInput);
+
+const CustomFieldIdInput = z.object({
+  customFieldId: TrelloIdSchema.describe("Trello custom field definition id."),
+});
+
+const CardCustomFieldSetInput = CardIdInput.merge(CustomFieldIdInput)
+  .extend({
+    type: z
+      .enum(["text", "number", "date", "checkbox", "list"])
+      .describe("Custom field type for the value being set."),
+    text: z.string().optional().describe("Text value for text custom fields."),
+    number: z
+      .string()
+      .min(1)
+      .optional()
+      .describe(
+        "Number value for number custom fields; Trello expects a string.",
+      ),
+    date: z
+      .string()
+      .datetime()
+      .optional()
+      .describe("ISO-8601 date/time value for date custom fields."),
+    checked: z
+      .boolean()
+      .optional()
+      .describe("Boolean value for checkbox fields."),
+    optionId: TrelloIdSchema.optional().describe(
+      "Dropdown/list custom field option id for list fields.",
+    ),
+  })
+  .superRefine((input, ctx) => {
+    const requiredByType = {
+      checkbox: "checked",
+      date: "date",
+      list: "optionId",
+      number: "number",
+      text: "text",
+    } as const;
+    const requiredKey = requiredByType[input.type];
+    if (input[requiredKey] === undefined) {
+      ctx.addIssue({
+        code: "custom",
+        message: `Provide ${requiredKey} when type is ${input.type}.`,
+        path: [requiredKey],
+      });
+    }
+  });
+
+const CardCustomFieldClearInput = CardIdInput.merge(CustomFieldIdInput);
 
 const CardCommentCreateInput = CardIdInput.extend({
   text: z.string().min(1).describe("Comment text to add to the card."),
@@ -649,6 +701,55 @@ export const cardTools = [
       ),
   }),
   defineTool({
+    name: "trello_card_custom_field_items",
+    description:
+      "Use when reading all custom field item values currently set on a Trello card.",
+    inputSchema: CardIdInput,
+    handler: async ({ cardId }, { trello }) =>
+      trello.request(
+        `${cardPath(cardId)}/customFieldItems`,
+        TrelloCustomFieldItemListSchema,
+        {
+          resourceType: "card custom field items",
+          resourceId: cardId,
+        },
+      ),
+  }),
+  defineTool({
+    name: "trello_card_custom_field_set",
+    description:
+      "Use when setting or updating one Trello card custom field value. Use type-specific inputs: text, number string, ISO date, checkbox boolean, or list optionId.",
+    inputSchema: CardCustomFieldSetInput,
+    handler: async ({ cardId, customFieldId, ...input }, { trello }) =>
+      trello.request(
+        `${cardPath(cardId)}/customField/${encodeURIComponent(customFieldId)}/item`,
+        TrelloCustomFieldItemSchema.or(DeleteResponseSchema),
+        {
+          method: "PUT",
+          body: customFieldItemBody(input),
+          resourceType: "card custom field item",
+          resourceId: customFieldId,
+        },
+      ),
+  }),
+  defineTool({
+    name: "trello_card_custom_field_clear",
+    description:
+      "Use when clearing one Trello card custom field value; Trello clears custom field items with an empty PUT body shape rather than DELETE.",
+    inputSchema: CardCustomFieldClearInput,
+    handler: async ({ cardId, customFieldId }, { trello }) =>
+      trello.request(
+        `${cardPath(cardId)}/customField/${encodeURIComponent(customFieldId)}/item`,
+        TrelloCustomFieldItemSchema.or(DeleteResponseSchema),
+        {
+          method: "PUT",
+          body: { idValue: "", value: "" },
+          resourceType: "card custom field item",
+          resourceId: customFieldId,
+        },
+      ),
+  }),
+  defineTool({
     name: "trello_card_members",
     description:
       "Use when listing members assigned to a card; use add/remove member tools to change assignment.",
@@ -762,6 +863,28 @@ export const cardTools = [
       }),
   }),
 ];
+
+type CardCustomFieldSetValue = Omit<
+  z.infer<typeof CardCustomFieldSetInput>,
+  "cardId" | "customFieldId"
+>;
+
+function customFieldItemBody(
+  input: CardCustomFieldSetValue,
+): Record<string, unknown> {
+  switch (input.type) {
+    case "text":
+      return { value: { text: input.text } };
+    case "number":
+      return { value: { number: input.number } };
+    case "date":
+      return { value: { date: input.date } };
+    case "checkbox":
+      return { value: { checked: String(input.checked) } };
+    case "list":
+      return { idValue: input.optionId };
+  }
+}
 
 function cardPath(cardId: string): string {
   return `/cards/${encodeURIComponent(cardIdentifier(cardId))}`;

@@ -70,6 +70,214 @@ describe("card tools", () => {
     );
   });
 
+  it("lists custom field items on a card", async () => {
+    const tool = getCardTool("trello_card_custom_field_items");
+    const trello = {
+      request: vi.fn(async () => [
+        {
+          id: "item1",
+          idCustomField: "field1",
+          idModel: "card1",
+          modelType: "card",
+          value: { text: "Hello" },
+        },
+      ]),
+    };
+
+    await expect(
+      tool.handler(
+        { cardId: "card1" },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual([
+      {
+        id: "item1",
+        idCustomField: "field1",
+        idModel: "card1",
+        modelType: "card",
+        value: { text: "Hello" },
+      },
+    ]);
+    expect(trello.request).toHaveBeenCalledWith(
+      "/cards/card1/customFieldItems",
+      expect.anything(),
+      expect.objectContaining({
+        resourceType: "card custom field items",
+        resourceId: "card1",
+      }),
+    );
+  });
+
+  it("lists list custom field items with null values and option ids", async () => {
+    const tool = getCardTool("trello_card_custom_field_items");
+    const trello = {
+      request: vi.fn(
+        async (_path: string, schema: { parse: (value: unknown) => unknown }) =>
+          schema.parse([
+            {
+              id: "item1",
+              idCustomField: "field1",
+              idModel: "card1",
+              modelType: "card",
+              value: null,
+              idValue: "option1",
+            },
+          ]),
+      ),
+    };
+
+    await expect(
+      tool.handler(
+        { cardId: "card1" },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual([
+      {
+        id: "item1",
+        idCustomField: "field1",
+        idModel: "card1",
+        modelType: "card",
+        value: null,
+        idValue: "option1",
+      },
+    ]);
+    expect(trello.request).toHaveBeenCalledWith(
+      "/cards/card1/customFieldItems",
+      expect.anything(),
+      expect.objectContaining({
+        resourceType: "card custom field items",
+        resourceId: "card1",
+      }),
+    );
+  });
+
+  it.each([
+    {
+      input: { type: "text", text: "Hello" },
+      responseValue: { text: "Hello" },
+      expectedBody: { value: { text: "Hello" } },
+    },
+    {
+      input: { type: "number", number: "42" },
+      responseValue: { number: "42" },
+      expectedBody: { value: { number: "42" } },
+    },
+    {
+      input: { type: "date", date: "2026-06-03T16:00:00.000Z" },
+      responseValue: { date: "2026-06-03T16:00:00.000Z" },
+      expectedBody: { value: { date: "2026-06-03T16:00:00.000Z" } },
+    },
+    {
+      input: { type: "checkbox", checked: true },
+      responseValue: { checked: "true" },
+      expectedBody: { value: { checked: "true" } },
+    },
+  ] as const)(
+    "sets $input.type custom field values with Trello's type-specific body shape",
+    async ({ input, responseValue, expectedBody }) => {
+      const tool = getCardTool("trello_card_custom_field_set");
+      const trello = {
+        request: vi.fn(async () => ({
+          id: "item1",
+          idCustomField: "field1",
+          value: responseValue,
+        })),
+      };
+
+      await expect(
+        tool.handler(
+          {
+            cardId: "card1",
+            customFieldId: "field1",
+            ...input,
+          },
+          { trello: trello as never, logger: {} as never, requestId: "req1" },
+        ),
+      ).resolves.toEqual({
+        id: "item1",
+        idCustomField: "field1",
+        value: responseValue,
+      });
+      expect(trello.request).toHaveBeenCalledWith(
+        "/cards/card1/customField/field1/item",
+        expect.anything(),
+        expect.objectContaining({
+          method: "PUT",
+          body: expectedBody,
+          resourceType: "card custom field item",
+          resourceId: "field1",
+        }),
+      );
+    },
+  );
+
+  it("sets list custom fields by option id", async () => {
+    const tool = getCardTool("trello_card_custom_field_set");
+    const trello = {
+      request: vi.fn(async () => ({
+        idCustomField: "field1",
+        idValue: "option1",
+      })),
+    };
+
+    await expect(
+      tool.handler(
+        {
+          cardId: "card1",
+          customFieldId: "field1",
+          type: "list",
+          optionId: "option1",
+        },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual({ idCustomField: "field1", idValue: "option1" });
+    expect(trello.request).toHaveBeenCalledWith(
+      "/cards/card1/customField/field1/item",
+      expect.anything(),
+      expect.objectContaining({
+        method: "PUT",
+        body: { idValue: "option1" },
+      }),
+    );
+  });
+
+  it("clears custom field values with an empty PUT body shape", async () => {
+    const tool = getCardTool("trello_card_custom_field_clear");
+    const trello = {
+      request: vi.fn(async () => ({})),
+    };
+
+    await expect(
+      tool.handler(
+        { cardId: "card1", customFieldId: "field1" },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual({});
+    expect(trello.request).toHaveBeenCalledWith(
+      "/cards/card1/customField/field1/item",
+      expect.anything(),
+      expect.objectContaining({
+        method: "PUT",
+        body: { idValue: "", value: "" },
+        resourceType: "card custom field item",
+        resourceId: "field1",
+      }),
+    );
+  });
+
+  it("rejects mismatched custom field set input before requesting Trello", () => {
+    const tool = getCardTool("trello_card_custom_field_set");
+
+    expect(() =>
+      tool.inputSchema.parse({
+        cardId: "card1",
+        customFieldId: "field1",
+        type: "date",
+        text: "not a date",
+      }),
+    ).toThrow();
+  });
+
   it("adds comments to cards through Trello comment actions", async () => {
     const tool = getCardTool("trello_card_comment_add");
     const trello = {
