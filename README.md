@@ -457,7 +457,7 @@ Use `trello_card_custom_field_clear` to clear an existing card custom field valu
 | `trello_card_update` | Use when changing card metadata such as title, description, due date, due completion, or archive state without moving it. | cardId, name, desc, due, dueComplete, closed |
 | `trello_card_due_date_set` | Use when setting, clearing, or marking completion of a card due date without changing other card metadata. | cardId, due, dueComplete |
 | `trello_card_position_set` | Use when changing only a card's position within its current list; use trello_card_move when changing lists or boards too. | cardId, pos |
-| `trello_card_cover_set` | Use when setting a card cover to an existing attachment id or clearing the current attachment cover. | cardId, attachmentId |
+| `trello_card_cover_set` | Use when setting a card cover to an existing attachment id, changing cover display size, or clearing the current attachment cover. | cardId, attachmentId, size, brightness |
 | `trello_card_label_create_and_add` | Use when creating a new label on the card's board and applying it to the card in one Trello operation. | cardId, name, color |
 | `trello_card_delete` | Use only when the user explicitly asks to permanently delete a Trello card; archive instead for reversible removal. | cardId |
 | `trello_card_move` | Use when moving a card to another list, another board, or a different position; this is distinct from general card metadata updates. | cardId, listId, boardId, pos |
