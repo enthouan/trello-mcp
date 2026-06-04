@@ -144,6 +144,47 @@ describe("board tools", () => {
     );
   });
 
+  it("lists board custom field definitions", async () => {
+    const tool = getBoardTool("trello_board_custom_fields");
+    const trello = {
+      request: vi.fn(async () => [
+        {
+          id: "field1",
+          idModel: "board1",
+          modelType: "board",
+          name: "Priority",
+          type: "list",
+          options: [{ id: "option1", value: { text: "High" } }],
+        },
+      ]),
+    };
+
+    await expect(
+      tool.handler(tool.inputSchema.parse({ boardId: "board1" }), {
+        trello: trello as never,
+        logger: {} as never,
+        requestId: "req1",
+      }),
+    ).resolves.toEqual([
+      {
+        id: "field1",
+        idModel: "board1",
+        modelType: "board",
+        name: "Priority",
+        type: "list",
+        options: [{ id: "option1", value: { text: "High" } }],
+      },
+    ]);
+    expect(trello.request).toHaveBeenCalledWith(
+      "/boards/board1/customFields",
+      expect.anything(),
+      expect.objectContaining({
+        resourceType: "board custom fields",
+        resourceId: "board1",
+      }),
+    );
+  });
+
   it("lists board labels with a default limit and fields", async () => {
     const tool = getBoardTool("trello_board_labels");
     const trello = {

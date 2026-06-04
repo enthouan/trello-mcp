@@ -184,12 +184,80 @@ export const TrelloCardSchema = z.object({
   dateLastActivity: z.string().nullable().optional(),
 });
 
+export const TrelloCustomFieldTypeSchema = z.enum([
+  "checkbox",
+  "date",
+  "list",
+  "number",
+  "text",
+]);
+
+export const TrelloCustomFieldValueSchema = z
+  .object({
+    checked: z.string().optional(),
+    date: z.string().optional(),
+    number: z.string().optional(),
+    text: z.string().optional(),
+  })
+  .passthrough();
+
+export const TrelloCustomFieldOptionSchema = z
+  .object({
+    id: TrelloIdSchema,
+    idCustomField: TrelloIdSchema.optional(),
+    value: TrelloCustomFieldValueSchema.optional(),
+    color: z.string().nullable().optional(),
+    pos: z.union([z.number(), z.string()]).optional(),
+  })
+  .passthrough();
+
+export const TrelloCustomFieldDisplaySchema = z
+  .object({
+    cardFront: z.boolean().optional(),
+    name: z.string().optional(),
+    pos: z.union([z.number(), z.string()]).optional(),
+    options: z.array(TrelloCustomFieldOptionSchema).optional(),
+  })
+  .passthrough();
+
+export const TrelloCustomFieldSchema = z
+  .object({
+    id: TrelloIdSchema,
+    idModel: TrelloIdSchema.optional(),
+    modelType: z.literal("board").optional(),
+    fieldGroup: z.string().optional(),
+    name: z.string().optional(),
+    pos: z.union([z.number(), z.string()]).optional(),
+    display: TrelloCustomFieldDisplaySchema.optional(),
+    options: z.array(TrelloCustomFieldOptionSchema).optional(),
+    type: TrelloCustomFieldTypeSchema,
+  })
+  .passthrough();
+
+export const TrelloCustomFieldItemSchema = z
+  .object({
+    id: TrelloIdSchema.optional(),
+    idCustomField: TrelloIdSchema,
+    idModel: TrelloIdSchema.optional(),
+    modelType: z.literal("card").optional(),
+    value: TrelloCustomFieldValueSchema.optional(),
+    idValue: TrelloIdSchema.optional(),
+  })
+  .passthrough();
+
 export const TrelloCardLabelsSchema = z.object({
   id: TrelloIdSchema,
   idLabels: z.array(TrelloCardLabelIdSchema).optional(),
   labels: z.array(TrelloLabelSchema).optional(),
 });
 export const TrelloCardListSchema = z.array(TrelloCardSchema);
+export const TrelloCustomFieldListSchema = z.array(TrelloCustomFieldSchema);
+export const TrelloCustomFieldOptionListSchema = z.array(
+  TrelloCustomFieldOptionSchema,
+);
+export const TrelloCustomFieldItemListSchema = z.array(
+  TrelloCustomFieldItemSchema,
+);
 export const TrelloBoardListSchema = z.array(TrelloBoardSchema);
 export const TrelloListListSchema = z.array(TrelloListSchema);
 export const TrelloMemberListSchema = z.array(TrelloMemberSchema);

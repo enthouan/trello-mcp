@@ -5,6 +5,7 @@ import {
   TrelloBoardMembershipListSchema,
   TrelloBoardSchema,
   TrelloCardListSchema,
+  TrelloCustomFieldListSchema,
   TrelloIdSchema,
   TrelloLabelListSchema,
   TrelloListListSchema,
@@ -198,6 +199,22 @@ export const boardTools = [
         {
           query: { filter, fields },
           resourceType: "board",
+          resourceId: boardId,
+        },
+      ),
+  }),
+
+  defineTool({
+    name: "trello_board_custom_fields",
+    description:
+      "Use when inspecting custom field definitions on a known Trello board, including dropdown/list options when Trello returns them.",
+    inputSchema: BoardIdInput,
+    handler: async ({ boardId }, { trello }) =>
+      trello.request(
+        `/boards/${encodeURIComponent(boardId)}/customFields`,
+        TrelloCustomFieldListSchema,
+        {
+          resourceType: "board custom fields",
           resourceId: boardId,
         },
       ),
