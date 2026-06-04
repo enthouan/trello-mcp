@@ -21,6 +21,7 @@ import {
   TrelloLabelSchema,
   TrelloListSchema,
   TrelloMemberListSchema,
+  TrelloMutationSuccessSchema,
 } from "./types.js";
 
 const CardIdInput = z.object({
@@ -767,29 +768,47 @@ export const cardTools = [
     name: "trello_card_member_add",
     description: "Use when assigning a Trello member to a card by member id.",
     inputSchema: CardMemberInput,
-    handler: async ({ cardId, memberId }, { trello }) =>
-      trello.request(`${cardPath(cardId)}/idMembers`, TrelloCardSchema, {
-        method: "POST",
-        query: { value: memberId },
-        resourceType: "card",
-        resourceId: cardId,
-      }),
+    handler: async ({ cardId, memberId }, { trello }) => {
+      await trello.request(
+        `${cardPath(cardId)}/idMembers`,
+        TrelloMutationSuccessSchema,
+        {
+          method: "POST",
+          query: { value: memberId },
+          resourceType: "card",
+          resourceId: cardId,
+        },
+      );
+      return {
+        success: true,
+        action: "member_added",
+        cardId: cardIdentifier(cardId),
+        memberId,
+      };
+    },
   }),
   defineTool({
     name: "trello_card_member_remove",
     description:
       "Use when unassigning a Trello member from a card by member id.",
     inputSchema: CardMemberInput,
-    handler: async ({ cardId, memberId }, { trello }) =>
-      trello.request(
+    handler: async ({ cardId, memberId }, { trello }) => {
+      await trello.request(
         `${cardPath(cardId)}/idMembers/${encodeURIComponent(memberId)}`,
-        DeleteResponseSchema,
+        DeleteResponseSchema.or(TrelloMutationSuccessSchema),
         {
           method: "DELETE",
           resourceType: "card member",
           resourceId: memberId,
         },
-      ),
+      );
+      return {
+        success: true,
+        action: "member_removed",
+        cardId: cardIdentifier(cardId),
+        memberId,
+      };
+    },
   }),
   defineTool({
     name: "trello_card_comment_add",
