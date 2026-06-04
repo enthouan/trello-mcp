@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { defineTool } from "../utils/tool.js";
+import { includeRequiredFields } from "./fields.js";
 import {
   TrelloBoardListSchema,
   TrelloBoardMembershipListSchema,
@@ -23,7 +24,7 @@ const BoardFieldsInput = z.object({
       "name,desc,closed,url,shortUrl,idOrganization,dateLastActivity,prefs,labelNames,subscribed",
     )
     .describe(
-      "Comma-separated Trello board fields to return; use the default for board details, common preferences, and label names.",
+      "Comma-separated Trello board fields to request; schema-required fields are added automatically.",
     ),
 });
 
@@ -72,7 +73,7 @@ const BoardListsInput = BoardIdInput.extend({
     .string()
     .default("name,closed,idBoard,pos")
     .describe(
-      "Comma-separated Trello list fields to return; use the default for discovery.",
+      "Comma-separated Trello list fields to request; schema-required fields are added automatically.",
     ),
 });
 
@@ -87,7 +88,7 @@ const BoardCardsInput = BoardIdInput.extend({
       "name,desc,closed,idBoard,idList,idMembers,idLabels,url,shortUrl,due,dueComplete,pos,dateLastActivity",
     )
     .describe(
-      "Comma-separated Trello card fields to return; use the default for personal board summaries.",
+      "Comma-separated Trello card fields to request; schema-required fields are added automatically.",
     ),
 });
 
@@ -135,7 +136,7 @@ export const boardTools = [
     inputSchema: ListBoardsInput,
     handler: async ({ filter, fields }, { trello }) =>
       trello.request("/members/me/boards", TrelloBoardListSchema, {
-        query: { filter, fields },
+        query: { filter, fields: includeRequiredFields(fields, ["name"]) },
         resourceType: "member boards",
         resourceId: "me",
       }),
@@ -150,7 +151,7 @@ export const boardTools = [
         `/boards/${encodeURIComponent(boardId)}`,
         TrelloBoardSchema,
         {
-          query: { fields },
+          query: { fields: includeRequiredFields(fields, ["name"]) },
           resourceType: "board",
           resourceId: boardId,
         },
@@ -181,7 +182,7 @@ export const boardTools = [
         `/boards/${encodeURIComponent(boardId)}/lists`,
         TrelloListListSchema,
         {
-          query: { filter, fields },
+          query: { filter, fields: includeRequiredFields(fields, ["name"]) },
           resourceType: "board",
           resourceId: boardId,
         },
@@ -197,7 +198,7 @@ export const boardTools = [
         `/boards/${encodeURIComponent(boardId)}/cards`,
         TrelloCardListSchema,
         {
-          query: { filter, fields },
+          query: { filter, fields: includeRequiredFields(fields, ["name"]) },
           resourceType: "board",
           resourceId: boardId,
         },

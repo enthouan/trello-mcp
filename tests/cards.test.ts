@@ -70,6 +70,34 @@ describe("card tools", () => {
     );
   });
 
+  it("adds the required card name field when minimizing card fields", async () => {
+    const tool = getCardTool("trello_card_get");
+    const trello = {
+      request: vi.fn(async () => ({
+        id: "card1",
+        name: "About this roadmap",
+        idLabels: ["label1"],
+        labels: [{ id: "label1", name: "Docs", color: "green" }],
+      })),
+    };
+
+    await expect(
+      tool.handler(
+        { cardId: "card1", fields: "labels,idLabels" },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual(expect.objectContaining({ idLabels: ["label1"] }));
+    expect(trello.request).toHaveBeenCalledWith(
+      "/cards/card1",
+      expect.anything(),
+      expect.objectContaining({
+        query: { fields: "labels,idLabels,name" },
+        resourceType: "card",
+        resourceId: "card1",
+      }),
+    );
+  });
+
   it("lists custom field items on a card", async () => {
     const tool = getCardTool("trello_card_custom_field_items");
     const trello = {
@@ -595,6 +623,33 @@ describe("card tools", () => {
         state: "done",
       }),
     ).toThrow();
+  });
+
+  it("adds the required checklist item name field when minimizing checklist item fields", async () => {
+    const tool = getCardTool("trello_card_checklist_items");
+    const trello = {
+      request: vi.fn(async () => [
+        { id: "item1", name: "Confirm fields", state: "incomplete" },
+      ]),
+    };
+
+    await expect(
+      tool.handler(
+        { checklistId: "checklist1", filter: "all", fields: "state" },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual([
+      { id: "item1", name: "Confirm fields", state: "incomplete" },
+    ]);
+    expect(trello.request).toHaveBeenCalledWith(
+      "/checklists/checklist1/checkItems",
+      expect.anything(),
+      expect.objectContaining({
+        query: { filter: "all", fields: "state,name" },
+        resourceType: "checklist",
+        resourceId: "checklist1",
+      }),
+    );
   });
 
   it("gets a card's board relationship", async () => {

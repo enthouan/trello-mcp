@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { defineTool } from "../utils/tool.js";
+import { includeRequiredFields } from "./fields.js";
 import { TrelloIdSchema, TrelloListSchema } from "./types.js";
 
 const ListIdInput = z.object({
@@ -11,7 +12,7 @@ const ListFieldsInput = z.object({
     .string()
     .default("name,closed,idBoard,pos")
     .describe(
-      "Comma-separated Trello list fields to return; use the default for list discovery.",
+      "Comma-separated Trello list fields to request; schema-required fields are added automatically.",
     ),
 });
 
@@ -45,7 +46,7 @@ export const listTools = [
     inputSchema: ListIdInput.merge(ListFieldsInput),
     handler: async ({ listId, fields }, { trello }) =>
       trello.request(listPath(listId), TrelloListSchema, {
-        query: { fields },
+        query: { fields: includeRequiredFields(fields, ["name"]) },
         resourceType: "list",
         resourceId: listId,
       }),

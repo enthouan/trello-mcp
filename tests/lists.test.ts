@@ -38,6 +38,37 @@ describe("list tools", () => {
     );
   });
 
+  it("adds the required list name field when minimizing list fields", async () => {
+    const tool = getListTool("trello_list_get");
+    const trello = {
+      request: vi.fn(async () => ({
+        id: "list1",
+        name: "Today",
+        closed: false,
+      })),
+    };
+
+    await expect(
+      tool.handler(
+        tool.inputSchema.parse({ listId: "list1", fields: "closed" }),
+        {
+          trello: trello as never,
+          logger: {} as never,
+          requestId: "req1",
+        },
+      ),
+    ).resolves.toEqual({ id: "list1", name: "Today", closed: false });
+    expect(trello.request).toHaveBeenCalledWith(
+      "/lists/list1",
+      expect.anything(),
+      expect.objectContaining({
+        query: { fields: "closed,name" },
+        resourceType: "list",
+        resourceId: "list1",
+      }),
+    );
+  });
+
   it("calls Trello with parsed create-list inputs", async () => {
     const tool = getListTool("trello_list_create");
     const trello = {
