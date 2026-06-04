@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.3.0
+
+Custom fields and attachment upload release, with Trello response parsing fixes
+and refreshed development tooling.
+
+### Trello Tools
+
+- Add board and card custom field tools to inspect custom field definitions, list dropdown options, read card custom field items, set supported custom field values, and clear card custom fields.
+- Add single-attachment lookup and guarded server-local attachment upload support through `trello_card_attachment_get` and `trello_card_attachment_upload`.
+- Fix custom field option endpoint ids so option lookup uses the correct Trello route.
+- Fix card mutation success response handling for Trello endpoints that return minimal or empty success bodies.
+- Fix card cover clearing so removing an attachment cover sends the Trello request shape the API expects.
+- Fix projected Trello field validation for filtered board, card, list, and label responses.
+
+### Runtime And Configuration
+
+- Add `TRELLO_ATTACHMENT_UPLOAD_ROOT` to enable local file uploads only from an explicitly configured absolute server-side directory.
+- Harden attachment upload path handling so paths resolve inside the configured upload root before Trello requests are made.
+
+### Development And CI
+
+- Refresh the Node, pnpm, Biome, TypeScript, MCP SDK, Vitest, and Pino toolchain versions.
+- Reorganize ignore files and Codex maintenance scripts for the current project layout.
+- Add focused tests for custom fields, attachment uploads, projected response shapes, config parsing, and Trello client behavior.
+
 ## v0.2.0
 
 Core workflow completion release for boards, lists, labels, checklists, card
