@@ -27,7 +27,7 @@ This project is still in the initial scaffold/vertical-slice phase. Keep changes
 ## Runtime And Package Manager
 
 - Node.js: `>=22.0.0`.
-- Package manager: `pnpm@10.12.1` through Corepack.
+- Package manager: `pnpm@10.34.1` through Corepack.
 - Module system: ESM (`"type": "module"`).
 - TypeScript is strict, with `exactOptionalPropertyTypes` and `noUncheckedIndexedAccess` enabled.
 
@@ -35,7 +35,7 @@ Use:
 
 ```bash
 corepack enable
-corepack prepare pnpm@10.12.1 --activate
+corepack prepare pnpm@10.34.1 --activate
 corepack pnpm install
 ```
 
@@ -68,7 +68,7 @@ Use `corepack pnpm test:coverage` when changing core behavior, error handling, o
 ## Formatting And Linting
 
 - Biome is the formatter/linter.
-- The configured Biome version is `@biomejs/biome@2.0.6`; keep it aligned with `biome.json`.
+- The configured Biome version is `@biomejs/biome@2.4.16`; keep it aligned with `biome.json`.
 - Run `corepack pnpm lint` to check formatting and lint rules.
 - To format, run:
 

@@ -14,7 +14,7 @@ if [[ -f .nvmrc ]] && command -v nvm >/dev/null 2>&1; then
 fi
 
 corepack enable
-corepack prepare pnpm@10.12.1 --activate
+corepack prepare pnpm@10.34.1 --activate
 if [[ -f pnpm-lock.yaml ]]; then
   pnpm install --frozen-lockfile
 else
