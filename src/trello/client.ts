@@ -1,3 +1,5 @@
+import { readFile, realpath, stat } from "node:fs/promises";
+import { basename, isAbsolute, join, relative } from "node:path";
 import type { z } from "zod";
 import type { Config } from "../config.js";
 import {
@@ -5,6 +7,7 @@ import {
   NotFoundError,
   RateLimitError,
   TrelloApiError,
+  ValidationError,
 } from "../utils/errors.js";
 
 const TRELLO_API_BASE_URL = "https://api.trello.com/1";
@@ -14,10 +17,19 @@ const MAX_ATTEMPTS = 3;
 
 type Fetcher = typeof fetch;
 
+type LocalFileRequest = {
+  fieldName?: string;
+  filePath: string;
+  filename?: string;
+  mimeType?: string;
+};
+
 type RequestOptions = {
   method?: "GET" | "POST" | "PUT" | "DELETE";
   query?: Record<string, string | number | boolean | null | undefined>;
   body?: Record<string, unknown>;
+  form?: Record<string, string | number | boolean | null | undefined>;
+  file?: LocalFileRequest;
   resourceType?: string;
   resourceId?: string;
 };
@@ -78,7 +90,10 @@ export class TrelloClient {
   private readonly bucket: TokenBucket;
 
   public constructor(
-    private readonly config: Pick<Config, "TRELLO_API_KEY" | "TRELLO_TOKEN">,
+    private readonly config: Pick<
+      Config,
+      "TRELLO_API_KEY" | "TRELLO_TOKEN" | "TRELLO_ATTACHMENT_UPLOAD_ROOT"
+    >,
     options: TrelloClientOptions = {},
   ) {
     this.fetcher = options.fetcher ?? fetch;
@@ -99,15 +114,7 @@ export class TrelloClient {
     options: RequestOptions = {},
   ): Promise<z.infer<TSchema>> {
     const url = this.buildUrl(path, options.query);
-    const init: RequestInit = {
-      method: options.method ?? "GET",
-      ...(options.body
-        ? {
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify(options.body),
-          }
-        : {}),
-    };
+    const init = await this.buildRequestInit(options);
 
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
       await this.bucket.take();
@@ -148,6 +155,124 @@ export class TrelloClient {
       }
     }
     return url;
+  }
+
+  private async buildRequestInit(
+    options: RequestOptions,
+  ): Promise<RequestInit> {
+    if (options.body && (options.file || options.form)) {
+      throw new ValidationError(
+        "Use either a JSON body or multipart form data, not both.",
+      );
+    }
+
+    if (options.file || options.form) {
+      const form = new FormData();
+      for (const [key, value] of Object.entries(options.form ?? {})) {
+        if (value !== undefined) {
+          form.set(key, value === null ? "null" : String(value));
+        }
+      }
+
+      if (options.file) {
+        const { blob, filename } = await this.localFileBlob(options.file);
+        form.set(options.file.fieldName ?? "file", blob, filename);
+      }
+
+      return {
+        method: options.method ?? "GET",
+        body: form,
+      };
+    }
+
+    return {
+      method: options.method ?? "GET",
+      ...(options.body
+        ? {
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(options.body),
+          }
+        : {}),
+    };
+  }
+
+  private async localFileBlob(
+    file: LocalFileRequest,
+  ): Promise<{ blob: Blob; filename: string }> {
+    const root = this.config.TRELLO_ATTACHMENT_UPLOAD_ROOT;
+    if (!root) {
+      throw new ValidationError(
+        "Local attachment uploads are disabled; set TRELLO_ATTACHMENT_UPLOAD_ROOT to a server-readable directory.",
+      );
+    }
+
+    const rootPath = await this.checkedUploadRoot(root);
+    const requestedPath = isAbsolute(file.filePath)
+      ? file.filePath
+      : join(rootPath, file.filePath);
+    const filePath = await this.checkedUploadFilePath(rootPath, requestedPath);
+    const bytes = await readFile(filePath);
+    const blob =
+      file.mimeType === undefined
+        ? new Blob([bytes])
+        : new Blob([bytes], { type: file.mimeType });
+
+    return {
+      blob,
+      filename: file.filename ?? basename(filePath),
+    };
+  }
+
+  private async checkedUploadRoot(root: string): Promise<string> {
+    let rootPath: string;
+    try {
+      rootPath = await realpath(root);
+    } catch {
+      throw new ValidationError(
+        "TRELLO_ATTACHMENT_UPLOAD_ROOT must point to an existing directory.",
+      );
+    }
+
+    const rootStats = await stat(rootPath);
+    if (!rootStats.isDirectory()) {
+      throw new ValidationError(
+        "TRELLO_ATTACHMENT_UPLOAD_ROOT must point to a directory.",
+      );
+    }
+
+    return rootPath;
+  }
+
+  private async checkedUploadFilePath(
+    rootPath: string,
+    requestedPath: string,
+  ): Promise<string> {
+    let filePath: string;
+    try {
+      filePath = await realpath(requestedPath);
+    } catch {
+      throw new ValidationError(
+        "Attachment file must exist inside TRELLO_ATTACHMENT_UPLOAD_ROOT.",
+      );
+    }
+
+    const relativePath = relative(rootPath, filePath);
+    if (
+      relativePath === "" ||
+      relativePath.startsWith("..") ||
+      isAbsolute(relativePath)
+    ) {
+      throw new ValidationError(
+        "Attachment file must be inside TRELLO_ATTACHMENT_UPLOAD_ROOT.",
+      );
+    }
+
+    const fileStats = await stat(filePath);
+    if (!fileStats.isFile()) {
+      throw new ValidationError("Attachment path must point to a file.");
+    }
+
+    return filePath;
   }
 
   private backoffMs(attempt: number): number {

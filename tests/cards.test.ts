@@ -864,6 +864,197 @@ describe("card tools", () => {
     );
   });
 
+  it("lists card attachments with Trello fields and filters", async () => {
+    const tool = getCardTool("trello_card_attachments");
+    const trello = {
+      request: vi.fn(async () => [
+        {
+          id: "attach1",
+          name: "Spec",
+          isUpload: true,
+          bytes: "1024",
+        },
+      ]),
+    };
+
+    await expect(
+      tool.handler(
+        { cardId: "card1", fields: "name,isUpload,bytes", filter: "all" },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual([
+      {
+        id: "attach1",
+        name: "Spec",
+        isUpload: true,
+        bytes: "1024",
+      },
+    ]);
+    expect(trello.request).toHaveBeenCalledWith(
+      "/cards/card1/attachments",
+      expect.anything(),
+      expect.objectContaining({
+        query: { fields: "name,isUpload,bytes", filter: "all" },
+        resourceType: "card",
+        resourceId: "card1",
+      }),
+    );
+  });
+
+  it("gets one card attachment by id", async () => {
+    const tool = getCardTool("trello_card_attachment_get");
+    const trello = {
+      request: vi.fn(async () => ({
+        id: "attach1",
+        name: "Spec",
+        isUpload: false,
+      })),
+    };
+
+    await expect(
+      tool.handler(
+        { cardId: "card1", attachmentId: "attach1", fields: "all" },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual({
+      id: "attach1",
+      name: "Spec",
+      isUpload: false,
+    });
+    expect(trello.request).toHaveBeenCalledWith(
+      "/cards/card1/attachments/attach1",
+      expect.anything(),
+      expect.objectContaining({
+        query: { fields: "all" },
+        resourceType: "attachment",
+        resourceId: "attach1",
+      }),
+    );
+  });
+
+  it("accepts Trello's singleton-array shape for one attachment responses", async () => {
+    const tool = getCardTool("trello_card_attachment_get");
+    const trello = {
+      request: vi.fn(
+        async (_path: string, schema: { parse: (value: unknown) => unknown }) =>
+          schema.parse([
+            {
+              id: "attach1",
+              name: "Spec",
+              isUpload: true,
+            },
+          ]),
+      ),
+    };
+
+    await expect(
+      tool.handler(
+        { cardId: "card1", attachmentId: "attach1", fields: "all" },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual({
+      id: "attach1",
+      name: "Spec",
+      isUpload: true,
+    });
+  });
+
+  it("adds public URL attachments to cards", async () => {
+    const tool = getCardTool("trello_card_attachment_add_url");
+    const trello = {
+      request: vi.fn(async () => ({
+        id: "attach1",
+        name: "Roadmap",
+        url: "https://example.com/roadmap",
+      })),
+    };
+
+    await expect(
+      tool.handler(
+        {
+          cardId: "card1",
+          url: "https://example.com/roadmap",
+          name: "Roadmap",
+          setCover: true,
+        },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual({
+      id: "attach1",
+      name: "Roadmap",
+      url: "https://example.com/roadmap",
+    });
+    expect(trello.request).toHaveBeenCalledWith(
+      "/cards/card1/attachments",
+      expect.anything(),
+      expect.objectContaining({
+        method: "POST",
+        query: {
+          url: "https://example.com/roadmap",
+          name: "Roadmap",
+          setCover: true,
+        },
+        resourceType: "card",
+        resourceId: "card1",
+      }),
+    );
+  });
+
+  it("uploads server-local files to a card attachment endpoint", async () => {
+    const tool = getCardTool("trello_card_attachment_upload");
+    const trello = {
+      request: vi.fn(async () => ({
+        id: "attach1",
+        name: "Spec PDF",
+        isUpload: true,
+      })),
+    };
+
+    await expect(
+      tool.handler(
+        {
+          cardId: "card1",
+          filePath: "spec.pdf",
+          name: "Spec PDF",
+          mimeType: "application/pdf",
+          setCover: false,
+        },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual({
+      id: "attach1",
+      name: "Spec PDF",
+      isUpload: true,
+    });
+    expect(trello.request).toHaveBeenCalledWith(
+      "/cards/card1/attachments",
+      expect.anything(),
+      expect.objectContaining({
+        method: "POST",
+        form: {
+          name: "Spec PDF",
+          mimeType: "application/pdf",
+          setCover: false,
+        },
+        file: {
+          fieldName: "file",
+          filePath: "spec.pdf",
+          mimeType: "application/pdf",
+        },
+        resourceType: "card",
+        resourceId: "card1",
+      }),
+    );
+  });
+
+  it("rejects empty upload file paths before requesting Trello", () => {
+    const tool = getCardTool("trello_card_attachment_upload");
+
+    expect(() =>
+      tool.inputSchema.parse({ cardId: "card1", filePath: "" }),
+    ).toThrow();
+  });
+
   it("adds card members with compact Trello success responses", async () => {
     const tool = getCardTool("trello_card_member_add");
     const trello = {

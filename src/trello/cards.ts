@@ -5,6 +5,7 @@ import {
   DeleteResponseSchema,
   TrelloActionListSchema,
   TrelloAttachmentListSchema,
+  TrelloAttachmentResponseSchema,
   TrelloBoardSchema,
   TrelloCardLabelsSchema,
   TrelloCardListSchema,
@@ -172,6 +173,44 @@ const CardAttachmentCreateInput = CardIdInput.extend({
     .boolean()
     .optional()
     .describe("Whether Trello should make this URL attachment the card cover."),
+});
+
+const CardAttachmentListInput = CardIdInput.extend({
+  fields: z
+    .string()
+    .default("all")
+    .describe("Comma-separated attachment fields to request."),
+  filter: z
+    .string()
+    .default("all")
+    .describe("Trello attachment filter, such as all or cover."),
+});
+
+const CardAttachmentGetInput = CardAttachmentListInput.extend({
+  attachmentId: TrelloIdSchema.describe("Attachment id to inspect."),
+}).omit({ filter: true });
+
+const CardAttachmentUploadInput = CardIdInput.extend({
+  filePath: z
+    .string()
+    .min(1)
+    .describe(
+      "Server-side file path to upload. Relative paths resolve inside TRELLO_ATTACHMENT_UPLOAD_ROOT; absolute paths must also be inside that root.",
+    ),
+  name: z
+    .string()
+    .min(1)
+    .optional()
+    .describe("Optional Trello display name for the uploaded attachment."),
+  mimeType: z
+    .string()
+    .min(1)
+    .optional()
+    .describe("Optional MIME type to send for the uploaded file."),
+  setCover: z
+    .boolean()
+    .optional()
+    .describe("Whether Trello should make this uploaded attachment the cover."),
 });
 
 const CardAttachmentDeleteInput = CardIdInput.extend({
@@ -522,13 +561,34 @@ export const cardTools = [
   }),
   defineTool({
     name: "trello_card_attachments",
-    description: "Use when listing files or links attached to a card.",
-    inputSchema: CardIdInput,
-    handler: async ({ cardId }, { trello }) =>
+    description:
+      "Use when listing files or links attached to a card, optionally narrowed by Trello attachment fields or filter.",
+    inputSchema: CardAttachmentListInput,
+    handler: async ({ cardId, fields, filter }, { trello }) =>
       trello.request(
         `${cardPath(cardId)}/attachments`,
         TrelloAttachmentListSchema,
-        { resourceType: "card", resourceId: cardId },
+        {
+          query: { fields, filter },
+          resourceType: "card",
+          resourceId: cardId,
+        },
+      ),
+  }),
+  defineTool({
+    name: "trello_card_attachment_get",
+    description:
+      "Use when inspecting one existing card attachment by attachment id, including upload metadata when Trello returns it.",
+    inputSchema: CardAttachmentGetInput,
+    handler: async ({ cardId, attachmentId, fields }, { trello }) =>
+      trello.request(
+        `${cardPath(cardId)}/attachments/${encodeURIComponent(attachmentId)}`,
+        TrelloAttachmentResponseSchema,
+        {
+          query: { fields },
+          resourceType: "attachment",
+          resourceId: attachmentId,
+        },
       ),
   }),
   defineTool({
@@ -539,10 +599,35 @@ export const cardTools = [
     handler: async ({ cardId, ...input }, { trello }) =>
       trello.request(
         `${cardPath(cardId)}/attachments`,
-        TrelloAttachmentListSchema.element,
+        TrelloAttachmentResponseSchema,
         {
           method: "POST",
           query: input,
+          resourceType: "card",
+          resourceId: cardId,
+        },
+      ),
+  }),
+  defineTool({
+    name: "trello_card_attachment_upload",
+    description:
+      "Use when uploading a server-local file to a card. Requires TRELLO_ATTACHMENT_UPLOAD_ROOT and only reads files inside that directory.",
+    inputSchema: CardAttachmentUploadInput,
+    handler: async (
+      { cardId, filePath, name, mimeType, setCover },
+      { trello },
+    ) =>
+      trello.request(
+        `${cardPath(cardId)}/attachments`,
+        TrelloAttachmentResponseSchema,
+        {
+          method: "POST",
+          form: { name, mimeType, setCover },
+          file: {
+            fieldName: "file",
+            filePath,
+            ...(mimeType !== undefined ? { mimeType } : {}),
+          },
           resourceType: "card",
           resourceId: cardId,
         },
