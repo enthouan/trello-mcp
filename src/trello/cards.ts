@@ -458,7 +458,7 @@ export const cardTools = [
     handler: async ({ cardId, attachmentId }, { trello }) =>
       trello.request(cardPath(cardId), TrelloCardSchema, {
         method: "PUT",
-        query: { idAttachmentCover: attachmentId },
+        query: { idAttachmentCover: attachmentId === null ? "" : attachmentId },
         resourceType: "card",
         resourceId: cardId,
       }),
