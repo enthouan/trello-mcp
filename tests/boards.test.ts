@@ -73,6 +73,41 @@ describe("board tools", () => {
     );
   });
 
+  it("adds the required board name field when minimizing board fields", async () => {
+    const tool = getBoardTool("trello_board_get");
+    const trello = {
+      request: vi.fn(async () => ({
+        id: "board1",
+        name: "Personal",
+        prefs: { cardCovers: true },
+      })),
+    };
+
+    await expect(
+      tool.handler(
+        tool.inputSchema.parse({ boardId: "board1", fields: "prefs" }),
+        {
+          trello: trello as never,
+          logger: {} as never,
+          requestId: "req1",
+        },
+      ),
+    ).resolves.toEqual({
+      id: "board1",
+      name: "Personal",
+      prefs: { cardCovers: true },
+    });
+    expect(trello.request).toHaveBeenCalledWith(
+      "/boards/board1",
+      expect.anything(),
+      expect.objectContaining({
+        query: { fields: "prefs,name" },
+        resourceType: "board",
+        resourceId: "board1",
+      }),
+    );
+  });
+
   it("gets a single board field", async () => {
     const tool = getBoardTool("trello_board_field_get");
     const trello = {
@@ -116,6 +151,47 @@ describe("board tools", () => {
         query: expect.objectContaining({ filter: "open" }),
         resourceType: "board",
         resourceId: "board1",
+      }),
+    );
+  });
+
+  it("adds required names when minimizing board cards and lists", async () => {
+    const boardCardsTool = getBoardTool("trello_board_cards");
+    const boardListsTool = getBoardTool("trello_board_lists");
+    const trello = {
+      request: vi.fn(async (path: string) =>
+        path.endsWith("/cards")
+          ? [{ id: "card1", name: "Pay bills", labels: [] }]
+          : [{ id: "list1", name: "Today", closed: false }],
+      ),
+    };
+
+    await boardCardsTool.handler(
+      boardCardsTool.inputSchema.parse({
+        boardId: "board1",
+        fields: "labels,idLabels",
+      }),
+      { trello: trello as never, logger: {} as never, requestId: "req1" },
+    );
+    await boardListsTool.handler(
+      boardListsTool.inputSchema.parse({ boardId: "board1", fields: "closed" }),
+      { trello: trello as never, logger: {} as never, requestId: "req2" },
+    );
+
+    expect(trello.request).toHaveBeenNthCalledWith(
+      1,
+      "/boards/board1/cards",
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({ fields: "labels,idLabels,name" }),
+      }),
+    );
+    expect(trello.request).toHaveBeenNthCalledWith(
+      2,
+      "/boards/board1/lists",
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({ fields: "closed,name" }),
       }),
     );
   });

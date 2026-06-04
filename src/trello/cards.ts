@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { defineTool } from "../utils/tool.js";
+import { includeRequiredFields } from "./fields.js";
 import {
   DeleteResponseSchema,
   TrelloActionListSchema,
@@ -33,7 +34,7 @@ const CardFieldsInput = z.object({
     .string()
     .default("all")
     .describe(
-      "Comma-separated Trello card fields to return; use 'all' unless minimizing output.",
+      "Comma-separated Trello card fields to request; schema-required fields are added automatically.",
     ),
 });
 
@@ -42,7 +43,7 @@ const CardRelationshipFieldsInput = z.object({
     .string()
     .default("all")
     .describe(
-      "Comma-separated fields to return for the related Trello resource.",
+      "Comma-separated fields to request for the related Trello resource; schema-required fields are added automatically.",
     ),
 });
 
@@ -334,7 +335,7 @@ export const cardTools = [
     inputSchema: CardIdInput.merge(CardFieldsInput),
     handler: async ({ cardId, fields }, { trello }) =>
       trello.request(cardPath(cardId), TrelloCardSchema, {
-        query: { fields },
+        query: { fields: includeRequiredFields(fields, ["name"]) },
         resourceType: "card",
         resourceId: cardId,
       }),
@@ -346,7 +347,7 @@ export const cardTools = [
     inputSchema: CardIdInput.merge(CardRelationshipFieldsInput),
     handler: async ({ cardId, fields }, { trello }) =>
       trello.request(`${cardPath(cardId)}/board`, TrelloBoardSchema, {
-        query: { fields },
+        query: { fields: includeRequiredFields(fields, ["name"]) },
         resourceType: "card",
         resourceId: cardId,
       }),
@@ -358,7 +359,7 @@ export const cardTools = [
     inputSchema: CardIdInput.merge(CardRelationshipFieldsInput),
     handler: async ({ cardId, fields }, { trello }) =>
       trello.request(`${cardPath(cardId)}/list`, TrelloListSchema, {
-        query: { fields },
+        query: { fields: includeRequiredFields(fields, ["name"]) },
         resourceType: "card",
         resourceId: cardId,
       }),
@@ -617,14 +618,16 @@ export const cardTools = [
       fields: z
         .string()
         .default("all")
-        .describe("Comma-separated checklist item fields to return."),
+        .describe(
+          "Comma-separated checklist item fields to request; schema-required fields are added automatically.",
+        ),
     }),
     handler: async ({ checklistId, filter, fields }, { trello }) =>
       trello.request(
         `/checklists/${encodeURIComponent(checklistId)}/checkItems`,
         TrelloChecklistItemListSchema,
         {
-          query: { filter, fields },
+          query: { filter, fields: includeRequiredFields(fields, ["name"]) },
           resourceType: "checklist",
           resourceId: checklistId,
         },
