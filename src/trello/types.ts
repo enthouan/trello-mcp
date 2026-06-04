@@ -240,7 +240,7 @@ export const TrelloCustomFieldItemSchema = z
     idCustomField: TrelloIdSchema,
     idModel: TrelloIdSchema.optional(),
     modelType: z.literal("card").optional(),
-    value: TrelloCustomFieldValueSchema.optional(),
+    value: TrelloCustomFieldValueSchema.nullable().optional(),
     idValue: TrelloIdSchema.optional(),
   })
   .passthrough();

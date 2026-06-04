@@ -108,6 +108,46 @@ describe("card tools", () => {
     );
   });
 
+  it("lists list custom field items with null values and option ids", async () => {
+    const tool = getCardTool("trello_card_custom_field_items");
+    const trello = {
+      request: vi.fn(async () => [
+        {
+          id: "item1",
+          idCustomField: "field1",
+          idModel: "card1",
+          modelType: "card",
+          value: null,
+          idValue: "option1",
+        },
+      ]),
+    };
+
+    await expect(
+      tool.handler(
+        { cardId: "card1" },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual([
+      {
+        id: "item1",
+        idCustomField: "field1",
+        idModel: "card1",
+        modelType: "card",
+        value: null,
+        idValue: "option1",
+      },
+    ]);
+    expect(trello.request).toHaveBeenCalledWith(
+      "/cards/card1/customFieldItems",
+      expect.anything(),
+      expect.objectContaining({
+        resourceType: "card custom field items",
+        resourceId: "card1",
+      }),
+    );
+  });
+
   it.each([
     {
       input: { type: "text", text: "Hello" },
