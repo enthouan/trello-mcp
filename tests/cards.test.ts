@@ -111,16 +111,19 @@ describe("card tools", () => {
   it("lists list custom field items with null values and option ids", async () => {
     const tool = getCardTool("trello_card_custom_field_items");
     const trello = {
-      request: vi.fn(async () => [
-        {
-          id: "item1",
-          idCustomField: "field1",
-          idModel: "card1",
-          modelType: "card",
-          value: null,
-          idValue: "option1",
-        },
-      ]),
+      request: vi.fn(
+        async (_path: string, schema: { parse: (value: unknown) => unknown }) =>
+          schema.parse([
+            {
+              id: "item1",
+              idCustomField: "field1",
+              idModel: "card1",
+              modelType: "card",
+              value: null,
+              idValue: "option1",
+            },
+          ]),
+      ),
     };
 
     await expect(

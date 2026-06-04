@@ -205,7 +205,7 @@ export const TrelloCustomFieldOptionSchema = z
   .object({
     id: TrelloIdSchema,
     idCustomField: TrelloIdSchema.optional(),
-    value: TrelloCustomFieldValueSchema.optional(),
+    value: TrelloCustomFieldValueSchema.nullable().optional(),
     color: z.string().nullable().optional(),
     pos: z.union([z.number(), z.string()]).optional(),
   })
