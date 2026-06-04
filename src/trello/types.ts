@@ -272,3 +272,4 @@ export const TrelloActionListSchema = z.array(TrelloActionSchema);
 export const DeleteResponseSchema = z
   .object({ _value: z.union([z.string(), z.null()]).optional() })
   .passthrough();
+export const TrelloMutationSuccessSchema = z.unknown();

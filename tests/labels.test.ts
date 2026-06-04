@@ -69,7 +69,10 @@ describe("label tools", () => {
   it("normalizes Trello card URLs before adding a label to a card", async () => {
     const tool = getLabelTool("trello_card_label_add");
     const trello = {
-      request: vi.fn(async () => ({ id: "card1", name: "Existing card" })),
+      request: vi.fn(
+        async (_path: string, schema: { parse: (value: unknown) => unknown }) =>
+          schema.parse("label1"),
+      ),
     };
 
     await expect(
@@ -80,7 +83,12 @@ describe("label tools", () => {
         },
         { trello: trello as never, logger: {} as never, requestId: "req1" },
       ),
-    ).resolves.toEqual({ id: "card1", name: "Existing card" });
+    ).resolves.toEqual({
+      success: true,
+      action: "label_added",
+      cardId: "AbCd1234",
+      labelId: "label1",
+    });
     expect(trello.request).toHaveBeenCalledWith(
       "/cards/AbCd1234/idLabels",
       expect.anything(),
@@ -93,14 +101,24 @@ describe("label tools", () => {
 
   it("removes labels from cards by label id", async () => {
     const tool = getLabelTool("trello_card_label_remove");
-    const trello = { request: vi.fn(async () => ({ _value: null })) };
+    const trello = {
+      request: vi.fn(
+        async (_path: string, schema: { parse: (value: unknown) => unknown }) =>
+          schema.parse("label1"),
+      ),
+    };
 
     await expect(
       tool.handler(
         { cardId: "card1", labelId: "label1" },
         { trello: trello as never, logger: {} as never, requestId: "req1" },
       ),
-    ).resolves.toEqual({ _value: null });
+    ).resolves.toEqual({
+      success: true,
+      action: "label_removed",
+      cardId: "card1",
+      labelId: "label1",
+    });
     expect(trello.request).toHaveBeenCalledWith(
       "/cards/card1/idLabels/label1",
       expect.anything(),

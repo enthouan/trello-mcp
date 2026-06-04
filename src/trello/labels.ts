@@ -2,10 +2,10 @@ import { z } from "zod";
 import { defineTool } from "../utils/tool.js";
 import {
   DeleteResponseSchema,
-  TrelloCardSchema,
   TrelloIdSchema,
   TrelloLabelColorSchema,
   TrelloLabelSchema,
+  TrelloMutationSuccessSchema,
 } from "./types.js";
 
 const BoardIdInput = z.object({
@@ -102,29 +102,47 @@ export const labelTools = [
     description:
       "Use when applying an existing Trello label to a card by label id.",
     inputSchema: CardLabelInput,
-    handler: async ({ cardId, labelId }, { trello }) =>
-      trello.request(`${cardPath(cardId)}/idLabels`, TrelloCardSchema, {
-        method: "POST",
-        query: { value: labelId },
-        resourceType: "card",
-        resourceId: cardId,
-      }),
+    handler: async ({ cardId, labelId }, { trello }) => {
+      await trello.request(
+        `${cardPath(cardId)}/idLabels`,
+        TrelloMutationSuccessSchema,
+        {
+          method: "POST",
+          query: { value: labelId },
+          resourceType: "card",
+          resourceId: cardId,
+        },
+      );
+      return {
+        success: true,
+        action: "label_added",
+        cardId: cardIdentifier(cardId),
+        labelId,
+      };
+    },
   }),
   defineTool({
     name: "trello_card_label_remove",
     description:
       "Use when removing an existing Trello label from a card by label id.",
     inputSchema: CardLabelInput,
-    handler: async ({ cardId, labelId }, { trello }) =>
-      trello.request(
+    handler: async ({ cardId, labelId }, { trello }) => {
+      await trello.request(
         `${cardPath(cardId)}/idLabels/${encodeURIComponent(labelId)}`,
-        DeleteResponseSchema,
+        DeleteResponseSchema.or(TrelloMutationSuccessSchema),
         {
           method: "DELETE",
           resourceType: "card label",
           resourceId: labelId,
         },
-      ),
+      );
+      return {
+        success: true,
+        action: "label_removed",
+        cardId: cardIdentifier(cardId),
+        labelId,
+      };
+    },
   }),
 ];
 

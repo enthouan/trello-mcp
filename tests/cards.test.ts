@@ -864,6 +864,69 @@ describe("card tools", () => {
     );
   });
 
+  it("adds card members with compact Trello success responses", async () => {
+    const tool = getCardTool("trello_card_member_add");
+    const trello = {
+      request: vi.fn(
+        async (_path: string, schema: { parse: (value: unknown) => unknown }) =>
+          schema.parse("member1"),
+      ),
+    };
+
+    await expect(
+      tool.handler(
+        { cardId: "card1", memberId: "member1" },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual({
+      success: true,
+      action: "member_added",
+      cardId: "card1",
+      memberId: "member1",
+    });
+    expect(trello.request).toHaveBeenCalledWith(
+      "/cards/card1/idMembers",
+      expect.anything(),
+      expect.objectContaining({
+        method: "POST",
+        query: { value: "member1" },
+        resourceType: "card",
+        resourceId: "card1",
+      }),
+    );
+  });
+
+  it("removes card members with empty Trello success responses", async () => {
+    const tool = getCardTool("trello_card_member_remove");
+    const trello = {
+      request: vi.fn(
+        async (_path: string, schema: { parse: (value: unknown) => unknown }) =>
+          schema.parse("member1"),
+      ),
+    };
+
+    await expect(
+      tool.handler(
+        { cardId: "card1", memberId: "member1" },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual({
+      success: true,
+      action: "member_removed",
+      cardId: "card1",
+      memberId: "member1",
+    });
+    expect(trello.request).toHaveBeenCalledWith(
+      "/cards/card1/idMembers/member1",
+      expect.anything(),
+      expect.objectContaining({
+        method: "DELETE",
+        resourceType: "card member",
+        resourceId: "member1",
+      }),
+    );
+  });
+
   it("creates a board label and applies it to a card", async () => {
     const tool = getCardTool("trello_card_label_create_and_add");
     const trello = {
