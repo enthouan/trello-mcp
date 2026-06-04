@@ -838,6 +838,89 @@ describe("card tools", () => {
     );
   });
 
+  it("sets a card cover with normal display size", async () => {
+    const tool = getCardTool("trello_card_cover_set");
+    const trello = {
+      request: vi.fn(async () => ({
+        id: "card1",
+        name: "Covered",
+        idAttachmentCover: "attach1",
+        cover: { idAttachment: "attach1", size: "normal" },
+      })),
+    };
+
+    await expect(
+      tool.handler(
+        { cardId: "card1", attachmentId: "attach1", size: "normal" },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        cover: expect.objectContaining({ size: "normal" }),
+      }),
+    );
+
+    expect(trello.request).toHaveBeenCalledWith(
+      "/cards/card1",
+      expect.anything(),
+      {
+        method: "PUT",
+        body: { cover: { idAttachment: "attach1", size: "normal" } },
+        resourceType: "card",
+        resourceId: "card1",
+      },
+    );
+  });
+
+  it("sets a card cover with full display size and brightness", async () => {
+    const tool = getCardTool("trello_card_cover_set");
+    const trello = {
+      request: vi.fn(async () => ({
+        id: "card1",
+        name: "Covered",
+        idAttachmentCover: "attach1",
+        cover: {
+          brightness: "dark",
+          idAttachment: "attach1",
+          size: "full",
+        },
+      })),
+    };
+
+    await expect(
+      tool.handler(
+        {
+          cardId: "card1",
+          attachmentId: "attach1",
+          size: "full",
+          brightness: "dark",
+        },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        cover: expect.objectContaining({ brightness: "dark", size: "full" }),
+      }),
+    );
+
+    expect(trello.request).toHaveBeenCalledWith(
+      "/cards/card1",
+      expect.anything(),
+      {
+        method: "PUT",
+        body: {
+          cover: {
+            idAttachment: "attach1",
+            size: "full",
+            brightness: "dark",
+          },
+        },
+        resourceType: "card",
+        resourceId: "card1",
+      },
+    );
+  });
+
   it("clears a card attachment cover with an empty Trello value", async () => {
     const tool = getCardTool("trello_card_cover_set");
     const trello = {
@@ -863,6 +946,18 @@ describe("card tools", () => {
         query: { idAttachmentCover: "" },
       }),
     );
+  });
+
+  it("rejects cover display options when clearing a card cover", () => {
+    const tool = getCardTool("trello_card_cover_set");
+
+    expect(() =>
+      tool.inputSchema.parse({
+        cardId: "card1",
+        attachmentId: null,
+        size: "full",
+      }),
+    ).toThrow("Display options require an attachmentId.");
   });
 
   it("lists card attachments with Trello fields and filters", async () => {

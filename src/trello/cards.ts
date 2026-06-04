@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ValidationError } from "../utils/errors.js";
 import { defineTool } from "../utils/tool.js";
 import { includeRequiredFields } from "./fields.js";
 import {
@@ -76,11 +77,29 @@ const CardPositionInput = CardIdInput.extend({
     ),
 });
 
+const CardCoverSizeSchema = z.enum(["normal", "full"]);
+
+const CardCoverBrightnessSchema = z.enum(["light", "dark"]);
+
 const CardCoverInput = CardIdInput.extend({
   attachmentId: TrelloIdSchema.nullable().describe(
     "Attachment id to use as the card cover, or null to clear the attachment cover.",
   ),
-});
+  size: CardCoverSizeSchema.optional().describe(
+    "Trello cover display size: normal for the regular half cover, or full for an integrated full cover.",
+  ),
+  brightness: CardCoverBrightnessSchema.optional().describe(
+    "Text contrast for full covers: light or dark.",
+  ),
+}).refine(
+  (input) =>
+    input.attachmentId !== null ||
+    (input.size === undefined && input.brightness === undefined),
+  {
+    message: "Display options require an attachmentId.",
+    path: ["attachmentId"],
+  },
+);
 
 const CardLabelCreateInput = CardIdInput.extend({
   name: z.string().min(1).describe("Human-readable label name."),
@@ -493,15 +512,41 @@ export const cardTools = [
   defineTool({
     name: "trello_card_cover_set",
     description:
-      "Use when setting a card cover to an existing attachment id or clearing the current attachment cover.",
+      "Use when setting a card cover to an existing attachment id, changing cover display size, or clearing the current attachment cover.",
     inputSchema: CardCoverInput,
-    handler: async ({ cardId, attachmentId }, { trello }) =>
-      trello.request(cardPath(cardId), TrelloCardSchema, {
+    handler: async ({ cardId, attachmentId, size, brightness }, { trello }) => {
+      if (size !== undefined || brightness !== undefined) {
+        if (attachmentId === null) {
+          throw new ValidationError("Display options require an attachmentId.");
+        }
+
+        const cover: {
+          brightness?: z.infer<typeof CardCoverBrightnessSchema>;
+          idAttachment: string;
+          size?: z.infer<typeof CardCoverSizeSchema>;
+        } = { idAttachment: attachmentId };
+        if (size !== undefined) {
+          cover.size = size;
+        }
+        if (brightness !== undefined) {
+          cover.brightness = brightness;
+        }
+
+        return trello.request(cardPath(cardId), TrelloCardSchema, {
+          method: "PUT",
+          body: { cover },
+          resourceType: "card",
+          resourceId: cardId,
+        });
+      }
+
+      return trello.request(cardPath(cardId), TrelloCardSchema, {
         method: "PUT",
         query: { idAttachmentCover: attachmentId === null ? "" : attachmentId },
         resourceType: "card",
         resourceId: cardId,
-      }),
+      });
+    },
   }),
   defineTool({
     name: "trello_card_label_create_and_add",
