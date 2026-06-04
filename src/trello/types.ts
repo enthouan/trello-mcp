@@ -73,14 +73,26 @@ export const TrelloListSchema = z.object({
   pos: z.union([z.number(), z.string()]).optional(),
 });
 
-export const TrelloAttachmentSchema = z.object({
-  id: TrelloIdSchema,
-  name: z.string().nullable().optional(),
-  url: z.string().url().nullable().optional(),
-  bytes: z.number().nullable().optional(),
-  date: z.string().nullable().optional(),
-  mimeType: z.string().nullable().optional(),
-});
+export const TrelloAttachmentSchema = z
+  .object({
+    id: TrelloIdSchema,
+    name: z.string().nullable().optional(),
+    url: z.string().url().nullable().optional(),
+    bytes: z.union([z.number(), z.string()]).nullable().optional(),
+    date: z.string().nullable().optional(),
+    mimeType: z.string().nullable().optional(),
+    edgeColor: z.string().nullable().optional(),
+    idMember: TrelloIdSchema.nullable().optional(),
+    isUpload: z.boolean().optional(),
+    pos: z.union([z.number(), z.string()]).optional(),
+    previews: z.array(z.unknown()).optional(),
+  })
+  .passthrough();
+
+export const TrelloAttachmentResponseSchema = z.preprocess(
+  (value) => (Array.isArray(value) && value.length === 1 ? value[0] : value),
+  TrelloAttachmentSchema,
+);
 
 export const TrelloLabelColorSchema = z.enum([
   "yellow",

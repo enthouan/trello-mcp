@@ -44,7 +44,7 @@ Most of this project was built with Codex under my close supervision.
 ### Card Context
 
 - List cards in a Trello list.
-- List card attachments and add public URL attachments.
+- List card attachments, inspect individual attachments, add public URL attachments, and upload server-local files from an explicitly configured directory.
 - List and create card checklists, and manage checklist items.
 - List card members and add or remove members.
 - Read card actions and activity history.
@@ -353,6 +353,7 @@ Example MCP config shape:
 | --- | --- | --- | --- |
 | `TRELLO_API_KEY` | yes | | Trello API key. |
 | `TRELLO_TOKEN` | yes | | Trello token for token auth. |
+| `TRELLO_ATTACHMENT_UPLOAD_ROOT` | no | | Absolute server-side directory that enables local file attachment uploads. Leave unset to disable local uploads. |
 | `TRANSPORT` | no | `http` | `http` or `stdio`. |
 | `LOG_LEVEL` | no | `info` | Pino log level. |
 | `TRELLO_MCP_HOST_BIND_IP` | no | `127.0.0.1` | Docker Compose host interface bind address. Keep `127.0.0.1` for local-only access; set `0.0.0.0` to publish on all host interfaces for intentional network/LAN exposure. |
@@ -375,12 +376,42 @@ Show the recent activity for this card.
 Add a comment to this card saying the invoices are ready for review.
 Edit this card comment to include the updated invoice total.
 Add this public URL as an attachment to the card.
+Upload the file invoice.pdf from my Trello upload folder to this card.
 Show me the custom fields configured on this board.
 Set this card's Priority custom field to the High option.
 Clear this card's Estimate custom field.
 ```
 
 The exact wording depends on your MCP client. The server can discover your boards and board lists first, then use those ids for card workflows.
+
+## Attachment Uploads
+
+Public URL attachments work without extra setup. Local file uploads are implemented, but they are disabled by default because the MCP client asks the server process to read a file from the server's filesystem.
+
+To enable `trello_card_attachment_upload`, set `TRELLO_ATTACHMENT_UPLOAD_ROOT` to an absolute directory path the server may read. Upload tool `filePath` values can be relative to that directory, or absolute paths that still resolve inside it. The server resolves symlinks with `realpath`, rejects directories, and rejects files outside the configured root before it sends any Trello request.
+
+For local stdio use:
+
+```bash
+TRELLO_ATTACHMENT_UPLOAD_ROOT=/Users/you/trello-uploads \
+  TRELLO_API_KEY=your-key \
+  TRELLO_TOKEN=your-token \
+  TRANSPORT=stdio \
+  node dist/index.js
+```
+
+For Docker, mount the upload directory into the container and set the root to the container path:
+
+```bash
+docker run --rm -p 3000:3000 \
+  -v "$PWD/trello-uploads:/uploads:ro" \
+  -e TRELLO_ATTACHMENT_UPLOAD_ROOT=/uploads \
+  -e TRELLO_API_KEY=your-api-key \
+  -e TRELLO_TOKEN=your-token \
+  ghcr.io/enthouan/trello-mcp:latest
+```
+
+MCP clients do not upload bytes directly through this tool; they provide a path that must exist on the server host or inside the container. For remote servers, copy or mount the file into `TRELLO_ATTACHMENT_UPLOAD_ROOT` first.
 
 ## Custom Fields
 
@@ -431,8 +462,10 @@ Use `trello_card_custom_field_clear` to clear an existing card custom field valu
 | `trello_card_delete` | Use only when the user explicitly asks to permanently delete a Trello card; archive instead for reversible removal. | cardId |
 | `trello_card_move` | Use when moving a card to another list, another board, or a different position; this is distinct from general card metadata updates. | cardId, listId, boardId, pos |
 | `trello_card_archive` | Use when the user wants to archive or unarchive a card while keeping it recoverable; do not use for permanent deletion. | cardId, closed |
-| `trello_card_attachments` | Use when listing files or links attached to a card. | cardId |
+| `trello_card_attachments` | Use when listing files or links attached to a card, optionally narrowed by Trello attachment fields or filter. | cardId, fields, filter |
+| `trello_card_attachment_get` | Use when inspecting one existing card attachment by attachment id, including upload metadata when Trello returns it. | cardId, fields, attachmentId |
 | `trello_card_attachment_add_url` | Use when attaching an existing public URL to a card; this does not upload local files. | cardId, url, name, setCover |
+| `trello_card_attachment_upload` | Use when uploading a server-local file to a card. Requires TRELLO_ATTACHMENT_UPLOAD_ROOT and only reads files inside that directory. | cardId, filePath, name, mimeType, setCover |
 | `trello_card_attachment_delete` | Use when removing a specific attachment from a card by attachment id. | cardId, attachmentId |
 | `trello_card_checklists` | Use when viewing all checklists and checklist items currently on a card. | cardId |
 | `trello_card_checklist_create` | Use when adding a new checklist to an existing card, optionally copied from another checklist. | cardId, name, sourceChecklistId |
@@ -493,6 +526,7 @@ MCP client
 - Trello credentials stay in your environment or MCP client config.
 - Logs redact `TRELLO_API_KEY`, `TRELLO_TOKEN`, and common key/token fields.
 - Trello API requests use HTTPS.
+- Local file attachment uploads are disabled unless `TRELLO_ATTACHMENT_UPLOAD_ROOT` is configured; upload paths are restricted to that directory.
 - Tests use mocks and injected fetchers instead of live Trello calls.
 - Do not publish `.env` files or paste tokens into issues and PRs.
 

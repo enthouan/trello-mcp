@@ -1,3 +1,6 @@
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { TrelloClient } from "../src/trello/client.js";
@@ -6,10 +9,12 @@ import {
   NotFoundError,
   RateLimitError,
   TrelloApiError,
+  ValidationError,
 } from "../src/utils/errors.js";
 
 const config = { TRELLO_API_KEY: "key", TRELLO_TOKEN: "token" };
 const OkSchema = z.object({ ok: z.boolean() });
+const AttachmentSchema = z.object({ id: z.string(), name: z.string() });
 
 function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
   return new Response(JSON.stringify(body), {
@@ -56,6 +61,107 @@ describe("TrelloClient", () => {
     expect(calledUrl.searchParams.get("dueReminder")).toBe("null");
     expect(calledUrl.searchParams.get("idMember")).toBe("null");
     expect(calledUrl.searchParams.has("pos")).toBe(false);
+  });
+
+  it("builds multipart requests for attachment uploads inside the configured root", async () => {
+    const uploadRoot = await mkdtemp(join(tmpdir(), "trello-mcp-upload-"));
+    const uploadPath = join(uploadRoot, "note.txt");
+    await writeFile(uploadPath, "hello upload", "utf8");
+    const fetcher = vi.fn<typeof fetch>(async () =>
+      jsonResponse({ id: "attachment1", name: "Display name" }),
+    );
+    const client = new TrelloClient(
+      {
+        ...config,
+        TRELLO_ATTACHMENT_UPLOAD_ROOT: uploadRoot,
+      },
+      { fetcher },
+    );
+
+    try {
+      const result = await client.request(
+        "/cards/card1/attachments",
+        AttachmentSchema,
+        {
+          method: "POST",
+          form: {
+            name: "Display name",
+            mimeType: "text/plain",
+            setCover: true,
+          },
+          file: {
+            filePath: "note.txt",
+            mimeType: "text/plain",
+          },
+        },
+      );
+
+      expect(result).toEqual({ id: "attachment1", name: "Display name" });
+      const calledUrl = fetcher.mock.calls[0]?.[0];
+      expect(calledUrl).toBeInstanceOf(URL);
+      if (!(calledUrl instanceof URL)) {
+        throw new TypeError("Expected fetcher to be called with a URL");
+      }
+      expect(calledUrl.searchParams.get("key")).toBe("key");
+      expect(calledUrl.searchParams.get("token")).toBe("token");
+
+      const init = fetcher.mock.calls[0]?.[1];
+      expect(init?.method).toBe("POST");
+      expect(init?.headers).toBeUndefined();
+      expect(init?.body).toBeInstanceOf(FormData);
+      const form = init?.body as FormData;
+      expect(form.get("name")).toBe("Display name");
+      expect(form.get("mimeType")).toBe("text/plain");
+      expect(form.get("setCover")).toBe("true");
+      const file = form.get("file");
+      expect(file).toBeInstanceOf(Blob);
+      expect(file).toHaveProperty("name", "note.txt");
+      expect(file).toHaveProperty("type", "text/plain");
+      expect(await (file as Blob).text()).toBe("hello upload");
+    } finally {
+      await rm(uploadRoot, { force: true, recursive: true });
+    }
+  });
+
+  it("rejects attachment uploads until an upload root is configured", async () => {
+    const fetcher = vi.fn<typeof fetch>(async () => jsonResponse({ ok: true }));
+    const client = new TrelloClient(config, { fetcher });
+
+    await expect(
+      client.request("/cards/card1/attachments", OkSchema, {
+        method: "POST",
+        file: { filePath: "/tmp/note.txt" },
+      }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it("rejects attachment upload paths outside the configured root", async () => {
+    const uploadRoot = await mkdtemp(join(tmpdir(), "trello-mcp-upload-"));
+    const outsideRoot = await mkdtemp(join(tmpdir(), "trello-mcp-outside-"));
+    const outsidePath = join(outsideRoot, "secret.txt");
+    await writeFile(outsidePath, "do not upload", "utf8");
+    const fetcher = vi.fn<typeof fetch>(async () => jsonResponse({ ok: true }));
+    const client = new TrelloClient(
+      {
+        ...config,
+        TRELLO_ATTACHMENT_UPLOAD_ROOT: uploadRoot,
+      },
+      { fetcher },
+    );
+
+    try {
+      await expect(
+        client.request("/cards/card1/attachments", OkSchema, {
+          method: "POST",
+          file: { filePath: outsidePath },
+        }),
+      ).rejects.toBeInstanceOf(ValidationError);
+      expect(fetcher).not.toHaveBeenCalled();
+    } finally {
+      await rm(uploadRoot, { force: true, recursive: true });
+      await rm(outsideRoot, { force: true, recursive: true });
+    }
   });
 
   it("throttles through the token bucket", async () => {
