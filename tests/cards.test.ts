@@ -837,6 +837,33 @@ describe("card tools", () => {
     );
   });
 
+  it("clears a card attachment cover with an empty Trello value", async () => {
+    const tool = getCardTool("trello_card_cover_set");
+    const trello = {
+      request: vi.fn(async () => ({
+        id: "card1",
+        name: "Uncovered",
+        idAttachmentCover: null,
+        cover: { idAttachment: null },
+      })),
+    };
+
+    await expect(
+      tool.handler(
+        { cardId: "card1", attachmentId: null },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual(expect.objectContaining({ idAttachmentCover: null }));
+    expect(trello.request).toHaveBeenCalledWith(
+      "/cards/card1",
+      expect.anything(),
+      expect.objectContaining({
+        method: "PUT",
+        query: { idAttachmentCover: "" },
+      }),
+    );
+  });
+
   it("creates a board label and applies it to a card", async () => {
     const tool = getCardTool("trello_card_label_create_and_add");
     const trello = {
