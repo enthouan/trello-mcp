@@ -108,42 +108,65 @@ describe("card tools", () => {
     );
   });
 
-  it("sets custom field values with Trello's type-specific body shapes", async () => {
-    const tool = getCardTool("trello_card_custom_field_set");
-    const trello = {
-      request: vi.fn(async () => ({
+  it.each([
+    {
+      input: { type: "text", text: "Hello" },
+      responseValue: { text: "Hello" },
+      expectedBody: { value: { text: "Hello" } },
+    },
+    {
+      input: { type: "number", number: "42" },
+      responseValue: { number: "42" },
+      expectedBody: { value: { number: "42" } },
+    },
+    {
+      input: { type: "date", date: "2026-06-03T16:00:00.000Z" },
+      responseValue: { date: "2026-06-03T16:00:00.000Z" },
+      expectedBody: { value: { date: "2026-06-03T16:00:00.000Z" } },
+    },
+    {
+      input: { type: "checkbox", checked: true },
+      responseValue: { checked: "true" },
+      expectedBody: { value: { checked: "true" } },
+    },
+  ] as const)(
+    "sets $input.type custom field values with Trello's type-specific body shape",
+    async ({ input, responseValue, expectedBody }) => {
+      const tool = getCardTool("trello_card_custom_field_set");
+      const trello = {
+        request: vi.fn(async () => ({
+          id: "item1",
+          idCustomField: "field1",
+          value: responseValue,
+        })),
+      };
+
+      await expect(
+        tool.handler(
+          {
+            cardId: "card1",
+            customFieldId: "field1",
+            ...input,
+          },
+          { trello: trello as never, logger: {} as never, requestId: "req1" },
+        ),
+      ).resolves.toEqual({
         id: "item1",
         idCustomField: "field1",
-        value: { checked: "true" },
-      })),
-    };
-
-    await expect(
-      tool.handler(
-        {
-          cardId: "card1",
-          customFieldId: "field1",
-          type: "checkbox",
-          checked: true,
-        },
-        { trello: trello as never, logger: {} as never, requestId: "req1" },
-      ),
-    ).resolves.toEqual({
-      id: "item1",
-      idCustomField: "field1",
-      value: { checked: "true" },
-    });
-    expect(trello.request).toHaveBeenCalledWith(
-      "/cards/card1/customField/field1/item",
-      expect.anything(),
-      expect.objectContaining({
-        method: "PUT",
-        body: { value: { checked: "true" } },
-        resourceType: "card custom field item",
-        resourceId: "field1",
-      }),
-    );
-  });
+        value: responseValue,
+      });
+      expect(trello.request).toHaveBeenCalledWith(
+        "/cards/card1/customField/field1/item",
+        expect.anything(),
+        expect.objectContaining({
+          method: "PUT",
+          body: expectedBody,
+          resourceType: "card custom field item",
+          resourceId: "field1",
+        }),
+      );
+    },
+  );
 
   it("sets list custom fields by option id", async () => {
     const tool = getCardTool("trello_card_custom_field_set");
