@@ -201,15 +201,30 @@ export const TrelloCustomFieldValueSchema = z
   })
   .passthrough();
 
-export const TrelloCustomFieldOptionSchema = z
-  .object({
-    id: TrelloIdSchema,
-    idCustomField: TrelloIdSchema.optional(),
-    value: TrelloCustomFieldValueSchema.nullable().optional(),
-    color: z.string().nullable().optional(),
-    pos: z.union([z.number(), z.string()]).optional(),
-  })
-  .passthrough();
+export const TrelloCustomFieldOptionSchema = z.preprocess(
+  (value) => {
+    if (typeof value !== "object" || value === null || Array.isArray(value)) {
+      return value;
+    }
+
+    const option = value as Record<string, unknown>;
+    if (option.id === undefined && typeof option._id === "string") {
+      const { _id, ...rest } = option;
+      return { ...rest, id: _id };
+    }
+
+    return value;
+  },
+  z
+    .object({
+      id: TrelloIdSchema,
+      idCustomField: TrelloIdSchema.optional(),
+      value: TrelloCustomFieldValueSchema.nullable().optional(),
+      color: z.string().nullable().optional(),
+      pos: z.union([z.number(), z.string()]).optional(),
+    })
+    .passthrough(),
+);
 
 export const TrelloCustomFieldDisplaySchema = z
   .object({
