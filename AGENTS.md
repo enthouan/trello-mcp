@@ -6,7 +6,7 @@ This file gives coding agents project-specific instructions for this repository.
 
 `trello-mcp` is a self-hostable Model Context Protocol server for Trello. It exposes Trello operations as MCP tools and supports:
 
-- HTTP Streamable MCP transport for container/server deployments.
+- Streamable HTTP MCP transport for container/server deployments.
 - stdio MCP transport for local process-based clients.
 - Trello API key + token authentication.
 - Zod validation for config, tool input, and Trello API responses.
@@ -14,7 +14,7 @@ This file gives coding agents project-specific instructions for this repository.
 - Vitest tests and Biome formatting/linting.
 - Docker image publishing through GitHub Actions.
 
-This project is still in the initial scaffold/vertical-slice phase. Keep changes focused and avoid speculative architecture.
+This project is still early, but it has a meaningful public tool surface. Keep changes focused and avoid speculative architecture.
 
 ## Hard Constraints
 
@@ -89,7 +89,12 @@ corepack pnpm exec biome check --write path/to/file.ts
 - `src/config.ts`: environment variable schema. Keep auth to `TRELLO_API_KEY` and `TRELLO_TOKEN`.
 - `src/health.ts`: HTTP health/readiness responses.
 - `src/trello/client.ts`: Trello REST client, auth query parameters, rate limiting, retries, response parsing, typed errors.
-- `src/trello/cards.ts`: Trello card-related MCP tool definitions.
+- `src/trello/boards.ts`: board discovery and board-level list, card, label, member, and custom field tools.
+- `src/trello/lists.ts`: list create, inspect, update, archive, and move tools.
+- `src/trello/cards.ts`: card, attachment, checklist, member, comment, action, and card custom field item tools.
+- `src/trello/labels.ts`: label CRUD and card label assignment tools.
+- `src/trello/custom-fields.ts`: custom field definition and option lookup tools.
+- `src/trello/fields.ts`: shared Trello field list validation helpers.
 - `src/trello/types.ts`: Zod schemas for Trello API response shapes.
 - `src/utils/tool.ts`: `defineTool`, MCP registration wrapper, request IDs, logging, result wrapping.
 - `src/utils/errors.ts`: app error mapping and MCP error conversion.
@@ -142,6 +147,7 @@ Current public env vars:
 
 - `TRELLO_API_KEY`, required.
 - `TRELLO_TOKEN`, required.
+- `TRELLO_ATTACHMENT_UPLOAD_ROOT`, optional, no default; enables server-local attachment uploads when set to an absolute directory.
 - `TRANSPORT`, optional, default `http`, valid values `http` or `stdio`.
 - `PORT`, optional, default `3000`.
 - `LOG_LEVEL`, optional, default `info`.
@@ -172,10 +178,12 @@ When changing config:
 
 Use Vitest.
 
-Current test focus:
+Current test coverage includes:
 
+- `tests/config.test.ts`: environment parsing and validation.
 - `tests/client.test.ts`: auth query construction, rate limiting, retries, HTTP error mapping.
-- `tests/cards.test.ts`: card tool input parsing and Trello request construction.
+- `tests/boards.test.ts`, `tests/lists.test.ts`, `tests/labels.test.ts`, `tests/custom-fields.test.ts`, and `tests/fields.test.ts`: domain tool input parsing, response parsing, and Trello request construction.
+- `tests/cards.test.ts`: card, attachment, checklist, member, comment, action, and custom field item tool behavior.
 - `tests/tool.test.ts`: tool registration wrapper, validation, result wrapping, MCP error mapping.
 
 When adding behavior:

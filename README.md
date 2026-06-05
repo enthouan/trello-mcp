@@ -1,6 +1,6 @@
 # Trello MCP Server
 
-A self-hostable Model Context Protocol server that lets MCP-compatible clients work with Trello cards, lists, labels, attachments, checklists, members, and card activity.
+A self-hostable [Model Context Protocol](https://modelcontextprotocol.io/) server that lets MCP-compatible clients work with [Trello](https://trello.com/) cards, lists, labels, attachments, checklists, members, and card activity.
 
 I built this for my own Trello workflows, but it is intentionally self-hostable and reusable. Feel free to adapt it for your own setup, open issues, or send PRs with improvements.
 
@@ -8,9 +8,9 @@ The roadmap is, of course, tracked on Trello, and `trello-mcp` helps keep it up 
 
 ## Disclaimer
 
-This is an independent, unofficial open source project. It is not affiliated with, associated with, authorized by, endorsed by, or sponsored by Trello, Atlassian, or any related company. Trello, Atlassian, and related names, logos, product names, and trademarks belong to their respective owners.
+This is an independent, unofficial open source project. It is not affiliated with, associated with, authorized by, endorsed by, or sponsored by [Trello](https://trello.com/), [Atlassian](https://www.atlassian.com/), or any related company. Trello, Atlassian, and related names, logos, product names, and trademarks belong to their respective owners.
 
-This project exists to make it easier for MCP-compatible LLM clients to interface with Trello through Trello's public API and user-provided API credentials.
+This project exists to make it easier for MCP-compatible LLM clients to interface with Trello through Trello's [public API](https://developer.atlassian.com/cloud/trello/guides/rest-api/api-introduction/) and user-provided API credentials.
 
 ## Personal Note
 
@@ -355,6 +355,7 @@ Example MCP config shape:
 | `TRELLO_TOKEN` | yes | | Trello token for token auth. |
 | `TRELLO_ATTACHMENT_UPLOAD_ROOT` | no | | Absolute server-side directory that enables local file attachment uploads. Leave unset to disable local uploads. |
 | `TRANSPORT` | no | `http` | `http` or `stdio`. |
+| `PORT` | no | `3000` | HTTP listen port for the Node process. Docker Compose keeps the container listener on `3000` and uses `TRELLO_MCP_HOST_PORT` for the published host port. |
 | `LOG_LEVEL` | no | `info` | Pino log level. |
 | `TRELLO_MCP_HOST_BIND_IP` | no | `127.0.0.1` | Docker Compose host interface bind address. Keep `127.0.0.1` for local-only access; set `0.0.0.0` to publish on all host interfaces for intentional network/LAN exposure. |
 | `TRELLO_MCP_HOST_PORT` | no | `3000` | Docker Compose host port mapped to the container's fixed internal `3000` listener. |
@@ -515,9 +516,12 @@ MCP client
 - `src/index.ts` starts stdio or HTTP transport.
 - `src/server.ts` creates the MCP server and registers tools.
 - `src/trello/client.ts` owns Trello HTTP requests, auth query parameters, retries, and response parsing.
-- `src/trello/boards.ts` defines board and board-list discovery tools, including board custom field discovery.
-- `src/trello/cards.ts` defines the card tools, including card custom field item read/write helpers.
+- `src/trello/boards.ts` defines board discovery and board-level list, card, label, member, and custom field tools.
+- `src/trello/lists.ts` defines list create, inspect, update, archive, and move tools.
+- `src/trello/cards.ts` defines card tools, including attachment, checklist, member, comment, action, and card custom field item helpers.
+- `src/trello/labels.ts` defines label CRUD and card label assignment tools.
 - `src/trello/custom-fields.ts` defines custom field definition and option lookup tools.
+- `src/trello/fields.ts` defines shared Trello field list validation helpers.
 - `src/trello/types.ts` contains Trello response schemas.
 - `src/utils/*` contains logging, error mapping, pagination, and tool registration helpers.
 
@@ -567,7 +571,7 @@ corepack pnpm docker:build
 
 ## Codex Cloud Environments
 
-Codex cloud tasks run a setup script before the agent starts, and can run an optional maintenance script when a cached container resumes on a task branch. Use these repository scripts in the Codex environment settings:
+Codex Cloud tasks run a setup script before the agent starts, and can run an optional maintenance script when a cached container resumes on a task branch. Use these repository scripts in the Codex environment settings:
 
 ```bash
 ./scripts/codex/setup.sh
