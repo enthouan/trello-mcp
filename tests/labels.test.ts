@@ -15,7 +15,7 @@ function getLabelTool<TName extends LabelTool["name"]>(
 
 describe("label tools", () => {
   it("creates labels on a board", async () => {
-    const tool = getLabelTool("trello_label_create");
+    const tool = getLabelTool("label_create");
     const trello = {
       request: vi.fn(async () => ({
         id: "label1",
@@ -55,7 +55,7 @@ describe("label tools", () => {
   });
 
   it("rejects unsupported Trello label colors", () => {
-    const tool = getLabelTool("trello_label_create");
+    const tool = getLabelTool("label_create");
 
     expect(() =>
       tool.inputSchema.parse({
@@ -67,7 +67,7 @@ describe("label tools", () => {
   });
 
   it("normalizes Trello card URLs before adding a label to a card", async () => {
-    const tool = getLabelTool("trello_card_label_add");
+    const tool = getLabelTool("card_label_add");
     const trello = {
       request: vi.fn(
         async (_path: string, schema: { parse: (value: unknown) => unknown }) =>
@@ -100,7 +100,7 @@ describe("label tools", () => {
   });
 
   it("removes labels from cards by label id", async () => {
-    const tool = getLabelTool("trello_card_label_remove");
+    const tool = getLabelTool("card_label_remove");
     const trello = {
       request: vi.fn(
         async (_path: string, schema: { parse: (value: unknown) => unknown }) =>

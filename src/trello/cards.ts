@@ -388,7 +388,7 @@ const CardCommentDeleteInput = z.object({
 
 export const cardTools = [
   defineTool({
-    name: "trello_card_get",
+    name: "card_get",
     description:
       "Use when you need the current details of one Trello card by id, short id, or URL before editing or summarizing it.",
     inputSchema: CardIdInput.merge(CardFieldsInput),
@@ -400,7 +400,7 @@ export const cardTools = [
       }),
   }),
   defineTool({
-    name: "trello_card_board",
+    name: "card_board",
     description:
       "Use when you need the board relationship for a known Trello card before moving, labeling, or summarizing its context.",
     inputSchema: CardIdInput.merge(CardRelationshipFieldsInput),
@@ -412,7 +412,7 @@ export const cardTools = [
       }),
   }),
   defineTool({
-    name: "trello_card_list",
+    name: "card_list",
     description:
       "Use when you need the current list relationship for a known Trello card before moving or reporting its status.",
     inputSchema: CardIdInput.merge(CardRelationshipFieldsInput),
@@ -424,7 +424,7 @@ export const cardTools = [
       }),
   }),
   defineTool({
-    name: "trello_card_labels",
+    name: "card_labels",
     description:
       "Use when listing the labels currently applied to a card, including label ids for add/remove workflows.",
     inputSchema: CardIdInput,
@@ -436,7 +436,7 @@ export const cardTools = [
       }),
   }),
   defineTool({
-    name: "trello_list_cards",
+    name: "list_cards",
     description:
       "Use when you need cards in a specific Trello list; prefer board-level tools later when you need every list on a board.",
     inputSchema: ListCardsInput,
@@ -452,7 +452,7 @@ export const cardTools = [
       ),
   }),
   defineTool({
-    name: "trello_card_create",
+    name: "card_create",
     description:
       "Use when the user asks to create a new Trello card in a known list; accepts title, description, due date, members, and labels.",
     inputSchema: CreateCardInput,
@@ -468,7 +468,7 @@ export const cardTools = [
       }),
   }),
   defineTool({
-    name: "trello_card_update",
+    name: "card_update",
     description:
       "Use when changing card metadata such as title, description, due date, due completion, or archive state without moving it.",
     inputSchema: UpdateCardInput,
@@ -481,7 +481,7 @@ export const cardTools = [
       }),
   }),
   defineTool({
-    name: "trello_card_due_date_set",
+    name: "card_due_date_set",
     description:
       "Use when setting, clearing, or marking completion of a card due date without changing other card metadata.",
     inputSchema: CardDueDateInput,
@@ -497,9 +497,9 @@ export const cardTools = [
       }),
   }),
   defineTool({
-    name: "trello_card_position_set",
+    name: "card_position_set",
     description:
-      "Use when changing only a card's position within its current list; use trello_card_move when changing lists or boards too.",
+      "Use when changing only a card's position within its current list; use card_move when changing lists or boards too.",
     inputSchema: CardPositionInput,
     handler: async ({ cardId, pos }, { trello }) =>
       trello.request(cardPath(cardId), TrelloCardSchema, {
@@ -510,7 +510,7 @@ export const cardTools = [
       }),
   }),
   defineTool({
-    name: "trello_card_cover_set",
+    name: "card_cover_set",
     description:
       "Use when setting a card cover to an existing attachment id, changing cover display size, or clearing the current attachment cover.",
     inputSchema: CardCoverInput,
@@ -549,7 +549,7 @@ export const cardTools = [
     },
   }),
   defineTool({
-    name: "trello_card_label_create_and_add",
+    name: "card_label_create_and_add",
     description:
       "Use when creating a new label on the card's board and applying it to the card in one Trello operation.",
     inputSchema: CardLabelCreateInput,
@@ -562,7 +562,7 @@ export const cardTools = [
       }),
   }),
   defineTool({
-    name: "trello_card_delete",
+    name: "card_delete",
     description:
       "Use only when the user explicitly asks to permanently delete a Trello card; archive instead for reversible removal.",
     inputSchema: CardIdInput,
@@ -574,7 +574,7 @@ export const cardTools = [
       }),
   }),
   defineTool({
-    name: "trello_card_move",
+    name: "card_move",
     description:
       "Use when moving a card to another list, another board, or a different position; this is distinct from general card metadata updates.",
     inputSchema: MoveCardInput,
@@ -587,7 +587,7 @@ export const cardTools = [
       }),
   }),
   defineTool({
-    name: "trello_card_archive",
+    name: "card_archive",
     description:
       "Use when the user wants to archive or unarchive a card while keeping it recoverable; do not use for permanent deletion.",
     inputSchema: CardIdInput.extend({
@@ -605,7 +605,7 @@ export const cardTools = [
       }),
   }),
   defineTool({
-    name: "trello_card_attachments",
+    name: "card_attachments",
     description:
       "Use when listing files or links attached to a card, optionally narrowed by Trello attachment fields or filter.",
     inputSchema: CardAttachmentListInput,
@@ -621,7 +621,7 @@ export const cardTools = [
       ),
   }),
   defineTool({
-    name: "trello_card_attachment_get",
+    name: "card_attachment_get",
     description:
       "Use when inspecting one existing card attachment by attachment id, including upload metadata when Trello returns it.",
     inputSchema: CardAttachmentGetInput,
@@ -637,7 +637,7 @@ export const cardTools = [
       ),
   }),
   defineTool({
-    name: "trello_card_attachment_add_url",
+    name: "card_attachment_add_url",
     description:
       "Use when attaching an existing public URL to a card; this does not upload local files.",
     inputSchema: CardAttachmentCreateInput,
@@ -654,7 +654,7 @@ export const cardTools = [
       ),
   }),
   defineTool({
-    name: "trello_card_attachment_upload",
+    name: "card_attachment_upload",
     description:
       "Use when uploading a server-local file to a card. Requires TRELLO_ATTACHMENT_UPLOAD_ROOT and only reads files inside that directory.",
     inputSchema: CardAttachmentUploadInput,
@@ -679,7 +679,7 @@ export const cardTools = [
       ),
   }),
   defineTool({
-    name: "trello_card_attachment_delete",
+    name: "card_attachment_delete",
     description:
       "Use when removing a specific attachment from a card by attachment id.",
     inputSchema: CardAttachmentDeleteInput,
@@ -695,7 +695,7 @@ export const cardTools = [
       ),
   }),
   defineTool({
-    name: "trello_card_checklists",
+    name: "card_checklists",
     description:
       "Use when viewing all checklists and checklist items currently on a card.",
     inputSchema: CardIdInput,
@@ -707,7 +707,7 @@ export const cardTools = [
       ),
   }),
   defineTool({
-    name: "trello_card_checklist_create",
+    name: "card_checklist_create",
     description:
       "Use when adding a new checklist to an existing card, optionally copied from another checklist.",
     inputSchema: CardChecklistCreateInput,
@@ -721,7 +721,7 @@ export const cardTools = [
   }),
 
   defineTool({
-    name: "trello_card_checklist_item_create",
+    name: "card_checklist_item_create",
     description:
       "Use when adding a new item to an existing Trello checklist on a card.",
     inputSchema: CardChecklistItemCreateInput,
@@ -738,7 +738,7 @@ export const cardTools = [
       ),
   }),
   defineTool({
-    name: "trello_card_checklist_items",
+    name: "card_checklist_items",
     description:
       "Use when listing the items in one Trello checklist, including complete and incomplete items by default.",
     inputSchema: ChecklistIdInput.extend({
@@ -765,7 +765,7 @@ export const cardTools = [
       ),
   }),
   defineTool({
-    name: "trello_card_checklist_item_update",
+    name: "card_checklist_item_update",
     description:
       "Use when editing a Trello card checklist item text, due date, member assignment, completion state, checklist, or position.",
     inputSchema: CardChecklistItemUpdateInput,
@@ -785,7 +785,7 @@ export const cardTools = [
       ),
   }),
   defineTool({
-    name: "trello_card_checklist_item_set_checked",
+    name: "card_checklist_item_set_checked",
     description:
       "Use when checking or unchecking a Trello card checklist item without changing other item fields.",
     inputSchema: CardChecklistItemStateInput,
@@ -802,7 +802,7 @@ export const cardTools = [
       ),
   }),
   defineTool({
-    name: "trello_card_checklist_item_move",
+    name: "card_checklist_item_move",
     description:
       "Use when moving a Trello checklist item to another checklist on the same card or to a different position.",
     inputSchema: CardChecklistItemMoveInput,
@@ -819,7 +819,7 @@ export const cardTools = [
       ),
   }),
   defineTool({
-    name: "trello_card_checklist_item_delete",
+    name: "card_checklist_item_delete",
     description:
       "Use when deleting a checklist item from a Trello card checklist.",
     inputSchema: CardChecklistItemDeleteInput,
@@ -835,7 +835,7 @@ export const cardTools = [
       ),
   }),
   defineTool({
-    name: "trello_card_custom_field_items",
+    name: "card_custom_field_items",
     description:
       "Use when reading all custom field item values currently set on a Trello card.",
     inputSchema: CardIdInput,
@@ -850,7 +850,7 @@ export const cardTools = [
       ),
   }),
   defineTool({
-    name: "trello_card_custom_field_set",
+    name: "card_custom_field_set",
     description:
       "Use when setting or updating one Trello card custom field value. Use type-specific inputs: text, number string, ISO date, checkbox boolean, or list optionId.",
     inputSchema: CardCustomFieldSetInput,
@@ -867,7 +867,7 @@ export const cardTools = [
       ),
   }),
   defineTool({
-    name: "trello_card_custom_field_clear",
+    name: "card_custom_field_clear",
     description:
       "Use when clearing one Trello card custom field value; Trello clears custom field items with an empty PUT body shape rather than DELETE.",
     inputSchema: CardCustomFieldClearInput,
@@ -884,7 +884,7 @@ export const cardTools = [
       ),
   }),
   defineTool({
-    name: "trello_card_members",
+    name: "card_members",
     description:
       "Use when listing members assigned to a card; use add/remove member tools to change assignment.",
     inputSchema: CardIdInput,
@@ -895,7 +895,7 @@ export const cardTools = [
       }),
   }),
   defineTool({
-    name: "trello_card_member_add",
+    name: "card_member_add",
     description: "Use when assigning a Trello member to a card by member id.",
     inputSchema: CardMemberInput,
     handler: async ({ cardId, memberId }, { trello }) => {
@@ -918,7 +918,7 @@ export const cardTools = [
     },
   }),
   defineTool({
-    name: "trello_card_member_remove",
+    name: "card_member_remove",
     description:
       "Use when unassigning a Trello member from a card by member id.",
     inputSchema: CardMemberInput,
@@ -941,7 +941,7 @@ export const cardTools = [
     },
   }),
   defineTool({
-    name: "trello_card_comment_add",
+    name: "card_comment_add",
     description:
       "Use when adding a new comment to a Trello card; returns the created comment action.",
     inputSchema: CardCommentCreateInput,
@@ -958,7 +958,7 @@ export const cardTools = [
       ),
   }),
   defineTool({
-    name: "trello_card_comment_update",
+    name: "card_comment_update",
     description:
       "Use when editing the text of an existing Trello card comment by its comment action id.",
     inputSchema: CardCommentUpdateInput,
@@ -975,7 +975,7 @@ export const cardTools = [
       ),
   }),
   defineTool({
-    name: "trello_card_comment_delete",
+    name: "card_comment_delete",
     description:
       "Use when deleting an existing Trello card comment by its comment action id.",
     inputSchema: CardCommentDeleteInput,
@@ -991,7 +991,7 @@ export const cardTools = [
       ),
   }),
   defineTool({
-    name: "trello_card_actions",
+    name: "card_actions",
     description:
       "Use when auditing recent activity or comments for a card; set filter to commentCard for comments only. Use comment tools to add, edit, or delete comments.",
     inputSchema: CardIdInput.extend({

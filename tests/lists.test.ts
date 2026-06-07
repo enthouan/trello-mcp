@@ -15,7 +15,7 @@ function getListTool<TName extends ListTool["name"]>(
 
 describe("list tools", () => {
   it("gets list metadata with default fields", async () => {
-    const tool = getListTool("trello_list_get");
+    const tool = getListTool("list_get");
     const trello = {
       request: vi.fn(async () => ({ id: "list1", name: "Today" })),
     };
@@ -39,7 +39,7 @@ describe("list tools", () => {
   });
 
   it("adds the required list name field when minimizing list fields", async () => {
-    const tool = getListTool("trello_list_get");
+    const tool = getListTool("list_get");
     const trello = {
       request: vi.fn(async () => ({
         id: "list1",
@@ -70,7 +70,7 @@ describe("list tools", () => {
   });
 
   it("calls Trello with parsed create-list inputs", async () => {
-    const tool = getListTool("trello_list_create");
+    const tool = getListTool("list_create");
     const trello = {
       request: vi.fn(async () => ({ id: "list1", name: "Done" })),
     };
@@ -102,7 +102,7 @@ describe("list tools", () => {
   });
 
   it("updates list metadata without requiring archive state", async () => {
-    const tool = getListTool("trello_list_update");
+    const tool = getListTool("list_update");
     const trello = {
       request: vi.fn(async () => ({ id: "list1", name: "Later" })),
     };
@@ -128,7 +128,7 @@ describe("list tools", () => {
   });
 
   it("archives lists through the dedicated closed endpoint", async () => {
-    const tool = getListTool("trello_list_archive");
+    const tool = getListTool("list_archive");
     const trello = {
       request: vi.fn(async () => ({ id: "list1", name: "Old", closed: true })),
     };
@@ -153,7 +153,7 @@ describe("list tools", () => {
   });
 
   it("moves lists to another board", async () => {
-    const tool = getListTool("trello_list_move_to_board");
+    const tool = getListTool("list_move_to_board");
     const trello = {
       request: vi.fn(async () => ({
         id: "list1",
@@ -183,7 +183,7 @@ describe("list tools", () => {
   });
 
   it("rejects empty list ids before requesting Trello", () => {
-    const tool = getListTool("trello_list_get");
+    const tool = getListTool("list_get");
 
     expect(() => tool.inputSchema.parse({ listId: "" })).toThrow();
   });

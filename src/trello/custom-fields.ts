@@ -12,7 +12,7 @@ const CustomFieldIdInput = z.object({
 
 export const customFieldTools = [
   defineTool({
-    name: "trello_custom_field_get",
+    name: "custom_field_get",
     description:
       "Use when you need one Trello custom field definition by id, including its type and any dropdown/list options Trello returns.",
     inputSchema: CustomFieldIdInput,
@@ -27,7 +27,7 @@ export const customFieldTools = [
       ),
   }),
   defineTool({
-    name: "trello_custom_field_options",
+    name: "custom_field_options",
     description:
       "Use when listing the available options for a Trello dropdown/list custom field before setting a card list custom field value.",
     inputSchema: CustomFieldIdInput,

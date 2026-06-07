@@ -15,7 +15,7 @@ function getCustomFieldTool<TName extends CustomFieldTool["name"]>(
 
 describe("custom field tools", () => {
   it("gets one custom field definition by id", async () => {
-    const tool = getCustomFieldTool("trello_custom_field_get");
+    const tool = getCustomFieldTool("custom_field_get");
     const trello = {
       request: vi.fn(async () => ({
         id: "field1",
@@ -49,7 +49,7 @@ describe("custom field tools", () => {
   });
 
   it("lists dropdown options for one custom field", async () => {
-    const tool = getCustomFieldTool("trello_custom_field_options");
+    const tool = getCustomFieldTool("custom_field_options");
     const trello = {
       request: vi.fn(async () => [
         {
@@ -85,7 +85,7 @@ describe("custom field tools", () => {
   });
 
   it("lists dropdown options with nullable values", async () => {
-    const tool = getCustomFieldTool("trello_custom_field_options");
+    const tool = getCustomFieldTool("custom_field_options");
     const trello = {
       request: vi.fn(
         async (_path: string, schema: { parse: (value: unknown) => unknown }) =>
@@ -126,7 +126,7 @@ describe("custom field tools", () => {
   });
 
   it("normalizes option ids from the dedicated custom field options endpoint", async () => {
-    const tool = getCustomFieldTool("trello_custom_field_options");
+    const tool = getCustomFieldTool("custom_field_options");
     const trello = {
       request: vi.fn(
         async (_path: string, schema: { parse: (value: unknown) => unknown }) =>

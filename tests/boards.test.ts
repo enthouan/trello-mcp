@@ -16,7 +16,7 @@ function getBoardTool<TName extends BoardTool["name"]>(
 
 describe("board tools", () => {
   it("lists the current member's open boards by default", async () => {
-    const tool = getBoardTool("trello_list_boards");
+    const tool = getBoardTool("list_boards");
     const trello = {
       request: vi.fn(async () => [{ id: "board1", name: "Jobs" }]),
     };
@@ -38,7 +38,7 @@ describe("board tools", () => {
   });
 
   it("gets board details with common preferences and label names by default", async () => {
-    const tool = getBoardTool("trello_board_get");
+    const tool = getBoardTool("board_get");
     const trello = {
       request: vi.fn(async () => ({
         id: "board1",
@@ -74,7 +74,7 @@ describe("board tools", () => {
   });
 
   it("adds the required board name field when minimizing board fields", async () => {
-    const tool = getBoardTool("trello_board_get");
+    const tool = getBoardTool("board_get");
     const trello = {
       request: vi.fn(async () => ({
         id: "board1",
@@ -109,7 +109,7 @@ describe("board tools", () => {
   });
 
   it("gets a single board field", async () => {
-    const tool = getBoardTool("trello_board_field_get");
+    const tool = getBoardTool("board_field_get");
     const trello = {
       request: vi.fn(async () => ({ cardCovers: true })),
     };
@@ -132,7 +132,7 @@ describe("board tools", () => {
   });
 
   it("lists open board lists by default", async () => {
-    const tool = getBoardTool("trello_board_lists");
+    const tool = getBoardTool("board_lists");
     const trello = {
       request: vi.fn(async () => [{ id: "list1", name: "Today" }]),
     };
@@ -156,8 +156,8 @@ describe("board tools", () => {
   });
 
   it("adds required names when minimizing board cards and lists", async () => {
-    const boardCardsTool = getBoardTool("trello_board_cards");
-    const boardListsTool = getBoardTool("trello_board_lists");
+    const boardCardsTool = getBoardTool("board_cards");
+    const boardListsTool = getBoardTool("board_lists");
     const trello = {
       request: vi.fn(async (path: string) =>
         path.endsWith("/cards")
@@ -197,7 +197,7 @@ describe("board tools", () => {
   });
 
   it("lists open board cards by default", async () => {
-    const tool = getBoardTool("trello_board_cards");
+    const tool = getBoardTool("board_cards");
     const trello = {
       request: vi.fn(async () => [{ id: "card1", name: "Pay bills" }]),
     };
@@ -221,7 +221,7 @@ describe("board tools", () => {
   });
 
   it("lists board custom field definitions", async () => {
-    const tool = getBoardTool("trello_board_custom_fields");
+    const tool = getBoardTool("board_custom_fields");
     const trello = {
       request: vi.fn(async () => [
         {
@@ -262,7 +262,7 @@ describe("board tools", () => {
   });
 
   it("lists board labels with a default limit and fields", async () => {
-    const tool = getBoardTool("trello_board_labels");
+    const tool = getBoardTool("board_labels");
     const trello = {
       request: vi.fn(async () => [
         { id: "label1", idBoard: "board1", name: "Urgent", color: "red" },
@@ -293,7 +293,7 @@ describe("board tools", () => {
   });
 
   it("lists board members", async () => {
-    const tool = getBoardTool("trello_board_members");
+    const tool = getBoardTool("board_members");
     const trello = {
       request: vi.fn(async () => [{ id: "member1", fullName: "Ada Lovelace" }]),
     };
@@ -317,7 +317,7 @@ describe("board tools", () => {
   });
 
   it("lists board memberships with member details", async () => {
-    const tool = getBoardTool("trello_board_memberships");
+    const tool = getBoardTool("board_memberships");
     const trello = {
       request: vi.fn(async () => [
         { id: "membership1", idMember: "member1", memberType: "admin" },
@@ -349,7 +349,7 @@ describe("board tools", () => {
   });
 
   it("accepts Trello-supported board membership filters only", () => {
-    const tool = getBoardTool("trello_board_memberships");
+    const tool = getBoardTool("board_memberships");
 
     expect(
       tool.inputSchema.parse({ boardId: "board1", filter: "admins" }).filter,
@@ -360,7 +360,7 @@ describe("board tools", () => {
   });
 
   it("propagates board permission errors from Trello", async () => {
-    const tool = getBoardTool("trello_board_cards");
+    const tool = getBoardTool("board_cards");
     const trello = {
       request: vi.fn(async () => {
         throw new AuthError("Trello authentication failed; check credentials.");
@@ -377,7 +377,7 @@ describe("board tools", () => {
   });
 
   it("rejects empty board ids before requesting Trello", async () => {
-    const tool = getBoardTool("trello_board_get");
+    const tool = getBoardTool("board_get");
 
     expect(() => tool.inputSchema.parse({ boardId: "" })).toThrow();
   });

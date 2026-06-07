@@ -37,7 +37,7 @@ const UpdateLabelInput = LabelIdInput.extend({
 
 export const labelTools = [
   defineTool({
-    name: "trello_label_get",
+    name: "label_get",
     description:
       "Use when you need the current name, color, or board for a specific Trello label before editing it.",
     inputSchema: LabelIdInput,
@@ -52,7 +52,7 @@ export const labelTools = [
       ),
   }),
   defineTool({
-    name: "trello_label_create",
+    name: "label_create",
     description:
       "Use when creating a new reusable label on a Trello board before applying it to cards.",
     inputSchema: CreateLabelInput,
@@ -65,7 +65,7 @@ export const labelTools = [
       }),
   }),
   defineTool({
-    name: "trello_label_update",
+    name: "label_update",
     description:
       "Use when renaming a Trello label or changing its color without changing any card assignments.",
     inputSchema: UpdateLabelInput,
@@ -82,7 +82,7 @@ export const labelTools = [
       ),
   }),
   defineTool({
-    name: "trello_label_delete",
+    name: "label_delete",
     description:
       "Use only when the user explicitly asks to permanently delete a board label from Trello.",
     inputSchema: LabelIdInput,
@@ -98,7 +98,7 @@ export const labelTools = [
       ),
   }),
   defineTool({
-    name: "trello_card_label_add",
+    name: "card_label_add",
     description:
       "Use when applying an existing Trello label to a card by label id.",
     inputSchema: CardLabelInput,
@@ -122,7 +122,7 @@ export const labelTools = [
     },
   }),
   defineTool({
-    name: "trello_card_label_remove",
+    name: "card_label_remove",
     description:
       "Use when removing an existing Trello label from a card by label id.",
     inputSchema: CardLabelInput,

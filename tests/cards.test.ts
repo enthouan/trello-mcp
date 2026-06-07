@@ -16,7 +16,7 @@ function getCardTool<TName extends CardTool["name"]>(
 
 describe("card tools", () => {
   it("rejects bad create-card input with schema validation", () => {
-    const tool = getCardTool("trello_card_create");
+    const tool = getCardTool("card_create");
 
     expect(() =>
       tool.inputSchema.parse({ listId: "list1", name: "", due: "not-a-date" }),
@@ -24,7 +24,7 @@ describe("card tools", () => {
   });
 
   it("calls Trello with parsed create-card inputs", async () => {
-    const tool = getCardTool("trello_card_create");
+    const tool = getCardTool("card_create");
     const trello = {
       request: vi.fn(async () => ({ id: "card1", name: "New card" })),
     };
@@ -46,7 +46,7 @@ describe("card tools", () => {
   });
 
   it("normalizes Trello card URLs before requesting card details", async () => {
-    const tool = getCardTool("trello_card_get");
+    const tool = getCardTool("card_get");
     const trello = {
       request: vi.fn(async () => ({ id: "card1", name: "Existing card" })),
     };
@@ -71,7 +71,7 @@ describe("card tools", () => {
   });
 
   it("adds the required card name field when minimizing card fields", async () => {
-    const tool = getCardTool("trello_card_get");
+    const tool = getCardTool("card_get");
     const trello = {
       request: vi.fn(async () => ({
         id: "card1",
@@ -99,7 +99,7 @@ describe("card tools", () => {
   });
 
   it("lists custom field items on a card", async () => {
-    const tool = getCardTool("trello_card_custom_field_items");
+    const tool = getCardTool("card_custom_field_items");
     const trello = {
       request: vi.fn(async () => [
         {
@@ -137,7 +137,7 @@ describe("card tools", () => {
   });
 
   it("lists list custom field items with null values and option ids", async () => {
-    const tool = getCardTool("trello_card_custom_field_items");
+    const tool = getCardTool("card_custom_field_items");
     const trello = {
       request: vi.fn(
         async (_path: string, schema: { parse: (value: unknown) => unknown }) =>
@@ -205,7 +205,7 @@ describe("card tools", () => {
     responseValue,
     expectedBody,
   }) => {
-    const tool = getCardTool("trello_card_custom_field_set");
+    const tool = getCardTool("card_custom_field_set");
     const trello = {
       request: vi.fn(async () => ({
         id: "item1",
@@ -241,7 +241,7 @@ describe("card tools", () => {
   });
 
   it("sets list custom fields by option id", async () => {
-    const tool = getCardTool("trello_card_custom_field_set");
+    const tool = getCardTool("card_custom_field_set");
     const trello = {
       request: vi.fn(async () => ({
         idCustomField: "field1",
@@ -271,7 +271,7 @@ describe("card tools", () => {
   });
 
   it("clears custom field values with an empty PUT body shape", async () => {
-    const tool = getCardTool("trello_card_custom_field_clear");
+    const tool = getCardTool("card_custom_field_clear");
     const trello = {
       request: vi.fn(async () => ({})),
     };
@@ -295,7 +295,7 @@ describe("card tools", () => {
   });
 
   it("rejects mismatched custom field set input before requesting Trello", () => {
-    const tool = getCardTool("trello_card_custom_field_set");
+    const tool = getCardTool("card_custom_field_set");
 
     expect(() =>
       tool.inputSchema.parse({
@@ -308,7 +308,7 @@ describe("card tools", () => {
   });
 
   it("adds comments to cards through Trello comment actions", async () => {
-    const tool = getCardTool("trello_card_comment_add");
+    const tool = getCardTool("card_comment_add");
     const trello = {
       request: vi.fn(async () => ({
         id: "action1",
@@ -340,7 +340,7 @@ describe("card tools", () => {
   });
 
   it("updates a card comment by comment action id", async () => {
-    const tool = getCardTool("trello_card_comment_update");
+    const tool = getCardTool("card_comment_update");
     const trello = {
       request: vi.fn(async () => ({
         id: "action1",
@@ -372,7 +372,7 @@ describe("card tools", () => {
   });
 
   it("deletes a card comment by comment action id", async () => {
-    const tool = getCardTool("trello_card_comment_delete");
+    const tool = getCardTool("card_comment_delete");
     const trello = {
       request: vi.fn(async () => ({ _value: null })),
     };
@@ -395,7 +395,7 @@ describe("card tools", () => {
   });
 
   it("rejects empty card comment text before requesting Trello", () => {
-    const tool = getCardTool("trello_card_comment_add");
+    const tool = getCardTool("card_comment_add");
 
     expect(() =>
       tool.inputSchema.parse({ cardId: "card1", text: "" }),
@@ -403,7 +403,7 @@ describe("card tools", () => {
   });
 
   it("creates checklist items on an existing checklist", async () => {
-    const tool = getCardTool("trello_card_checklist_item_create");
+    const tool = getCardTool("card_checklist_item_create");
     const trello = {
       request: vi.fn(async () => ({
         id: "item1",
@@ -448,7 +448,7 @@ describe("card tools", () => {
   });
 
   it("sets checklist item state through the card check item endpoint", async () => {
-    const tool = getCardTool("trello_card_checklist_item_set_checked");
+    const tool = getCardTool("card_checklist_item_set_checked");
     const trello = {
       request: vi.fn(async () => ({
         id: "item1",
@@ -482,7 +482,7 @@ describe("card tools", () => {
   });
 
   it("unchecks checklist items through the card check item endpoint", async () => {
-    const tool = getCardTool("trello_card_checklist_item_set_checked");
+    const tool = getCardTool("card_checklist_item_set_checked");
     const trello = {
       request: vi.fn(async () => ({
         id: "item1",
@@ -511,7 +511,7 @@ describe("card tools", () => {
   });
 
   it("updates and moves checklist items on cards", async () => {
-    const tool = getCardTool("trello_card_checklist_item_update");
+    const tool = getCardTool("card_checklist_item_update");
     const trello = {
       request: vi.fn(async () => ({
         id: "item1",
@@ -559,7 +559,7 @@ describe("card tools", () => {
   });
 
   it("moves checklist items with the dedicated move tool", async () => {
-    const tool = getCardTool("trello_card_checklist_item_move");
+    const tool = getCardTool("card_checklist_item_move");
     const trello = {
       request: vi.fn(async () => ({
         id: "item1",
@@ -592,7 +592,7 @@ describe("card tools", () => {
   });
 
   it("deletes checklist items from cards", async () => {
-    const tool = getCardTool("trello_card_checklist_item_delete");
+    const tool = getCardTool("card_checklist_item_delete");
     const trello = {
       request: vi.fn(async () => ({ _value: null })),
     };
@@ -615,7 +615,7 @@ describe("card tools", () => {
   });
 
   it("rejects invalid checklist item state before requesting Trello", () => {
-    const tool = getCardTool("trello_card_checklist_item_update");
+    const tool = getCardTool("card_checklist_item_update");
 
     expect(() =>
       tool.inputSchema.parse({
@@ -627,7 +627,7 @@ describe("card tools", () => {
   });
 
   it("adds the required checklist item name field when minimizing checklist item fields", async () => {
-    const tool = getCardTool("trello_card_checklist_items");
+    const tool = getCardTool("card_checklist_items");
     const trello = {
       request: vi.fn(async () => [
         { id: "item1", name: "Confirm fields", state: "incomplete" },
@@ -654,7 +654,7 @@ describe("card tools", () => {
   });
 
   it("gets a card's board relationship", async () => {
-    const tool = getCardTool("trello_card_board");
+    const tool = getCardTool("card_board");
     const trello = {
       request: vi.fn(async () => ({ id: "board1", name: "Project" })),
     };
@@ -677,7 +677,7 @@ describe("card tools", () => {
   });
 
   it("gets a card's list relationship", async () => {
-    const tool = getCardTool("trello_card_list");
+    const tool = getCardTool("card_list");
     const trello = {
       request: vi.fn(async () => ({ id: "list1", name: "Doing" })),
     };
@@ -700,7 +700,7 @@ describe("card tools", () => {
   });
 
   it("lists card labels through a focused card labels lookup", async () => {
-    const tool = getCardTool("trello_card_labels");
+    const tool = getCardTool("card_labels");
     const trello = {
       request: vi.fn(async () => ({
         id: "card1",
@@ -727,7 +727,7 @@ describe("card tools", () => {
   });
 
   it("sets card due dates without changing unrelated card fields", async () => {
-    const tool = getCardTool("trello_card_due_date_set");
+    const tool = getCardTool("card_due_date_set");
     const due = "2026-07-01T12:00:00.000Z";
     const trello = {
       request: vi.fn(async () => ({
@@ -755,7 +755,7 @@ describe("card tools", () => {
   });
 
   it("marks due completion without requiring the due date value", async () => {
-    const tool = getCardTool("trello_card_due_date_set");
+    const tool = getCardTool("card_due_date_set");
     const trello = {
       request: vi.fn(async () => ({
         id: "card1",
@@ -781,7 +781,7 @@ describe("card tools", () => {
   });
 
   it("rejects no-op focused due date updates", () => {
-    const tool = getCardTool("trello_card_due_date_set");
+    const tool = getCardTool("card_due_date_set");
 
     expect(() => tool.inputSchema.parse({ cardId: "card1" })).toThrow(
       "Provide at least one of due or dueComplete.",
@@ -789,7 +789,7 @@ describe("card tools", () => {
   });
 
   it("sets card position without moving lists or boards", async () => {
-    const tool = getCardTool("trello_card_position_set");
+    const tool = getCardTool("card_position_set");
     const trello = {
       request: vi.fn(async () => ({ id: "card1", name: "Ranked", pos: "top" })),
     };
@@ -811,7 +811,7 @@ describe("card tools", () => {
   });
 
   it("sets a card cover from an existing attachment", async () => {
-    const tool = getCardTool("trello_card_cover_set");
+    const tool = getCardTool("card_cover_set");
     const trello = {
       request: vi.fn(async () => ({
         id: "card1",
@@ -839,7 +839,7 @@ describe("card tools", () => {
   });
 
   it("sets a card cover with normal display size", async () => {
-    const tool = getCardTool("trello_card_cover_set");
+    const tool = getCardTool("card_cover_set");
     const trello = {
       request: vi.fn(async () => ({
         id: "card1",
@@ -873,7 +873,7 @@ describe("card tools", () => {
   });
 
   it("sets a card cover with full display size and brightness", async () => {
-    const tool = getCardTool("trello_card_cover_set");
+    const tool = getCardTool("card_cover_set");
     const trello = {
       request: vi.fn(async () => ({
         id: "card1",
@@ -922,7 +922,7 @@ describe("card tools", () => {
   });
 
   it("clears a card attachment cover with an empty Trello value", async () => {
-    const tool = getCardTool("trello_card_cover_set");
+    const tool = getCardTool("card_cover_set");
     const trello = {
       request: vi.fn(async () => ({
         id: "card1",
@@ -949,7 +949,7 @@ describe("card tools", () => {
   });
 
   it("rejects cover display options when clearing a card cover", () => {
-    const tool = getCardTool("trello_card_cover_set");
+    const tool = getCardTool("card_cover_set");
 
     expect(() =>
       tool.inputSchema.parse({
@@ -961,7 +961,7 @@ describe("card tools", () => {
   });
 
   it("lists card attachments with Trello fields and filters", async () => {
-    const tool = getCardTool("trello_card_attachments");
+    const tool = getCardTool("card_attachments");
     const trello = {
       request: vi.fn(async () => [
         {
@@ -998,7 +998,7 @@ describe("card tools", () => {
   });
 
   it("gets one card attachment by id", async () => {
-    const tool = getCardTool("trello_card_attachment_get");
+    const tool = getCardTool("card_attachment_get");
     const trello = {
       request: vi.fn(async () => ({
         id: "attach1",
@@ -1029,7 +1029,7 @@ describe("card tools", () => {
   });
 
   it("accepts Trello's singleton-array shape for one attachment responses", async () => {
-    const tool = getCardTool("trello_card_attachment_get");
+    const tool = getCardTool("card_attachment_get");
     const trello = {
       request: vi.fn(
         async (_path: string, schema: { parse: (value: unknown) => unknown }) =>
@@ -1056,7 +1056,7 @@ describe("card tools", () => {
   });
 
   it("adds public URL attachments to cards", async () => {
-    const tool = getCardTool("trello_card_attachment_add_url");
+    const tool = getCardTool("card_attachment_add_url");
     const trello = {
       request: vi.fn(async () => ({
         id: "attach1",
@@ -1097,7 +1097,7 @@ describe("card tools", () => {
   });
 
   it("uploads server-local files to a card attachment endpoint", async () => {
-    const tool = getCardTool("trello_card_attachment_upload");
+    const tool = getCardTool("card_attachment_upload");
     const trello = {
       request: vi.fn(async () => ({
         id: "attach1",
@@ -1144,7 +1144,7 @@ describe("card tools", () => {
   });
 
   it("rejects empty upload file paths before requesting Trello", () => {
-    const tool = getCardTool("trello_card_attachment_upload");
+    const tool = getCardTool("card_attachment_upload");
 
     expect(() =>
       tool.inputSchema.parse({ cardId: "card1", filePath: "" }),
@@ -1152,7 +1152,7 @@ describe("card tools", () => {
   });
 
   it("adds card members with compact Trello success responses", async () => {
-    const tool = getCardTool("trello_card_member_add");
+    const tool = getCardTool("card_member_add");
     const trello = {
       request: vi.fn(
         async (_path: string, schema: { parse: (value: unknown) => unknown }) =>
@@ -1184,7 +1184,7 @@ describe("card tools", () => {
   });
 
   it("removes card members with empty Trello success responses", async () => {
-    const tool = getCardTool("trello_card_member_remove");
+    const tool = getCardTool("card_member_remove");
     const trello = {
       request: vi.fn(
         async (_path: string, schema: { parse: (value: unknown) => unknown }) =>
@@ -1215,7 +1215,7 @@ describe("card tools", () => {
   });
 
   it("creates a board label and applies it to a card", async () => {
-    const tool = getCardTool("trello_card_label_create_and_add");
+    const tool = getCardTool("card_label_create_and_add");
     const trello = {
       request: vi.fn(async () => ({
         id: "label1",
@@ -1244,7 +1244,7 @@ describe("card tools", () => {
   });
 
   it("allows Trello API errors to be mapped by the tool factory", async () => {
-    const tool = getCardTool("trello_card_get");
+    const tool = getCardTool("card_get");
     const error = new TrelloApiError(500, "Trello failed", { status: 500 });
 
     await expect(

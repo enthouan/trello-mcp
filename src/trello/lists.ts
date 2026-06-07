@@ -40,7 +40,7 @@ const UpdateListInput = ListIdInput.extend({
 
 export const listTools = [
   defineTool({
-    name: "trello_list_get",
+    name: "list_get",
     description:
       "Use when you need metadata for a known Trello list before creating cards in it or changing it.",
     inputSchema: ListIdInput.merge(ListFieldsInput),
@@ -52,7 +52,7 @@ export const listTools = [
       }),
   }),
   defineTool({
-    name: "trello_list_create",
+    name: "list_create",
     description: "Use when creating a new Trello list on an existing board.",
     inputSchema: CreateListInput,
     handler: async ({ boardId, ...input }, { trello }) =>
@@ -64,7 +64,7 @@ export const listTools = [
       }),
   }),
   defineTool({
-    name: "trello_list_update",
+    name: "list_update",
     description:
       "Use when renaming a Trello list, changing its position, or setting its archive state.",
     inputSchema: UpdateListInput,
@@ -77,7 +77,7 @@ export const listTools = [
       }),
   }),
   defineTool({
-    name: "trello_list_archive",
+    name: "list_archive",
     description:
       "Use when archiving or unarchiving a Trello list while keeping its cards recoverable.",
     inputSchema: ListIdInput.extend({
@@ -95,7 +95,7 @@ export const listTools = [
       }),
   }),
   defineTool({
-    name: "trello_list_move_to_board",
+    name: "list_move_to_board",
     description: "Use when moving an existing Trello list to another board.",
     inputSchema: ListIdInput.extend({
       boardId: TrelloIdSchema.describe("Destination board id."),
