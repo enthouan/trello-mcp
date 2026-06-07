@@ -389,7 +389,7 @@ The exact wording depends on your MCP client. The server can discover your board
 
 Public URL attachments work without extra setup. Local file uploads are implemented, but they are disabled by default because the MCP client asks the server process to read a file from the server's filesystem.
 
-To enable `trello_card_attachment_upload`, set `TRELLO_ATTACHMENT_UPLOAD_ROOT` to an absolute directory path the server may read. Upload tool `filePath` values can be relative to that directory, or absolute paths that still resolve inside it. The server resolves symlinks with `realpath`, rejects directories, and rejects files outside the configured root before it sends any Trello request.
+To enable `card_attachment_upload`, set `TRELLO_ATTACHMENT_UPLOAD_ROOT` to an absolute directory path the server may read. Upload tool `filePath` values can be relative to that directory, or absolute paths that still resolve inside it. The server resolves symlinks with `realpath`, rejects directories, and rejects files outside the configured root before it sends any Trello request.
 
 For local stdio use:
 
@@ -416,9 +416,9 @@ MCP clients do not upload bytes directly through this tool; they provide a path 
 
 ## Custom Fields
 
-Custom field definitions live on Trello boards, and card values are exposed as card `customFieldItems`. Use `trello_board_custom_fields` to discover board-level field definitions and their ids, `trello_custom_field_options` to list dropdown/list options for a field, and `trello_card_custom_field_items` to inspect values currently set on a card.
+Custom field definitions live on Trello boards, and card values are exposed as card `customFieldItems`. Use `board_custom_fields` to discover board-level field definitions and their ids, `custom_field_options` to list dropdown/list options for a field, and `card_custom_field_items` to inspect values currently set on a card.
 
-The write tool `trello_card_custom_field_set` accepts one custom field at a time with a type-specific input shape:
+The write tool `card_custom_field_set` accepts one custom field at a time with a type-specific input shape:
 
 | Custom field type | Input shape | Notes |
 | --- | --- | --- |
@@ -426,74 +426,74 @@ The write tool `trello_card_custom_field_set` accepts one custom field at a time
 | `number` | `{ "type": "number", "number": "42" }` | Trello expects numbers as strings. |
 | `date` | `{ "type": "date", "date": "2026-06-03T16:00:00.000Z" }` | Must be an ISO-8601 date/time string. |
 | `checkbox` | `{ "type": "checkbox", "checked": true }` | The server sends Trello the string value Trello expects. |
-| `list` | `{ "type": "list", "optionId": "<custom-field-option-id>" }` | Discover option ids with `trello_board_custom_fields` or `trello_custom_field_options`. |
+| `list` | `{ "type": "list", "optionId": "<custom-field-option-id>" }` | Discover option ids with `board_custom_fields` or `custom_field_options`. |
 
-Use `trello_card_custom_field_clear` to clear an existing card custom field value. Trello clears custom field items with an empty PUT request shape rather than a DELETE request, so clearing is intentionally separate from setting values.
+Use `card_custom_field_clear` to clear an existing card custom field value. Trello clears custom field items with an empty PUT request shape rather than a DELETE request, so clearing is intentionally separate from setting values.
 
 ## Tool Catalog
 
 <!-- tools:start -->
 | Name | When to use | Key inputs |
 | --- | --- | --- |
-| `trello_list_boards` | Use first when the user has not provided a board, list, card id, or Trello URL; returns boards visible to the authenticated Trello member. | filter, fields |
-| `trello_board_get` | Use when you need board details, common board preferences, or label names for a known Trello board before listing or summarizing it. | boardId, fields |
-| `trello_board_field_get` | Use when you need one specific board field, such as prefs, labelNames, subscribed, name, description, or URL. | boardId, field |
-| `trello_board_lists` | Use when you need the lists on a known Trello board so you can find the right list id before listing or creating cards. | boardId, filter, fields |
-| `trello_board_cards` | Use when you need cards across all lists on a known Trello board for personal planning, review, or summarization. | boardId, filter, fields |
-| `trello_board_custom_fields` | Use when inspecting custom field definitions on a known Trello board, including dropdown/list options when Trello returns them. | boardId |
-| `trello_board_labels` | Use when discovering labels available on a board before creating or updating cards with labels. | boardId, limit, fields |
-| `trello_board_members` | Use when you need the members who can access a known Trello board before assigning cards or reviewing collaboration. | boardId, fields |
-| `trello_board_memberships` | Use when you need board membership records, member roles, or permission context for a known Trello board. | boardId, filter, member, memberFields |
-| `trello_list_get` | Use when you need metadata for a known Trello list before creating cards in it or changing it. | listId, fields |
-| `trello_list_create` | Use when creating a new Trello list on an existing board. | boardId, name, pos |
-| `trello_list_update` | Use when renaming a Trello list, changing its position, or setting its archive state. | listId, name, closed, pos |
-| `trello_list_archive` | Use when archiving or unarchiving a Trello list while keeping its cards recoverable. | listId, closed |
-| `trello_list_move_to_board` | Use when moving an existing Trello list to another board. | listId, boardId |
-| `trello_card_get` | Use when you need the current details of one Trello card by id, short id, or URL before editing or summarizing it. | cardId, fields |
-| `trello_card_board` | Use when you need the board relationship for a known Trello card before moving, labeling, or summarizing its context. | cardId, fields |
-| `trello_card_list` | Use when you need the current list relationship for a known Trello card before moving or reporting its status. | cardId, fields |
-| `trello_card_labels` | Use when listing the labels currently applied to a card, including label ids for add/remove workflows. | cardId |
-| `trello_list_cards` | Use when you need cards in a specific Trello list; prefer board-level tools later when you need every list on a board. | listId, limit, filter |
-| `trello_card_create` | Use when the user asks to create a new Trello card in a known list; accepts title, description, due date, members, and labels. | listId, name, desc, due, pos, memberIds, labelIds |
-| `trello_card_update` | Use when changing card metadata such as title, description, due date, due completion, or archive state without moving it. | cardId, name, desc, due, dueComplete, closed |
-| `trello_card_due_date_set` | Use when setting, clearing, or marking completion of a card due date without changing other card metadata. | cardId, due, dueComplete |
-| `trello_card_position_set` | Use when changing only a card's position within its current list; use trello_card_move when changing lists or boards too. | cardId, pos |
-| `trello_card_cover_set` | Use when setting a card cover to an existing attachment id, changing cover display size, or clearing the current attachment cover. | cardId, attachmentId, size, brightness |
-| `trello_card_label_create_and_add` | Use when creating a new label on the card's board and applying it to the card in one Trello operation. | cardId, name, color |
-| `trello_card_delete` | Use only when the user explicitly asks to permanently delete a Trello card; archive instead for reversible removal. | cardId |
-| `trello_card_move` | Use when moving a card to another list, another board, or a different position; this is distinct from general card metadata updates. | cardId, listId, boardId, pos |
-| `trello_card_archive` | Use when the user wants to archive or unarchive a card while keeping it recoverable; do not use for permanent deletion. | cardId, closed |
-| `trello_card_attachments` | Use when listing files or links attached to a card, optionally narrowed by Trello attachment fields or filter. | cardId, fields, filter |
-| `trello_card_attachment_get` | Use when inspecting one existing card attachment by attachment id, including upload metadata when Trello returns it. | cardId, fields, attachmentId |
-| `trello_card_attachment_add_url` | Use when attaching an existing public URL to a card; this does not upload local files. | cardId, url, name, setCover |
-| `trello_card_attachment_upload` | Use when uploading a server-local file to a card. Requires TRELLO_ATTACHMENT_UPLOAD_ROOT and only reads files inside that directory. | cardId, filePath, name, mimeType, setCover |
-| `trello_card_attachment_delete` | Use when removing a specific attachment from a card by attachment id. | cardId, attachmentId |
-| `trello_card_checklists` | Use when viewing all checklists and checklist items currently on a card. | cardId |
-| `trello_card_checklist_create` | Use when adding a new checklist to an existing card, optionally copied from another checklist. | cardId, name, sourceChecklistId |
-| `trello_card_checklist_item_create` | Use when adding a new item to an existing Trello checklist on a card. | checklistId, name, pos, checked, due, dueReminder, memberId |
-| `trello_card_checklist_items` | Use when listing the items in one Trello checklist, including complete and incomplete items by default. | checklistId, filter, fields |
-| `trello_card_checklist_item_update` | Use when editing a Trello card checklist item text, due date, member assignment, completion state, checklist, or position. | cardId, checkItemId, name, state, checklistId, pos, due, dueReminder, memberId |
-| `trello_card_checklist_item_set_checked` | Use when checking or unchecking a Trello card checklist item without changing other item fields. | cardId, checkItemId, checked |
-| `trello_card_checklist_item_move` | Use when moving a Trello checklist item to another checklist on the same card or to a different position. | cardId, checkItemId, checklistId, pos |
-| `trello_card_checklist_item_delete` | Use when deleting a checklist item from a Trello card checklist. | cardId, checkItemId |
-| `trello_card_custom_field_items` | Use when reading all custom field item values currently set on a Trello card. | cardId |
-| `trello_card_custom_field_set` | Use when setting or updating one Trello card custom field value. Use type-specific inputs: text, number string, ISO date, checkbox boolean, or list optionId. | cardId, customFieldId, type, text, number, date, checked, optionId |
-| `trello_card_custom_field_clear` | Use when clearing one Trello card custom field value; Trello clears custom field items with an empty PUT body shape rather than DELETE. | cardId, customFieldId |
-| `trello_card_members` | Use when listing members assigned to a card; use add/remove member tools to change assignment. | cardId |
-| `trello_card_member_add` | Use when assigning a Trello member to a card by member id. | cardId, memberId |
-| `trello_card_member_remove` | Use when unassigning a Trello member from a card by member id. | cardId, memberId |
-| `trello_card_comment_add` | Use when adding a new comment to a Trello card; returns the created comment action. | cardId, text |
-| `trello_card_comment_update` | Use when editing the text of an existing Trello card comment by its comment action id. | actionId, text |
-| `trello_card_comment_delete` | Use when deleting an existing Trello card comment by its comment action id. | actionId |
-| `trello_card_actions` | Use when auditing recent activity or comments for a card; set filter to commentCard for comments only. Use comment tools to add, edit, or delete comments. | cardId, filter, limit |
-| `trello_label_get` | Use when you need the current name, color, or board for a specific Trello label before editing it. | labelId |
-| `trello_label_create` | Use when creating a new reusable label on a Trello board before applying it to cards. | boardId, name, color |
-| `trello_label_update` | Use when renaming a Trello label or changing its color without changing any card assignments. | labelId, name, color |
-| `trello_label_delete` | Use only when the user explicitly asks to permanently delete a board label from Trello. | labelId |
-| `trello_card_label_add` | Use when applying an existing Trello label to a card by label id. | cardId, labelId |
-| `trello_card_label_remove` | Use when removing an existing Trello label from a card by label id. | cardId, labelId |
-| `trello_custom_field_get` | Use when you need one Trello custom field definition by id, including its type and any dropdown/list options Trello returns. | customFieldId |
-| `trello_custom_field_options` | Use when listing the available options for a Trello dropdown/list custom field before setting a card list custom field value. | customFieldId |
+| `list_boards` | Use first when the user has not provided a board, list, card id, or Trello URL; returns boards visible to the authenticated Trello member. | filter, fields |
+| `board_get` | Use when you need board details, common board preferences, or label names for a known Trello board before listing or summarizing it. | boardId, fields |
+| `board_field_get` | Use when you need one specific board field, such as prefs, labelNames, subscribed, name, description, or URL. | boardId, field |
+| `board_lists` | Use when you need the lists on a known Trello board so you can find the right list id before listing or creating cards. | boardId, filter, fields |
+| `board_cards` | Use when you need cards across all lists on a known Trello board for personal planning, review, or summarization. | boardId, filter, fields |
+| `board_custom_fields` | Use when inspecting custom field definitions on a known Trello board, including dropdown/list options when Trello returns them. | boardId |
+| `board_labels` | Use when discovering labels available on a board before creating or updating cards with labels. | boardId, limit, fields |
+| `board_members` | Use when you need the members who can access a known Trello board before assigning cards or reviewing collaboration. | boardId, fields |
+| `board_memberships` | Use when you need board membership records, member roles, or permission context for a known Trello board. | boardId, filter, member, memberFields |
+| `list_get` | Use when you need metadata for a known Trello list before creating cards in it or changing it. | listId, fields |
+| `list_create` | Use when creating a new Trello list on an existing board. | boardId, name, pos |
+| `list_update` | Use when renaming a Trello list, changing its position, or setting its archive state. | listId, name, closed, pos |
+| `list_archive` | Use when archiving or unarchiving a Trello list while keeping its cards recoverable. | listId, closed |
+| `list_move_to_board` | Use when moving an existing Trello list to another board. | listId, boardId |
+| `card_get` | Use when you need the current details of one Trello card by id, short id, or URL before editing or summarizing it. | cardId, fields |
+| `card_board` | Use when you need the board relationship for a known Trello card before moving, labeling, or summarizing its context. | cardId, fields |
+| `card_list` | Use when you need the current list relationship for a known Trello card before moving or reporting its status. | cardId, fields |
+| `card_labels` | Use when listing the labels currently applied to a card, including label ids for add/remove workflows. | cardId |
+| `list_cards` | Use when you need cards in a specific Trello list; prefer board-level tools later when you need every list on a board. | listId, limit, filter |
+| `card_create` | Use when the user asks to create a new Trello card in a known list; accepts title, description, due date, members, and labels. | listId, name, desc, due, pos, memberIds, labelIds |
+| `card_update` | Use when changing card metadata such as title, description, due date, due completion, or archive state without moving it. | cardId, name, desc, due, dueComplete, closed |
+| `card_due_date_set` | Use when setting, clearing, or marking completion of a card due date without changing other card metadata. | cardId, due, dueComplete |
+| `card_position_set` | Use when changing only a card's position within its current list; use card_move when changing lists or boards too. | cardId, pos |
+| `card_cover_set` | Use when setting a card cover to an existing attachment id, changing cover display size, or clearing the current attachment cover. | cardId, attachmentId, size, brightness |
+| `card_label_create_and_add` | Use when creating a new label on the card's board and applying it to the card in one Trello operation. | cardId, name, color |
+| `card_delete` | Use only when the user explicitly asks to permanently delete a Trello card; archive instead for reversible removal. | cardId |
+| `card_move` | Use when moving a card to another list, another board, or a different position; this is distinct from general card metadata updates. | cardId, listId, boardId, pos |
+| `card_archive` | Use when the user wants to archive or unarchive a card while keeping it recoverable; do not use for permanent deletion. | cardId, closed |
+| `card_attachments` | Use when listing files or links attached to a card, optionally narrowed by Trello attachment fields or filter. | cardId, fields, filter |
+| `card_attachment_get` | Use when inspecting one existing card attachment by attachment id, including upload metadata when Trello returns it. | cardId, fields, attachmentId |
+| `card_attachment_add_url` | Use when attaching an existing public URL to a card; this does not upload local files. | cardId, url, name, setCover |
+| `card_attachment_upload` | Use when uploading a server-local file to a card. Requires TRELLO_ATTACHMENT_UPLOAD_ROOT and only reads files inside that directory. | cardId, filePath, name, mimeType, setCover |
+| `card_attachment_delete` | Use when removing a specific attachment from a card by attachment id. | cardId, attachmentId |
+| `card_checklists` | Use when viewing all checklists and checklist items currently on a card. | cardId |
+| `card_checklist_create` | Use when adding a new checklist to an existing card, optionally copied from another checklist. | cardId, name, sourceChecklistId |
+| `card_checklist_item_create` | Use when adding a new item to an existing Trello checklist on a card. | checklistId, name, pos, checked, due, dueReminder, memberId |
+| `card_checklist_items` | Use when listing the items in one Trello checklist, including complete and incomplete items by default. | checklistId, filter, fields |
+| `card_checklist_item_update` | Use when editing a Trello card checklist item text, due date, member assignment, completion state, checklist, or position. | cardId, checkItemId, name, state, checklistId, pos, due, dueReminder, memberId |
+| `card_checklist_item_set_checked` | Use when checking or unchecking a Trello card checklist item without changing other item fields. | cardId, checkItemId, checked |
+| `card_checklist_item_move` | Use when moving a Trello checklist item to another checklist on the same card or to a different position. | cardId, checkItemId, checklistId, pos |
+| `card_checklist_item_delete` | Use when deleting a checklist item from a Trello card checklist. | cardId, checkItemId |
+| `card_custom_field_items` | Use when reading all custom field item values currently set on a Trello card. | cardId |
+| `card_custom_field_set` | Use when setting or updating one Trello card custom field value. Use type-specific inputs: text, number string, ISO date, checkbox boolean, or list optionId. | cardId, customFieldId, type, text, number, date, checked, optionId |
+| `card_custom_field_clear` | Use when clearing one Trello card custom field value; Trello clears custom field items with an empty PUT body shape rather than DELETE. | cardId, customFieldId |
+| `card_members` | Use when listing members assigned to a card; use add/remove member tools to change assignment. | cardId |
+| `card_member_add` | Use when assigning a Trello member to a card by member id. | cardId, memberId |
+| `card_member_remove` | Use when unassigning a Trello member from a card by member id. | cardId, memberId |
+| `card_comment_add` | Use when adding a new comment to a Trello card; returns the created comment action. | cardId, text |
+| `card_comment_update` | Use when editing the text of an existing Trello card comment by its comment action id. | actionId, text |
+| `card_comment_delete` | Use when deleting an existing Trello card comment by its comment action id. | actionId |
+| `card_actions` | Use when auditing recent activity or comments for a card; set filter to commentCard for comments only. Use comment tools to add, edit, or delete comments. | cardId, filter, limit |
+| `label_get` | Use when you need the current name, color, or board for a specific Trello label before editing it. | labelId |
+| `label_create` | Use when creating a new reusable label on a Trello board before applying it to cards. | boardId, name, color |
+| `label_update` | Use when renaming a Trello label or changing its color without changing any card assignments. | labelId, name, color |
+| `label_delete` | Use only when the user explicitly asks to permanently delete a board label from Trello. | labelId |
+| `card_label_add` | Use when applying an existing Trello label to a card by label id. | cardId, labelId |
+| `card_label_remove` | Use when removing an existing Trello label from a card by label id. | cardId, labelId |
+| `custom_field_get` | Use when you need one Trello custom field definition by id, including its type and any dropdown/list options Trello returns. | customFieldId |
+| `custom_field_options` | Use when listing the available options for a Trello dropdown/list custom field before setting a card list custom field value. | customFieldId |
 <!-- tools:end -->
 
 Regenerate the catalog with:

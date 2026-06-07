@@ -130,7 +130,7 @@ const BoardLabelsInput = BoardIdInput.extend({
 
 export const boardTools = [
   defineTool({
-    name: "trello_list_boards",
+    name: "list_boards",
     description:
       "Use first when the user has not provided a board, list, card id, or Trello URL; returns boards visible to the authenticated Trello member.",
     inputSchema: ListBoardsInput,
@@ -142,7 +142,7 @@ export const boardTools = [
       }),
   }),
   defineTool({
-    name: "trello_board_get",
+    name: "board_get",
     description:
       "Use when you need board details, common board preferences, or label names for a known Trello board before listing or summarizing it.",
     inputSchema: BoardIdInput.merge(BoardFieldsInput),
@@ -158,7 +158,7 @@ export const boardTools = [
       ),
   }),
   defineTool({
-    name: "trello_board_field_get",
+    name: "board_field_get",
     description:
       "Use when you need one specific board field, such as prefs, labelNames, subscribed, name, description, or URL.",
     inputSchema: BoardFieldInput,
@@ -173,7 +173,7 @@ export const boardTools = [
       ),
   }),
   defineTool({
-    name: "trello_board_lists",
+    name: "board_lists",
     description:
       "Use when you need the lists on a known Trello board so you can find the right list id before listing or creating cards.",
     inputSchema: BoardListsInput,
@@ -189,7 +189,7 @@ export const boardTools = [
       ),
   }),
   defineTool({
-    name: "trello_board_cards",
+    name: "board_cards",
     description:
       "Use when you need cards across all lists on a known Trello board for personal planning, review, or summarization.",
     inputSchema: BoardCardsInput,
@@ -206,7 +206,7 @@ export const boardTools = [
   }),
 
   defineTool({
-    name: "trello_board_custom_fields",
+    name: "board_custom_fields",
     description:
       "Use when inspecting custom field definitions on a known Trello board, including dropdown/list options when Trello returns them.",
     inputSchema: BoardIdInput,
@@ -221,7 +221,7 @@ export const boardTools = [
       ),
   }),
   defineTool({
-    name: "trello_board_labels",
+    name: "board_labels",
     description:
       "Use when discovering labels available on a board before creating or updating cards with labels.",
     inputSchema: BoardLabelsInput,
@@ -237,7 +237,7 @@ export const boardTools = [
       ),
   }),
   defineTool({
-    name: "trello_board_members",
+    name: "board_members",
     description:
       "Use when you need the members who can access a known Trello board before assigning cards or reviewing collaboration.",
     inputSchema: BoardMembersInput,
@@ -253,7 +253,7 @@ export const boardTools = [
       ),
   }),
   defineTool({
-    name: "trello_board_memberships",
+    name: "board_memberships",
     description:
       "Use when you need board membership records, member roles, or permission context for a known Trello board.",
     inputSchema: BoardMembershipsInput,
