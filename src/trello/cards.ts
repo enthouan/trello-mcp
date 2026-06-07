@@ -201,8 +201,8 @@ const CardAttachmentListInput = CardIdInput.extend({
     .describe("Comma-separated attachment fields to request."),
   filter: z
     .string()
-    .default("all")
-    .describe("Trello attachment filter, such as all or cover."),
+    .optional()
+    .describe("Optional Trello attachment filter, such as cover."),
 });
 
 const CardAttachmentGetInput = CardAttachmentListInput.extend({

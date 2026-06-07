@@ -960,7 +960,7 @@ describe("card tools", () => {
     ).toThrow("Display options require an attachmentId.");
   });
 
-  it("lists card attachments with Trello fields and filters", async () => {
+  it("lists card attachments without sending a default filter", async () => {
     const tool = getCardTool("card_attachments");
     const trello = {
       request: vi.fn(async () => [
@@ -975,7 +975,7 @@ describe("card tools", () => {
 
     await expect(
       tool.handler(
-        { cardId: "card1", fields: "name,isUpload,bytes", filter: "all" },
+        { cardId: "card1", fields: "name,isUpload,bytes" },
         { trello: trello as never, logger: {} as never, requestId: "req1" },
       ),
     ).resolves.toEqual([
@@ -990,9 +990,34 @@ describe("card tools", () => {
       "/cards/card1/attachments",
       expect.anything(),
       expect.objectContaining({
-        query: { fields: "name,isUpload,bytes", filter: "all" },
+        query: { fields: "name,isUpload,bytes", filter: undefined },
         resourceType: "card",
         resourceId: "card1",
+      }),
+    );
+  });
+
+  it("passes through explicit card attachment filters", async () => {
+    const tool = getCardTool("card_attachments");
+    const trello = {
+      request: vi.fn(async () => [
+        {
+          id: "attach1",
+          name: "Spec",
+        },
+      ]),
+    };
+
+    await tool.handler(
+      { cardId: "card1", fields: "name", filter: "cover" },
+      { trello: trello as never, logger: {} as never, requestId: "req1" },
+    );
+
+    expect(trello.request).toHaveBeenCalledWith(
+      "/cards/card1/attachments",
+      expect.anything(),
+      expect.objectContaining({
+        query: { fields: "name", filter: "cover" },
       }),
     );
   });
