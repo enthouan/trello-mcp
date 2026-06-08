@@ -8,6 +8,7 @@ import { TrelloClient } from "./trello/client.js";
 import { customFieldTools } from "./trello/custom-fields.js";
 import { labelTools } from "./trello/labels.js";
 import { listTools } from "./trello/lists.js";
+import { searchTools } from "./trello/search.js";
 import type { Logger } from "./utils/logger.js";
 import { registerTool, type ToolDefinition } from "./utils/tool.js";
 
@@ -36,6 +37,7 @@ export function createServer(config: Config, logger: Logger): AppServer {
     ...cardTools,
     ...labelTools,
     ...customFieldTools,
+    ...searchTools,
   ];
 
   for (const tool of tools) {
