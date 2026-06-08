@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { searchTools } from "../src/trello/search.js";
-import { TrelloSearchResultsSchema } from "../src/trello/types.js";
+import {
+  TrelloSearchMemberListSchema,
+  TrelloSearchResultsSchema,
+} from "../src/trello/types.js";
 
 type SearchTool = (typeof searchTools)[number];
 
@@ -79,7 +82,7 @@ describe("search tools", () => {
         cardFields: "closed",
         boardFields: "closed",
         memberFields: "username",
-        organizationFields: "displayName",
+        organizationFields: "name",
         cardsLimit: 25,
         boardsLimit: 5,
         membersLimit: 3,
@@ -107,9 +110,9 @@ describe("search tools", () => {
           card_fields: "closed,name,idBoard,idList",
           cards_limit: 25,
           cards_page: 2,
-          board_fields: "closed,name",
+          board_fields: "closed,name,idOrganization",
           boards_limit: 5,
-          organization_fields: "displayName,name",
+          organization_fields: "name,displayName",
           organizations_limit: 2,
           member_fields: "username,fullName",
           members_limit: 3,
@@ -254,9 +257,31 @@ describe("search tools", () => {
     });
   });
 
-  it("strips oversized member fields from search results", () => {
+  it("keeps explicitly requested member fields in global search results", () => {
     const parsed = TrelloSearchResultsSchema.parse({
       members: [
+        {
+          id: "member1",
+          username: "ada",
+          fullName: "Ada Lovelace",
+          bio: "long profile text",
+        },
+      ],
+    });
+
+    expect(parsed.members).toEqual([
+      {
+        id: "member1",
+        username: "ada",
+        fullName: "Ada Lovelace",
+        bio: "long profile text",
+      },
+    ]);
+  });
+
+  it("strips oversized member fields from dedicated member search results", () => {
+    expect(
+      TrelloSearchMemberListSchema.parse([
         {
           id: "member1",
           username: "ada",
@@ -264,11 +289,7 @@ describe("search tools", () => {
           email: "ada@example.com",
           bio: "long profile text",
         },
-      ],
-    });
-
-    expect(parsed.members).toEqual([
-      { id: "member1", username: "ada", fullName: "Ada Lovelace" },
-    ]);
+      ]),
+    ).toEqual([{ id: "member1", username: "ada", fullName: "Ada Lovelace" }]);
   });
 });

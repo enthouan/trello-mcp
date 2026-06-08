@@ -194,10 +194,14 @@ export const searchTools = [
           ]),
           cards_limit: cardsLimit,
           cards_page: cardsPage,
-          board_fields: includeRequiredFields(boardFields, ["name"]),
+          board_fields: includeRequiredFields(boardFields, [
+            "name",
+            "idOrganization",
+          ]),
           boards_limit: boardsLimit,
           organization_fields: includeRequiredFields(organizationFields, [
             "name",
+            "displayName",
           ]),
           organizations_limit: organizationsLimit,
           member_fields: includeRequiredFields(memberFields, [

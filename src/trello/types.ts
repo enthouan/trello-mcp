@@ -398,7 +398,7 @@ export const TrelloSearchResultsSchema = z.preprocess(
   z.object({
     cards: TrelloCardListSchema.default([]),
     boards: TrelloBoardListSchema.default([]),
-    members: TrelloSearchMemberListSchema.default([]),
+    members: TrelloMemberListSchema.default([]),
     organizations: TrelloOrganizationListSchema.default([]),
   }),
 );
