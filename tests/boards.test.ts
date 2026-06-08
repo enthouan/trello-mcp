@@ -220,6 +220,45 @@ describe("board tools", () => {
     );
   });
 
+  it("passes paging cursors and shaped fields to board card reads", async () => {
+    const tool = getBoardTool("board_cards");
+    const trello = {
+      request: vi.fn(async () => [{ id: "card1", name: "Pay bills" }]),
+    };
+
+    await expect(
+      tool.handler(
+        tool.inputSchema.parse({
+          boardId: "board1",
+          fields: "due",
+          limit: 25,
+          since: "2026-06-01T00:00:00.000Z",
+          before: null,
+        }),
+        {
+          trello: trello as never,
+          logger: {} as never,
+          requestId: "req1",
+        },
+      ),
+    ).resolves.toEqual([{ id: "card1", name: "Pay bills" }]);
+    expect(trello.request).toHaveBeenCalledWith(
+      "/boards/board1/cards",
+      expect.anything(),
+      expect.objectContaining({
+        query: {
+          filter: "open",
+          fields: "due,name",
+          limit: 25,
+          since: "2026-06-01T00:00:00.000Z",
+          before: null,
+        },
+        resourceType: "board",
+        resourceId: "board1",
+      }),
+    );
+  });
+
   it("lists board custom field definitions", async () => {
     const tool = getBoardTool("board_custom_fields");
     const trello = {

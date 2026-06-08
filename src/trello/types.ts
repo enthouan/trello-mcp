@@ -2,13 +2,15 @@ import { z } from "zod";
 
 export const TrelloIdSchema = z.string().min(1);
 
-export const TrelloMemberSchema = z.object({
-  id: TrelloIdSchema,
-  username: z.string().nullable().optional(),
-  fullName: z.string().nullable().optional(),
-  initials: z.string().nullable().optional(),
-  avatarUrl: z.string().nullable().optional(),
-});
+export const TrelloMemberSchema = z
+  .object({
+    id: TrelloIdSchema,
+    username: z.string().nullable().optional(),
+    fullName: z.string().nullable().optional(),
+    initials: z.string().nullable().optional(),
+    avatarUrl: z.string().nullable().optional(),
+  })
+  .passthrough();
 
 export const TrelloBoardPreferencesSchema = z
   .object({
@@ -51,27 +53,31 @@ export const TrelloBoardLabelNamesSchema = z
   })
   .passthrough();
 
-export const TrelloBoardSchema = z.object({
-  id: TrelloIdSchema,
-  name: z.string(),
-  desc: z.string().optional(),
-  closed: z.boolean().optional(),
-  idOrganization: TrelloIdSchema.nullable().optional(),
-  url: z.string().url().optional(),
-  shortUrl: z.string().url().optional(),
-  dateLastActivity: z.string().nullable().optional(),
-  prefs: TrelloBoardPreferencesSchema.optional(),
-  labelNames: TrelloBoardLabelNamesSchema.optional(),
-  subscribed: z.boolean().optional(),
-});
+export const TrelloBoardSchema = z
+  .object({
+    id: TrelloIdSchema,
+    name: z.string(),
+    desc: z.string().optional(),
+    closed: z.boolean().optional(),
+    idOrganization: TrelloIdSchema.nullable().optional(),
+    url: z.string().url().optional(),
+    shortUrl: z.string().url().optional(),
+    dateLastActivity: z.string().nullable().optional(),
+    prefs: TrelloBoardPreferencesSchema.optional(),
+    labelNames: TrelloBoardLabelNamesSchema.optional(),
+    subscribed: z.boolean().optional(),
+  })
+  .passthrough();
 
-export const TrelloListSchema = z.object({
-  id: TrelloIdSchema,
-  name: z.string(),
-  closed: z.boolean().optional(),
-  idBoard: TrelloIdSchema.optional(),
-  pos: z.union([z.number(), z.string()]).optional(),
-});
+export const TrelloListSchema = z
+  .object({
+    id: TrelloIdSchema,
+    name: z.string(),
+    closed: z.boolean().optional(),
+    idBoard: TrelloIdSchema.optional(),
+    pos: z.union([z.number(), z.string()]).optional(),
+  })
+  .passthrough();
 
 export const TrelloAttachmentSchema = z
   .object({
@@ -129,13 +135,17 @@ export const TrelloCoverSchema = z
   })
   .passthrough();
 
-export const TrelloActionSchema = z.object({
-  id: TrelloIdSchema,
-  type: z.string(),
-  date: z.string().optional(),
-  data: z.record(z.string(), z.unknown()).optional(),
-  memberCreator: TrelloMemberSchema.optional(),
-});
+export const TrelloActionSchema = z
+  .object({
+    id: TrelloIdSchema,
+    type: z.string(),
+    date: z.string().optional(),
+    data: z.record(z.string(), z.unknown()).optional(),
+    idMemberCreator: TrelloIdSchema.optional(),
+    member: TrelloMemberSchema.optional(),
+    memberCreator: TrelloMemberSchema.optional(),
+  })
+  .passthrough();
 
 export const TrelloChecklistItemStateSchema = z.enum([
   "complete",
@@ -162,39 +172,43 @@ export const TrelloChecklistSchema = z.object({
   checkItems: z.array(TrelloChecklistItemSchema).optional(),
 });
 
-export const TrelloBoardMembershipSchema = z.object({
-  id: TrelloIdSchema,
-  idMember: TrelloIdSchema.optional(),
-  memberType: z.string().optional(),
-  unconfirmed: z.boolean().optional(),
-  deactivated: z.boolean().optional(),
-  member: TrelloMemberSchema.optional(),
-});
+export const TrelloBoardMembershipSchema = z
+  .object({
+    id: TrelloIdSchema,
+    idMember: TrelloIdSchema.optional(),
+    memberType: z.string().optional(),
+    unconfirmed: z.boolean().optional(),
+    deactivated: z.boolean().optional(),
+    member: TrelloMemberSchema.optional(),
+  })
+  .passthrough();
 
 const TrelloCardLabelIdSchema = z.union([
   TrelloIdSchema,
   z.object({ id: TrelloIdSchema }).passthrough(),
 ]);
 
-export const TrelloCardSchema = z.object({
-  id: TrelloIdSchema,
-  name: z.string(),
-  desc: z.string().optional(),
-  closed: z.boolean().optional(),
-  idBoard: TrelloIdSchema.optional(),
-  idList: TrelloIdSchema.optional(),
-  idMembers: z.array(TrelloIdSchema).optional(),
-  idLabels: z.array(TrelloCardLabelIdSchema).optional(),
-  labels: z.array(TrelloLabelSchema).optional(),
-  cover: TrelloCoverSchema.optional(),
-  idAttachmentCover: TrelloIdSchema.nullable().optional(),
-  url: z.string().url().optional(),
-  shortUrl: z.string().url().optional(),
-  due: z.string().nullable().optional(),
-  dueComplete: z.boolean().optional(),
-  pos: z.union([z.number(), z.string()]).optional(),
-  dateLastActivity: z.string().nullable().optional(),
-});
+export const TrelloCardSchema = z
+  .object({
+    id: TrelloIdSchema,
+    name: z.string(),
+    desc: z.string().optional(),
+    closed: z.boolean().optional(),
+    idBoard: TrelloIdSchema.optional(),
+    idList: TrelloIdSchema.optional(),
+    idMembers: z.array(TrelloIdSchema).optional(),
+    idLabels: z.array(TrelloCardLabelIdSchema).optional(),
+    labels: z.array(TrelloLabelSchema).optional(),
+    cover: TrelloCoverSchema.optional(),
+    idAttachmentCover: TrelloIdSchema.nullable().optional(),
+    url: z.string().url().optional(),
+    shortUrl: z.string().url().optional(),
+    due: z.string().nullable().optional(),
+    dueComplete: z.boolean().optional(),
+    pos: z.union([z.number(), z.string()]).optional(),
+    dateLastActivity: z.string().nullable().optional(),
+  })
+  .passthrough();
 
 export const TrelloCustomFieldTypeSchema = z.enum([
   "checkbox",

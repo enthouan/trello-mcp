@@ -1,7 +1,18 @@
 import { z } from "zod";
 import { ValidationError } from "../utils/errors.js";
+import {
+  ActionPagingInput,
+  PagingInput,
+  pagingQuery,
+} from "../utils/pagination.js";
 import { defineTool } from "../utils/tool.js";
-import { includeRequiredFields } from "./fields.js";
+import {
+  DEFAULT_ACTION_FIELDS,
+  DEFAULT_CARD_COLLECTION_FIELDS,
+  DEFAULT_MEMBER_FIELDS,
+  fieldsSchema,
+  includeRequiredFields,
+} from "./fields.js";
 import {
   DeleteResponseSchema,
   TrelloActionListSchema,
@@ -33,21 +44,11 @@ const CardIdInput = z.object({
 });
 
 const CardFieldsInput = z.object({
-  fields: z
-    .string()
-    .default("all")
-    .describe(
-      "Comma-separated Trello card fields to request; schema-required fields are added automatically.",
-    ),
+  fields: fieldsSchema("all", "card", true),
 });
 
 const CardRelationshipFieldsInput = z.object({
-  fields: z
-    .string()
-    .default("all")
-    .describe(
-      "Comma-separated fields to request for the related Trello resource; schema-required fields are added automatically.",
-    ),
+  fields: fieldsSchema("all", "related resource", true),
 });
 
 const CardDueDateInput = CardIdInput.extend({
@@ -110,17 +111,14 @@ const CardLabelCreateInput = CardIdInput.extend({
 
 const ListCardsInput = z.object({
   listId: TrelloIdSchema.describe("Trello list id to read cards from."),
-  limit: z
-    .number()
-    .int()
-    .min(1)
-    .max(1000)
-    .default(50)
-    .describe("Maximum number of cards to return."),
   filter: z
     .enum(["all", "closed", "none", "open"])
     .default("open")
     .describe("Which cards to include from the list."),
+  fields: fieldsSchema(DEFAULT_CARD_COLLECTION_FIELDS, "card", true),
+  limit: PagingInput.shape.limit,
+  since: PagingInput.shape.since,
+  before: PagingInput.shape.before,
 });
 
 const CreateCardInput = z.object({
@@ -195,10 +193,7 @@ const CardAttachmentCreateInput = CardIdInput.extend({
 });
 
 const CardAttachmentListInput = CardIdInput.extend({
-  fields: z
-    .string()
-    .default("all")
-    .describe("Comma-separated attachment fields to request."),
+  fields: fieldsSchema("all", "attachment"),
   filter: z
     .string()
     .optional()
@@ -386,6 +381,36 @@ const CardCommentDeleteInput = z.object({
   actionId: TrelloIdSchema.describe("Trello comment action id to delete."),
 });
 
+const CardActionsInput = CardIdInput.extend({
+  filter: z
+    .string()
+    .default("all")
+    .describe("Trello action filter such as all or commentCard."),
+  fields: fieldsSchema(DEFAULT_ACTION_FIELDS, "action", true),
+  limit: ActionPagingInput.shape.limit,
+  since: ActionPagingInput.shape.since,
+  before: ActionPagingInput.shape.before,
+  page: ActionPagingInput.shape.page,
+  member: z
+    .boolean()
+    .default(false)
+    .describe("Whether to include member objects on actions."),
+  memberFields: z
+    .string()
+    .default(DEFAULT_MEMBER_FIELDS)
+    .describe("Comma-separated Trello member fields when member is true."),
+  memberCreator: z
+    .boolean()
+    .default(true)
+    .describe("Whether to include the memberCreator object on actions."),
+  memberCreatorFields: z
+    .string()
+    .default(DEFAULT_MEMBER_FIELDS)
+    .describe(
+      "Comma-separated Trello memberCreator fields when memberCreator is true.",
+    ),
+});
+
 export const cardTools = [
   defineTool({
     name: "card_get",
@@ -438,14 +463,21 @@ export const cardTools = [
   defineTool({
     name: "list_cards",
     description:
-      "Use when you need cards in a specific Trello list; prefer board-level tools later when you need every list on a board.",
+      "Use when you need cards in a specific Trello list; use limit, since, before, and fields to keep large lists small.",
     inputSchema: ListCardsInput,
-    handler: async ({ listId, limit, filter }, { trello }) =>
+    handler: async (
+      { listId, filter, fields, limit, since, before },
+      { trello },
+    ) =>
       trello.request(
         `/lists/${encodeURIComponent(listId)}/cards`,
         TrelloCardListSchema,
         {
-          query: { limit, filter },
+          query: {
+            filter,
+            fields: includeRequiredFields(fields, ["name"]),
+            ...pagingQuery({ limit, since, before }),
+          },
           resourceType: "list",
           resourceId: listId,
         },
@@ -746,12 +778,7 @@ export const cardTools = [
         .enum(["all", "checked", "none", "unchecked"])
         .default("all")
         .describe("Which checklist items to include."),
-      fields: z
-        .string()
-        .default("all")
-        .describe(
-          "Comma-separated checklist item fields to request; schema-required fields are added automatically.",
-        ),
+      fields: fieldsSchema("all", "checklist item", true),
     }),
     handler: async ({ checklistId, filter, fields }, { trello }) =>
       trello.request(
@@ -886,10 +913,13 @@ export const cardTools = [
   defineTool({
     name: "card_members",
     description:
-      "Use when listing members assigned to a card; use add/remove member tools to change assignment.",
-    inputSchema: CardIdInput,
-    handler: async ({ cardId }, { trello }) =>
+      "Use when listing members assigned to a card; use fields to keep member output small.",
+    inputSchema: CardIdInput.extend({
+      fields: fieldsSchema(DEFAULT_MEMBER_FIELDS, "member"),
+    }),
+    handler: async ({ cardId, fields }, { trello }) =>
       trello.request(`${cardPath(cardId)}/members`, TrelloMemberListSchema, {
+        query: { fields },
         resourceType: "card",
         resourceId: cardId,
       }),
@@ -993,23 +1023,39 @@ export const cardTools = [
   defineTool({
     name: "card_actions",
     description:
-      "Use when auditing recent activity or comments for a card; set filter to commentCard for comments only. Use comment tools to add, edit, or delete comments.",
-    inputSchema: CardIdInput.extend({
-      filter: z
-        .string()
-        .default("all")
-        .describe("Trello action filter such as all or commentCard."),
-      limit: z
-        .number()
-        .int()
-        .min(1)
-        .max(1000)
-        .default(50)
-        .describe("Maximum number of actions to return."),
-    }),
-    handler: async ({ cardId, filter, limit }, { trello }) =>
+      "Use when auditing recent activity or comments for a card; use filter, limit, page, since, before, and fields to page large histories.",
+    inputSchema: CardActionsInput,
+    handler: async (
+      {
+        cardId,
+        filter,
+        fields,
+        limit,
+        since,
+        before,
+        page,
+        member,
+        memberFields,
+        memberCreator,
+        memberCreatorFields,
+      },
+      { trello },
+    ) =>
       trello.request(`${cardPath(cardId)}/actions`, TrelloActionListSchema, {
-        query: { filter, limit },
+        query: {
+          filter,
+          fields: includeRequiredFields(
+            fields,
+            memberCreator ? ["id", "type", "idMemberCreator"] : ["id", "type"],
+          ),
+          ...pagingQuery({ limit, since, before, page }),
+          member,
+          ...(member ? { member_fields: memberFields } : {}),
+          memberCreator,
+          ...(memberCreator
+            ? { memberCreator_fields: memberCreatorFields }
+            : {}),
+        },
         resourceType: "card",
         resourceId: cardId,
       }),
