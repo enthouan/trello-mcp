@@ -12,6 +12,27 @@ export const TrelloMemberSchema = z
   })
   .passthrough();
 
+export const TrelloSearchMemberSchema = z.object({
+  id: TrelloIdSchema,
+  username: z.string().nullable().optional(),
+  fullName: z.string().nullable().optional(),
+  initials: z.string().nullable().optional(),
+  avatarUrl: z.string().url().nullable().optional(),
+  url: z.string().url().optional(),
+});
+
+export const TrelloOrganizationSchema = z
+  .object({
+    id: TrelloIdSchema,
+    name: z.string().optional(),
+    displayName: z.string().optional(),
+    desc: z.string().optional(),
+    idBoards: z.array(TrelloIdSchema).optional(),
+    url: z.string().url().optional(),
+    website: z.string().nullable().optional(),
+  })
+  .passthrough();
+
 export const TrelloBoardPreferencesSchema = z
   .object({
     permissionLevel: z.string().optional(),
@@ -291,6 +312,74 @@ export const TrelloCardLabelsSchema = z.object({
   idLabels: z.array(TrelloCardLabelIdSchema).optional(),
   labels: z.array(TrelloLabelSchema).optional(),
 });
+
+function isSearchRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function hasAnyKey(
+  value: Record<string, unknown>,
+  keys: readonly string[],
+): boolean {
+  return keys.some((key) => key in value);
+}
+
+function groupedSearchResults(value: unknown): unknown {
+  if (!Array.isArray(value)) {
+    return value;
+  }
+
+  const grouped: {
+    boards: unknown[];
+    cards: unknown[];
+    members: unknown[];
+    organizations: unknown[];
+  } = {
+    boards: [],
+    cards: [],
+    members: [],
+    organizations: [],
+  };
+
+  for (const item of value) {
+    if (!isSearchRecord(item)) {
+      continue;
+    }
+
+    if (
+      hasAnyKey(item, [
+        "idList",
+        "idShort",
+        "idAttachmentCover",
+        "idMembers",
+        "dueComplete",
+      ])
+    ) {
+      grouped.cards.push(item);
+    } else if (
+      hasAnyKey(item, [
+        "username",
+        "fullName",
+        "initials",
+        "avatarHash",
+        "avatarUrl",
+      ])
+    ) {
+      grouped.members.push(item);
+    } else if (
+      hasAnyKey(item, ["displayName", "website", "idBoards", "logoHash"])
+    ) {
+      grouped.organizations.push(item);
+    } else if (
+      hasAnyKey(item, ["idOrganization", "prefs", "labelNames", "shortUrl"])
+    ) {
+      grouped.boards.push(item);
+    }
+  }
+
+  return grouped;
+}
+
 export const TrelloCardListSchema = z.array(TrelloCardSchema);
 export const TrelloCustomFieldListSchema = z.array(TrelloCustomFieldSchema);
 export const TrelloCustomFieldOptionListSchema = z.array(
@@ -302,6 +391,17 @@ export const TrelloCustomFieldItemListSchema = z.array(
 export const TrelloBoardListSchema = z.array(TrelloBoardSchema);
 export const TrelloListListSchema = z.array(TrelloListSchema);
 export const TrelloMemberListSchema = z.array(TrelloMemberSchema);
+export const TrelloSearchMemberListSchema = z.array(TrelloSearchMemberSchema);
+export const TrelloOrganizationListSchema = z.array(TrelloOrganizationSchema);
+export const TrelloSearchResultsSchema = z.preprocess(
+  groupedSearchResults,
+  z.object({
+    cards: TrelloCardListSchema.default([]),
+    boards: TrelloBoardListSchema.default([]),
+    members: TrelloSearchMemberListSchema.default([]),
+    organizations: TrelloOrganizationListSchema.default([]),
+  }),
+);
 export const TrelloBoardMembershipListSchema = z.array(
   TrelloBoardMembershipSchema,
 );

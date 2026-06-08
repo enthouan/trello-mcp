@@ -50,6 +50,12 @@ Most of this project was built with Codex under my close supervision.
 - Read card actions and activity history.
 - Add, edit, and delete Trello card comments.
 
+### Search Workflows
+
+- Search Trello cards, boards, members, and workspaces by natural language terms.
+- Scope search results to specific boards, cards, or organizations.
+- Look up Trello members by name or username before assignment.
+
 ### Self-Hosted Runtime
 
 - Run with Docker Compose using the published GHCR image.
@@ -404,6 +410,12 @@ Use `since` and `before` on card collection and action tools to page through old
 
 Member-returning tools default to compact member fields (`username,fullName,initials,avatarUrl`). Use member field inputs such as `fields`, `memberFields`, or `memberCreatorFields` when a workflow needs additional member profile properties.
 
+## Search
+
+Use `search` when a user gives a natural language term and you need to find matching cards or boards before taking action. It searches cards and boards by default, returns compact fields, and defaults to 10 results per resource type. Add `members` or `organizations` to `modelTypes` when those result types are useful.
+
+Use `boardIds: "mine"` or specific board ids to narrow card and board search. Use `organizationIds`, `cardIds`, `partial`, `cardsPage`, and the per-type limit inputs when a query needs tighter scope or pagination. Use `search_members` for assignee lookup by name or username, especially when scoped by a board or organization.
+
 ## Attachment Uploads
 
 Public URL attachments work without extra setup. Local file uploads are implemented, but they are disabled by default because the MCP client asks the server process to read a file from the server's filesystem.
@@ -513,6 +525,8 @@ Use `card_custom_field_clear` to clear an existing card custom field value. Trel
 | `card_label_remove` | Use when removing an existing Trello label from a card by label id. | cardId, labelId |
 | `custom_field_get` | Use when you need one Trello custom field definition by id, including its type and any dropdown/list options Trello returns. | customFieldId |
 | `custom_field_options` | Use when listing the available options for a Trello dropdown/list custom field before setting a card list custom field value. | customFieldId |
+| `search` | Use when you need to find Trello cards, boards, members, or organizations by natural language search terms. | query, modelTypes, boardIds, organizationIds, cardIds, cardFields, boardFields, memberFields, organizationFields, cardsLimit, boardsLimit, membersLimit, organizationsLimit, cardsPage, partial, includeCardBoard, includeCardList, includeCardMembers, includeBoardOrganization |
+| `search_members` | Use when looking up Trello members by name or username, optionally scoped to a board or organization. | query, limit, boardId, organizationId, onlyOrgMembers |
 <!-- tools:end -->
 
 Regenerate the catalog with:
@@ -540,6 +554,7 @@ MCP client
 - `src/trello/cards.ts` defines card tools, including attachment, checklist, member, comment, action, and card custom field item helpers.
 - `src/trello/labels.ts` defines label CRUD and card label assignment tools.
 - `src/trello/custom-fields.ts` defines custom field definition and option lookup tools.
+- `src/trello/search.ts` defines search tools for cards, boards, members, and organizations.
 - `src/trello/fields.ts` defines shared Trello field list validation helpers.
 - `src/trello/types.ts` contains Trello response schemas.
 - `src/utils/*` contains logging, error mapping, pagination, and tool registration helpers.
