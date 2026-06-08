@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { defineTool } from "../utils/tool.js";
-import { includeRequiredFields } from "./fields.js";
+import {
+  DEFAULT_LIST_FIELDS,
+  fieldsSchema,
+  includeRequiredFields,
+} from "./fields.js";
 import { TrelloIdSchema, TrelloListSchema } from "./types.js";
 
 const ListIdInput = z.object({
@@ -8,12 +12,7 @@ const ListIdInput = z.object({
 });
 
 const ListFieldsInput = z.object({
-  fields: z
-    .string()
-    .default("name,closed,idBoard,pos")
-    .describe(
-      "Comma-separated Trello list fields to request; schema-required fields are added automatically.",
-    ),
+  fields: fieldsSchema(DEFAULT_LIST_FIELDS, "list", true),
 });
 
 const ListPositionInput = z

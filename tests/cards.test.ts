@@ -98,6 +98,45 @@ describe("card tools", () => {
     );
   });
 
+  it("lists cards from a list with paging and field shaping", async () => {
+    const tool = getCardTool("list_cards");
+    const trello = {
+      request: vi.fn(async () => [
+        { id: "card1", name: "About this roadmap", due: null },
+      ]),
+    };
+
+    await expect(
+      tool.handler(
+        tool.inputSchema.parse({
+          listId: "list1",
+          fields: "due",
+          limit: 10,
+          since: "2026-06-01T00:00:00.000Z",
+          before: null,
+        }),
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual([
+      { id: "card1", name: "About this roadmap", due: null },
+    ]);
+    expect(trello.request).toHaveBeenCalledWith(
+      "/lists/list1/cards",
+      expect.anything(),
+      expect.objectContaining({
+        query: {
+          filter: "open",
+          fields: "due,name",
+          limit: 10,
+          since: "2026-06-01T00:00:00.000Z",
+          before: null,
+        },
+        resourceType: "list",
+        resourceId: "list1",
+      }),
+    );
+  });
+
   it("lists custom field items on a card", async () => {
     const tool = getCardTool("card_custom_field_items");
     const trello = {
@@ -1208,6 +1247,36 @@ describe("card tools", () => {
     );
   });
 
+  it("lists card members with shaped member fields", async () => {
+    const tool = getCardTool("card_members");
+    const trello = {
+      request: vi.fn(
+        async (_path: string, schema: { parse: (value: unknown) => unknown }) =>
+          schema.parse([
+            { id: "member1", fullName: "Ada Lovelace", bio: "Math" },
+          ]),
+      ),
+    };
+
+    await expect(
+      tool.handler(
+        tool.inputSchema.parse({ cardId: "card1", fields: "fullName,bio" }),
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual([
+      { id: "member1", fullName: "Ada Lovelace", bio: "Math" },
+    ]);
+    expect(trello.request).toHaveBeenCalledWith(
+      "/cards/card1/members",
+      expect.anything(),
+      expect.objectContaining({
+        query: { fields: "fullName,bio" },
+        resourceType: "card",
+        resourceId: "card1",
+      }),
+    );
+  });
+
   it("removes card members with empty Trello success responses", async () => {
     const tool = getCardTool("card_member_remove");
     const trello = {
@@ -1262,6 +1331,77 @@ describe("card tools", () => {
       expect.objectContaining({
         method: "POST",
         query: { name: "Blocked", color: "black" },
+        resourceType: "card",
+        resourceId: "card1",
+      }),
+    );
+  });
+
+  it("lists card actions with paging and member output shaping", async () => {
+    const tool = getCardTool("card_actions");
+    const trello = {
+      request: vi.fn(
+        async (_path: string, schema: { parse: (value: unknown) => unknown }) =>
+          schema.parse([
+            {
+              id: "action1",
+              type: "commentCard",
+              date: "2026-06-01T00:00:00.000Z",
+              display: { translationKey: "action_comment_on_card" },
+              member: {
+                id: "member1",
+                fullName: "Ada Lovelace",
+                bio: "Math",
+              },
+            },
+          ]),
+      ),
+    };
+
+    await expect(
+      tool.handler(
+        tool.inputSchema.parse({
+          cardId: "card1",
+          filter: "commentCard",
+          fields: "date,display",
+          limit: 25,
+          since: "2026-06-01T00:00:00.000Z",
+          before: null,
+          page: 2,
+          member: true,
+          memberFields: "fullName,bio",
+          memberCreator: false,
+        }),
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual([
+      {
+        id: "action1",
+        type: "commentCard",
+        date: "2026-06-01T00:00:00.000Z",
+        display: { translationKey: "action_comment_on_card" },
+        member: {
+          id: "member1",
+          fullName: "Ada Lovelace",
+          bio: "Math",
+        },
+      },
+    ]);
+    expect(trello.request).toHaveBeenCalledWith(
+      "/cards/card1/actions",
+      expect.anything(),
+      expect.objectContaining({
+        query: {
+          filter: "commentCard",
+          fields: "date,display,id,type",
+          limit: 25,
+          since: "2026-06-01T00:00:00.000Z",
+          before: null,
+          page: 2,
+          member: true,
+          member_fields: "fullName,bio",
+          memberCreator: false,
+        },
         resourceType: "card",
         resourceId: "card1",
       }),

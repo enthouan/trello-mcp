@@ -394,6 +394,16 @@ Clear this card's Estimate custom field.
 
 The exact wording depends on your MCP client. The server can discover your boards and board lists first, then use those ids for card workflows.
 
+## Large Trello Responses
+
+Collection tools default to compact Trello reads so MCP clients do not receive unnecessarily large payloads. High-volume card, label, and action reads default to `limit: 50`; Trello caps these collection reads at `1000`.
+
+Use `fields` to request only the properties needed for a workflow. Tools that validate object names, ids, or action types automatically add schema-required fields even when you request a smaller field set. Use `fields: "all"` only for detailed follow-up reads where the larger response is useful.
+
+Use `since` and `before` on card collection and action tools to page through older or newer Trello objects. These cursors accept an ISO-8601 timestamp, a Trello/Mongo id, or `null` where Trello supports it. Action reads also expose zero-based `page` for Trello's action pagination.
+
+Member-returning tools default to compact member fields (`username,fullName,initials,avatarUrl`). Use member field inputs such as `fields`, `memberFields`, or `memberCreatorFields` when a workflow needs additional member profile properties.
+
 ## Attachment Uploads
 
 Public URL attachments work without extra setup. Local file uploads are implemented, but they are disabled by default because the MCP client asks the server process to read a file from the server's filesystem.
@@ -448,7 +458,7 @@ Use `card_custom_field_clear` to clear an existing card custom field value. Trel
 | `board_get` | Use when you need board details, common board preferences, or label names for a known Trello board before listing or summarizing it. | boardId, fields |
 | `board_field_get` | Use when you need one specific board field, such as prefs, labelNames, subscribed, name, description, or URL. | boardId, field |
 | `board_lists` | Use when you need the lists on a known Trello board so you can find the right list id before listing or creating cards. | boardId, filter, fields |
-| `board_cards` | Use when you need cards across all lists on a known Trello board for personal planning, review, or summarization. | boardId, filter, fields |
+| `board_cards` | Use when you need cards across all lists on a known Trello board for personal planning, review, or summarization. | boardId, filter, fields, limit, since, before |
 | `board_custom_fields` | Use when inspecting custom field definitions on a known Trello board, including dropdown/list options when Trello returns them. | boardId |
 | `board_labels` | Use when discovering labels available on a board before creating or updating cards with labels. | boardId, limit, fields |
 | `board_members` | Use when you need the members who can access a known Trello board before assigning cards or reviewing collaboration. | boardId, fields |
@@ -462,7 +472,7 @@ Use `card_custom_field_clear` to clear an existing card custom field value. Trel
 | `card_board` | Use when you need the board relationship for a known Trello card before moving, labeling, or summarizing its context. | cardId, fields |
 | `card_list` | Use when you need the current list relationship for a known Trello card before moving or reporting its status. | cardId, fields |
 | `card_labels` | Use when listing the labels currently applied to a card, including label ids for add/remove workflows. | cardId |
-| `list_cards` | Use when you need cards in a specific Trello list; prefer board-level tools later when you need every list on a board. | listId, limit, filter |
+| `list_cards` | Use when you need cards in a specific Trello list; use limit, since, before, and fields to keep large lists small. | listId, filter, fields, limit, since, before |
 | `card_create` | Use when the user asks to create a new Trello card in a known list; accepts title, description, due date, members, and labels. | listId, name, desc, due, pos, memberIds, labelIds |
 | `card_update` | Use when changing card metadata such as title, description, due date, due completion, or archive state without moving it. | cardId, name, desc, due, dueComplete, closed |
 | `card_due_date_set` | Use when setting, clearing, or marking completion of a card due date without changing other card metadata. | cardId, due, dueComplete |
@@ -488,13 +498,13 @@ Use `card_custom_field_clear` to clear an existing card custom field value. Trel
 | `card_custom_field_items` | Use when reading all custom field item values currently set on a Trello card. | cardId |
 | `card_custom_field_set` | Use when setting or updating one Trello card custom field value. Use type-specific inputs: text, number string, ISO date, checkbox boolean, or list optionId. | cardId, customFieldId, type, text, number, date, checked, optionId |
 | `card_custom_field_clear` | Use when clearing one Trello card custom field value; Trello clears custom field items with an empty PUT body shape rather than DELETE. | cardId, customFieldId |
-| `card_members` | Use when listing members assigned to a card; use add/remove member tools to change assignment. | cardId |
+| `card_members` | Use when listing members assigned to a card; use fields to keep member output small. | cardId, fields |
 | `card_member_add` | Use when assigning a Trello member to a card by member id. | cardId, memberId |
 | `card_member_remove` | Use when unassigning a Trello member from a card by member id. | cardId, memberId |
 | `card_comment_add` | Use when adding a new comment to a Trello card; returns the created comment action. | cardId, text |
 | `card_comment_update` | Use when editing the text of an existing Trello card comment by its comment action id. | actionId, text |
 | `card_comment_delete` | Use when deleting an existing Trello card comment by its comment action id. | actionId |
-| `card_actions` | Use when auditing recent activity or comments for a card; set filter to commentCard for comments only. Use comment tools to add, edit, or delete comments. | cardId, filter, limit |
+| `card_actions` | Use when auditing recent activity or comments for a card; use filter, limit, page, since, before, and fields to page large histories. | cardId, filter, fields, limit, since, before, page, member, memberFields, memberCreator, memberCreatorFields |
 | `label_get` | Use when you need the current name, color, or board for a specific Trello label before editing it. | labelId |
 | `label_create` | Use when creating a new reusable label on a Trello board before applying it to cards. | boardId, name, color |
 | `label_update` | Use when renaming a Trello label or changing its color without changing any card assignments. | labelId, name, color |

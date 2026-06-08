@@ -1,6 +1,14 @@
 import { z } from "zod";
+import { LimitSchema, PagingInput, pagingQuery } from "../utils/pagination.js";
 import { defineTool } from "../utils/tool.js";
-import { includeRequiredFields } from "./fields.js";
+import {
+  DEFAULT_BOARD_FIELDS,
+  DEFAULT_CARD_COLLECTION_FIELDS,
+  DEFAULT_LIST_FIELDS,
+  DEFAULT_MEMBER_FIELDS,
+  fieldsSchema,
+  includeRequiredFields,
+} from "./fields.js";
 import {
   TrelloBoardListSchema,
   TrelloBoardMembershipListSchema,
@@ -18,14 +26,7 @@ const BoardIdInput = z.object({
 });
 
 const BoardFieldsInput = z.object({
-  fields: z
-    .string()
-    .default(
-      "name,desc,closed,url,shortUrl,idOrganization,dateLastActivity,prefs,labelNames,subscribed",
-    )
-    .describe(
-      "Comma-separated Trello board fields to request; schema-required fields are added automatically.",
-    ),
+  fields: fieldsSchema(DEFAULT_BOARD_FIELDS, "board", true),
 });
 
 const ListBoardsInput = z.object({
@@ -69,12 +70,7 @@ const BoardListsInput = BoardIdInput.extend({
     .enum(["all", "closed", "none", "open"])
     .default("open")
     .describe("Which lists to include from the board."),
-  fields: z
-    .string()
-    .default("name,closed,idBoard,pos")
-    .describe(
-      "Comma-separated Trello list fields to request; schema-required fields are added automatically.",
-    ),
+  fields: fieldsSchema(DEFAULT_LIST_FIELDS, "list", true),
 });
 
 const BoardCardsInput = BoardIdInput.extend({
@@ -82,21 +78,14 @@ const BoardCardsInput = BoardIdInput.extend({
     .enum(["all", "closed", "none", "open", "visible"])
     .default("open")
     .describe("Which cards to include from the board."),
-  fields: z
-    .string()
-    .default(
-      "name,desc,closed,idBoard,idList,idMembers,idLabels,url,shortUrl,due,dueComplete,pos,dateLastActivity",
-    )
-    .describe(
-      "Comma-separated Trello card fields to request; schema-required fields are added automatically.",
-    ),
+  fields: fieldsSchema(DEFAULT_CARD_COLLECTION_FIELDS, "card", true),
+  limit: PagingInput.shape.limit,
+  since: PagingInput.shape.since,
+  before: PagingInput.shape.before,
 });
 
 const BoardMembersInput = BoardIdInput.extend({
-  fields: z
-    .string()
-    .default("username,fullName,initials,avatarUrl")
-    .describe("Comma-separated Trello member fields to return."),
+  fields: fieldsSchema(DEFAULT_MEMBER_FIELDS, "member"),
 });
 
 const BoardMembershipsInput = BoardIdInput.extend({
@@ -110,22 +99,13 @@ const BoardMembershipsInput = BoardIdInput.extend({
     .describe("Whether to include basic member profile details."),
   memberFields: z
     .string()
-    .default("username,fullName,initials,avatarUrl")
-    .describe("Comma-separated member fields when member is true."),
+    .default(DEFAULT_MEMBER_FIELDS)
+    .describe("Comma-separated Trello member fields when member is true."),
 });
 
 const BoardLabelsInput = BoardIdInput.extend({
-  limit: z
-    .number()
-    .int()
-    .min(1)
-    .max(1000)
-    .default(50)
-    .describe("Maximum number of labels to return."),
-  fields: z
-    .string()
-    .default("name,color,uses")
-    .describe("Comma-separated Trello label fields to return."),
+  limit: LimitSchema,
+  fields: fieldsSchema("name,color,uses", "label"),
 });
 
 export const boardTools = [
@@ -193,12 +173,19 @@ export const boardTools = [
     description:
       "Use when you need cards across all lists on a known Trello board for personal planning, review, or summarization.",
     inputSchema: BoardCardsInput,
-    handler: async ({ boardId, filter, fields }, { trello }) =>
+    handler: async (
+      { boardId, filter, fields, limit, since, before },
+      { trello },
+    ) =>
       trello.request(
         `/boards/${encodeURIComponent(boardId)}/cards`,
         TrelloCardListSchema,
         {
-          query: { filter, fields: includeRequiredFields(fields, ["name"]) },
+          query: {
+            filter,
+            fields: includeRequiredFields(fields, ["name"]),
+            ...pagingQuery({ limit, since, before }),
+          },
           resourceType: "board",
           resourceId: boardId,
         },
@@ -262,7 +249,11 @@ export const boardTools = [
         `/boards/${encodeURIComponent(boardId)}/memberships`,
         TrelloBoardMembershipListSchema,
         {
-          query: { filter, member, member_fields: memberFields },
+          query: {
+            filter,
+            member,
+            ...(member ? { member_fields: memberFields } : {}),
+          },
           resourceType: "board",
           resourceId: boardId,
         },
