@@ -1,5 +1,29 @@
 # Changelog
 
+## v0.4.0
+
+Search and MCP ergonomics release, with smaller tool names, shared output
+shaping, and release tag improvements.
+
+### Trello Tools
+
+- Add `search` and `search_members` tools for finding Trello cards, boards, members, and organizations from natural language search terms.
+- Rename public MCP tools to remove the redundant `trello_` prefix while keeping the `trello-mcp` server name unchanged.
+- Extend `card_cover_set` with Trello card cover display options for `normal` and `full` cover sizes plus optional text brightness.
+- Standardize pagination, field selection, and output shaping for high-volume board, card, list, member, label, action, and search responses.
+- Fix card attachment listing so the default request works without sending Trello an invalid attachment filter.
+
+### Deployment And Documentation
+
+- Publish moving minor-line Docker image tags such as `0.4` alongside exact release tags such as `0.4.0`.
+- Document Docker image tag meanings and versioned deployment options.
+- Refresh the generated MCP tool catalog for the unprefixed tool names and search tools.
+
+### Development And CI
+
+- Add CI job timeouts to keep stalled workflow runs bounded.
+- Add focused tests for search tools, shared pagination and field helpers, tool-name compatibility rules, cover display options, attachment filter behavior, and output shaping.
+
 ## v0.3.0
 
 Custom fields and attachment upload release, with Trello response parsing fixes

@@ -1,6 +1,6 @@
 {
   "name": "trello-mcp",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Self-hostable Model Context Protocol server for Trello.",
   "type": "module",
   "license": "MIT",
