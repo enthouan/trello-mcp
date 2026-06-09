@@ -45,9 +45,11 @@ export const TrelloOrganizationSchema = z
     name: z.string().optional(),
     displayName: z.string().optional(),
     desc: z.string().optional(),
+    dateLastActivity: z.string().nullable().optional(),
     idBoards: z.array(TrelloIdSchema).optional(),
     url: z.string().url().optional(),
     website: z.string().nullable().optional(),
+    prefs: z.record(z.string(), z.unknown()).optional(),
   })
   .passthrough();
 

@@ -8,6 +8,7 @@ import { labelTools } from "../src/trello/labels.js";
 import { listTools } from "../src/trello/lists.js";
 import { memberTools } from "../src/trello/members.js";
 import { searchTools } from "../src/trello/search.js";
+import { workspaceTools } from "../src/trello/workspaces.js";
 import { defineTool, registerTool } from "../src/utils/tool.js";
 
 const logger = {
@@ -83,6 +84,7 @@ describe("Trello tool names", () => {
     const names = [
       ...authTools,
       ...boardTools,
+      ...workspaceTools,
       ...memberTools,
       ...listTools,
       ...cardTools,

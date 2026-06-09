@@ -7,6 +7,7 @@ import { labelTools } from "../src/trello/labels.js";
 import { listTools } from "../src/trello/lists.js";
 import { memberTools } from "../src/trello/members.js";
 import { searchTools } from "../src/trello/search.js";
+import { workspaceTools } from "../src/trello/workspaces.js";
 
 const readmePath = new URL("../README.md", import.meta.url);
 const readme = await readFile(readmePath, "utf8");
@@ -15,6 +16,7 @@ const rows = ["| Name | When to use | Key inputs |", "| --- | --- | --- |"];
 for (const tool of [
   ...authTools,
   ...boardTools,
+  ...workspaceTools,
   ...memberTools,
   ...listTools,
   ...cardTools,

@@ -2,6 +2,8 @@ import { z } from "zod";
 
 export const DEFAULT_BOARD_FIELDS =
   "name,desc,closed,url,shortUrl,idOrganization,dateLastActivity,prefs,labelNames,subscribed";
+export const DEFAULT_WORKSPACE_FIELDS =
+  "name,displayName,desc,url,website,idBoards,dateLastActivity,prefs";
 export const DEFAULT_LIST_FIELDS = "name,closed,idBoard,pos";
 export const DEFAULT_CARD_COLLECTION_FIELDS =
   "name,desc,closed,idBoard,idList,idMembers,idLabels,url,shortUrl,due,dueComplete,pos,dateLastActivity";

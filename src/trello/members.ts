@@ -59,11 +59,7 @@ const MemberOrganizationsInput = MemberIdInput.extend({
     .enum(["all", "members", "none", "public"])
     .default("all")
     .describe("Which Trello workspaces to include for the member."),
-  fields: fieldsSchema(
-    DEFAULT_MEMBER_ORGANIZATION_FIELDS,
-    "organization",
-    true,
-  ),
+  fields: fieldsSchema(DEFAULT_MEMBER_ORGANIZATION_FIELDS, "workspace", true),
   paidAccount: z
     .boolean()
     .default(false)
@@ -133,7 +129,7 @@ export const memberTools = [
             fields: includeRequiredFields(fields, ["name", "displayName"]),
             ...(paidAccount ? { paid_account: true } : {}),
           },
-          resourceType: "member organizations",
+          resourceType: "member workspaces",
           resourceId: memberId,
         },
       ),

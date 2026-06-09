@@ -11,6 +11,7 @@ import { labelTools } from "./trello/labels.js";
 import { listTools } from "./trello/lists.js";
 import { memberTools } from "./trello/members.js";
 import { searchTools } from "./trello/search.js";
+import { workspaceTools } from "./trello/workspaces.js";
 import type { Logger } from "./utils/logger.js";
 import { registerTool, type ToolDefinition } from "./utils/tool.js";
 
@@ -36,6 +37,7 @@ export function createServer(config: Config, logger: Logger): AppServer {
   const tools = [
     ...authTools,
     ...boardTools,
+    ...workspaceTools,
     ...memberTools,
     ...listTools,
     ...cardTools,
