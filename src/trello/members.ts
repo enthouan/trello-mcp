@@ -16,15 +16,14 @@ import {
   TrelloOrganizationListSchema,
 } from "./types.js";
 
-const DEFAULT_MEMBER_ORGANIZATION_FIELDS =
-  "name,displayName,url,website,idBoards";
+const DEFAULT_MEMBER_WORKSPACE_FIELDS = "name,displayName,url,website,idBoards";
 
 const MemberIdInput = z.object({
   memberId: TrelloIdSchema.describe("Trello member id, username, or me."),
 });
 
 const MemberFieldsInput = z.object({
-  fields: fieldsSchema(DEFAULT_MEMBER_FIELDS, "member profile"),
+  fields: fieldsSchema(DEFAULT_MEMBER_FIELDS, "member profile", true),
 });
 
 const MemberBoardsInput = MemberIdInput.extend({
@@ -54,12 +53,12 @@ const MemberCardsInput = MemberIdInput.extend({
   before: PagingInput.shape.before,
 });
 
-const MemberOrganizationsInput = MemberIdInput.extend({
+const MemberWorkspacesInput = MemberIdInput.extend({
   filter: z
     .enum(["all", "members", "none", "public"])
     .default("all")
     .describe("Which Trello workspaces to include for the member."),
-  fields: fieldsSchema(DEFAULT_MEMBER_ORGANIZATION_FIELDS, "workspace", true),
+  fields: fieldsSchema(DEFAULT_MEMBER_WORKSPACE_FIELDS, "workspace", true),
   paidAccount: z
     .boolean()
     .default(false)
@@ -115,10 +114,10 @@ export const memberTools = [
       }),
   }),
   defineTool({
-    name: "member_organizations",
+    name: "member_workspaces",
     description:
       "Use when you need Trello workspaces associated with a known member by id, username, or me; workspace visibility and role permissions constrain results.",
-    inputSchema: MemberOrganizationsInput,
+    inputSchema: MemberWorkspacesInput,
     handler: async ({ memberId, filter, fields, paidAccount }, { trello }) =>
       trello.request(
         `${memberPath(memberId)}/organizations`,

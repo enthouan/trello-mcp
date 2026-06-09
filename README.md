@@ -198,6 +198,19 @@ Choose your client below. For stdio examples, replace `/absolute/path/to/trello-
 claude mcp add-json trello '{"type":"stdio","command":"node","args":["/absolute/path/to/trello-mcp/dist/index.js"],"env":{"TRANSPORT":"stdio","TRELLO_API_KEY":"your-api-key","TRELLO_TOKEN":"your-token"}}'
 ```
 
+If you are running the Docker/HTTP server:
+
+```bash
+claude mcp add --transport http trello http://localhost:3000/mcp
+```
+
+If the server sets `MCP_AUTH_TOKEN`, include the bearer header:
+
+```bash
+claude mcp add --transport http trello http://localhost:3000/mcp \
+  --header "Authorization: Bearer your-shared-secret"
+```
+
 #### Codex
 
 If you are running the Docker/HTTP server:
@@ -266,6 +279,8 @@ For any MCP client that supports Streamable HTTP, point it to:
 ```text
 http://localhost:3000/mcp
 ```
+
+If the server sets `MCP_AUTH_TOKEN`, the client must send `Authorization: Bearer <token>` on every MCP request; requests without it receive `401 unauthorized`.
 
 For any MCP client that supports stdio, use this command:
 
@@ -505,7 +520,7 @@ Use `card_custom_field_clear` to clear an existing card custom field value. Trel
 | `member_get` | Use after member search or board member listing to inspect a Trello member profile by id, username, or me before assignment or auditing. | memberId, fields |
 | `member_boards` | Use when you need boards associated with a known Trello member by id, username, or me; results are limited to boards visible to the configured token. | memberId, filter, fields |
 | `member_cards` | Use when you need cards assigned to a known Trello member by id, username, or me; private board cards require token access to those boards. | memberId, filter, fields, limit, since, before |
-| `member_organizations` | Use when you need Trello workspaces associated with a known member by id, username, or me; workspace visibility and role permissions constrain results. | memberId, filter, fields, paidAccount |
+| `member_workspaces` | Use when you need Trello workspaces associated with a known member by id, username, or me; workspace visibility and role permissions constrain results. | memberId, filter, fields, paidAccount |
 | `list_get` | Use when you need metadata for a known Trello list before creating cards in it or changing it. | listId, fields |
 | `list_create` | Use when creating a new Trello list on an existing board. | boardId, name, pos |
 | `list_update` | Use when renaming a Trello list, changing its position, or setting its archive state. | listId, name, closed, pos |
@@ -579,6 +594,8 @@ MCP client
 
 - `src/index.ts` starts stdio or HTTP transport.
 - `src/server.ts` creates the MCP server and registers tools.
+- `src/http-auth.ts` enforces the optional `MCP_AUTH_TOKEN` bearer check on HTTP MCP requests.
+- `src/trello/auth.ts` defines the read-only `auth_whoami` and `auth_token_info` credential diagnostics.
 - `src/trello/client.ts` owns Trello HTTP requests, auth query parameters, retries, and response parsing.
 - `src/trello/boards.ts` defines board discovery and board-level list, card, label, member, and custom field tools.
 - `src/trello/workspaces.ts` defines workspace discovery, metadata, board, and member tools.
@@ -662,6 +679,7 @@ The setup script enables Corepack, activates the pinned pnpm version, installs d
 
 ### Trello says the credentials are invalid
 
+- Run the `auth_whoami` and `auth_token_info` tools from your MCP client to confirm the authenticated member and the token's expiration and permissions.
 - Re-run the `members/me` curl check from the credential setup section.
 - Confirm the token was generated from the same Power-Up/API key.
 - Regenerate the token if it was revoked.

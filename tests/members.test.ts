@@ -140,8 +140,8 @@ describe("member tools", () => {
     );
   });
 
-  it("lists member organizations with paid account details when requested", async () => {
-    const tool = getMemberTool("member_organizations");
+  it("lists member workspaces with paid account details when requested", async () => {
+    const tool = getMemberTool("member_workspaces");
     const trello = {
       request: vi.fn(async () => [
         { id: "org1", name: "workspace", displayName: "Workspace" },
@@ -193,7 +193,7 @@ describe("member tools", () => {
       }),
     ).toThrow();
     expect(() =>
-      getMemberTool("member_organizations").inputSchema.parse({
+      getMemberTool("member_workspaces").inputSchema.parse({
         memberId: "member1",
         filter: "closed",
       }),

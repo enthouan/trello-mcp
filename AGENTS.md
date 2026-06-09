@@ -93,12 +93,17 @@ corepack pnpm exec biome check --write path/to/file.ts
 - `src/server.ts`: MCP server construction and tool registration.
 - `src/config.ts`: environment variable schema. Keep auth to `TRELLO_API_KEY` and `TRELLO_TOKEN`.
 - `src/health.ts`: HTTP health/readiness responses.
+- `src/http-auth.ts`: optional `MCP_AUTH_TOKEN` bearer check for HTTP MCP requests.
 - `src/trello/client.ts`: Trello REST client, auth query parameters, rate limiting, retries, response parsing, typed errors.
+- `src/trello/auth.ts`: read-only `auth_whoami` and `auth_token_info` credential diagnostic tools.
 - `src/trello/boards.ts`: board discovery and board-level list, card, label, member, and custom field tools.
+- `src/trello/workspaces.ts`: workspace discovery, metadata, board, and member tools.
+- `src/trello/members.ts`: member profile, board, card, and workspace lookup tools.
 - `src/trello/lists.ts`: list create, inspect, update, archive, and move tools.
 - `src/trello/cards.ts`: card, attachment, checklist, member, comment, action, and card custom field item tools.
 - `src/trello/labels.ts`: label CRUD and card label assignment tools.
 - `src/trello/custom-fields.ts`: custom field definition and option lookup tools.
+- `src/trello/search.ts`: search tools for cards, boards, members, and workspaces.
 - `src/trello/fields.ts`: shared Trello field list validation helpers.
 - `src/trello/types.ts`: Zod schemas for Trello API response shapes.
 - `src/utils/tool.ts`: `defineTool`, MCP registration wrapper, request IDs, logging, result wrapping.
@@ -152,6 +157,7 @@ Current public env vars:
 
 - `TRELLO_API_KEY`, required.
 - `TRELLO_TOKEN`, required.
+- `MCP_AUTH_TOKEN`, optional, no default; requires `Authorization: Bearer <token>` on HTTP MCP requests when set.
 - `TRELLO_ATTACHMENT_UPLOAD_ROOT`, optional, no default; enables server-local attachment uploads when set to an absolute directory.
 - `TRANSPORT`, optional, default `http`, valid values `http` or `stdio`.
 - `PORT`, optional, default `3000`.
@@ -188,6 +194,8 @@ Current test coverage includes:
 - `tests/config.test.ts`: environment parsing and validation.
 - `tests/client.test.ts`: auth query construction, rate limiting, retries, HTTP error mapping.
 - `tests/boards.test.ts`, `tests/lists.test.ts`, `tests/labels.test.ts`, `tests/custom-fields.test.ts`, and `tests/fields.test.ts`: domain tool input parsing, response parsing, and Trello request construction.
+- `tests/auth.test.ts`, `tests/workspaces.test.ts`, `tests/members.test.ts`, and `tests/search.test.ts`: credential diagnostics, workspace and member discovery, and search tool behavior.
+- `tests/http-auth.test.ts`: bearer token extraction and HTTP MCP request authorization.
 - `tests/cards.test.ts`: card, attachment, checklist, member, comment, action, and custom field item tool behavior.
 - `tests/tool.test.ts`: tool registration wrapper, validation, result wrapping, MCP error mapping.
 
