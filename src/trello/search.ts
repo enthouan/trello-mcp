@@ -144,6 +144,26 @@ const SearchMembersInput = SearchQueryInput.extend({
     .describe("Whether to restrict results to workspace members."),
 });
 
+function memberSearchResource(input: {
+  boardId: string | undefined;
+  organizationId: string | undefined;
+  query: string;
+}): { resourceType: string; resourceId: string } {
+  if (input.boardId) {
+    return {
+      resourceType: "board-scoped member search",
+      resourceId: input.boardId,
+    };
+  }
+  if (input.organizationId) {
+    return {
+      resourceType: "organization-scoped member search",
+      resourceId: input.organizationId,
+    };
+  }
+  return { resourceType: "member search", resourceId: input.query };
+}
+
 function joinedIds(ids: "mine" | string[] | undefined): string | undefined {
   if (ids === undefined || ids === "mine") {
     return ids;
@@ -224,13 +244,14 @@ export const searchTools = [
   defineTool({
     name: "search_members",
     description:
-      "Use when looking up Trello members by name or username, optionally scoped to a board or workspace.",
+      "Use when looking up Trello members by name or username, optionally scoped to a board or workspace; scoped searches require token access to that board or workspace.",
     inputSchema: SearchMembersInput,
     handler: async (
       { query, limit, boardId, organizationId, onlyOrgMembers },
       { trello },
-    ) =>
-      trello.request("/search/members/", TrelloSearchMemberListSchema, {
+    ) => {
+      const resource = memberSearchResource({ boardId, organizationId, query });
+      return trello.request("/search/members/", TrelloSearchMemberListSchema, {
         query: {
           query,
           limit,
@@ -238,8 +259,8 @@ export const searchTools = [
           idOrganization: organizationId,
           ...(onlyOrgMembers ? { onlyOrgMembers } : {}),
         },
-        resourceType: "member search",
-        resourceId: query,
-      }),
+        ...resource,
+      });
+    },
   }),
 ];

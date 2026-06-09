@@ -19,6 +19,7 @@ export class AppError extends Error {
 export class ConfigError extends AppError {}
 export class ValidationError extends AppError {}
 export class AuthError extends AppError {}
+export class PermissionError extends AppError {}
 export class NotFoundError extends AppError {}
 export class RateLimitError extends AppError {}
 
@@ -58,6 +59,13 @@ export function toMcpError(error: unknown): McpError {
     );
   }
   if (appError instanceof AuthError) {
+    return new McpError(
+      ErrorCode.InvalidRequest,
+      appError.message,
+      appError.details,
+    );
+  }
+  if (appError instanceof PermissionError) {
     return new McpError(
       ErrorCode.InvalidRequest,
       appError.message,

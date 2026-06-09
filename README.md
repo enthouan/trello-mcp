@@ -496,16 +496,16 @@ Use `card_custom_field_clear` to clear an existing card custom field value. Trel
 | `board_cards` | Use when you need cards across all lists on a known Trello board for personal planning, review, or summarization. | boardId, filter, fields, limit, since, before |
 | `board_custom_fields` | Use when inspecting custom field definitions on a known Trello board, including dropdown/list options when Trello returns them. | boardId |
 | `board_labels` | Use when discovering labels available on a board before creating or updating cards with labels. | boardId, limit, fields |
-| `board_members` | Use when you need the members who can access a known Trello board before assigning cards or reviewing collaboration. | boardId, fields |
-| `board_memberships` | Use when you need board membership records, member roles, or permission context for a known Trello board. | boardId, filter, member, memberFields |
+| `board_members` | Use when you need the members who can access a known Trello board before assigning cards or reviewing collaboration; requires token visibility of private boards. | boardId, fields |
+| `board_memberships` | Use when you need board membership records, member roles, or permission context for a known Trello board; use the admins filter when checking board-admin-only operations. | boardId, filter, member, memberFields |
 | `list_workspaces` | Use first when the user asks to show Trello workspaces or needs to choose a workspace before drilling into its boards or members. | filter, fields, paidAccount |
 | `workspace_get` | Use when you need basic Trello workspace metadata, such as display name, description, URL, website, board ids, or preferences. | workspaceId, fields |
 | `workspace_boards` | Use when you need boards in a known Trello workspace so the user can drill into a workspace board. | workspaceId, filter, fields |
 | `workspace_members` | Use when you need members in a known Trello workspace before assignment, auditing, or permission review. | workspaceId, filter, fields |
 | `member_get` | Use after member search or board member listing to inspect a Trello member profile by id, username, or me before assignment or auditing. | memberId, fields |
-| `member_boards` | Use when you need boards associated with a known Trello member by id, username, or me. | memberId, filter, fields |
-| `member_cards` | Use when you need cards assigned to a known Trello member by id, username, or me. | memberId, filter, fields, limit, since, before |
-| `member_organizations` | Use when you need Trello workspaces associated with a known member by id, username, or me. | memberId, filter, fields, paidAccount |
+| `member_boards` | Use when you need boards associated with a known Trello member by id, username, or me; results are limited to boards visible to the configured token. | memberId, filter, fields |
+| `member_cards` | Use when you need cards assigned to a known Trello member by id, username, or me; private board cards require token access to those boards. | memberId, filter, fields, limit, since, before |
+| `member_organizations` | Use when you need Trello workspaces associated with a known member by id, username, or me; workspace visibility and role permissions constrain results. | memberId, filter, fields, paidAccount |
 | `list_get` | Use when you need metadata for a known Trello list before creating cards in it or changing it. | listId, fields |
 | `list_create` | Use when creating a new Trello list on an existing board. | boardId, name, pos |
 | `list_update` | Use when renaming a Trello list, changing its position, or setting its archive state. | listId, name, closed, pos |
@@ -541,9 +541,9 @@ Use `card_custom_field_clear` to clear an existing card custom field value. Trel
 | `card_custom_field_items` | Use when reading all custom field item values currently set on a Trello card. | cardId |
 | `card_custom_field_set` | Use when setting or updating one Trello card custom field value. Use type-specific inputs: text, number string, ISO date, checkbox boolean, or list optionId. | cardId, customFieldId, type, text, number, date, checked, optionId |
 | `card_custom_field_clear` | Use when clearing one Trello card custom field value; Trello clears custom field items with an empty PUT body shape rather than DELETE. | cardId, customFieldId |
-| `card_members` | Use when listing members assigned to a card; use fields to keep member output small. | cardId, fields |
-| `card_member_add` | Use when assigning a Trello member to a card by member id. | cardId, memberId |
-| `card_member_remove` | Use when unassigning a Trello member from a card by member id. | cardId, memberId |
+| `card_members` | Use when listing members assigned to a card; requires token access to the card's board. Use fields to keep member output small. | cardId, fields |
+| `card_member_add` | Use when assigning a Trello member to a card by member id; requires write access to the card's board and a member who can be assigned to that board. | cardId, memberId |
+| `card_member_remove` | Use when unassigning a Trello member from a card by member id; requires write access to the card's board. | cardId, memberId |
 | `card_comment_add` | Use when adding a new comment to a Trello card; returns the created comment action. | cardId, text |
 | `card_comment_update` | Use when editing the text of an existing Trello card comment by its comment action id. | actionId, text |
 | `card_comment_delete` | Use when deleting an existing Trello card comment by its comment action id. | actionId |
@@ -557,7 +557,7 @@ Use `card_custom_field_clear` to clear an existing card custom field value. Trel
 | `custom_field_get` | Use when you need one Trello custom field definition by id, including its type and any dropdown/list options Trello returns. | customFieldId |
 | `custom_field_options` | Use when listing the available options for a Trello dropdown/list custom field before setting a card list custom field value. | customFieldId |
 | `search` | Use when you need to find Trello cards, boards, members, or workspaces by natural language search terms. | query, modelTypes, boardIds, organizationIds, cardIds, cardFields, boardFields, memberFields, organizationFields, cardsLimit, boardsLimit, membersLimit, organizationsLimit, cardsPage, partial, includeCardBoard, includeCardList, includeCardMembers, includeBoardOrganization |
-| `search_members` | Use when looking up Trello members by name or username, optionally scoped to a board or workspace. | query, limit, boardId, organizationId, onlyOrgMembers |
+| `search_members` | Use when looking up Trello members by name or username, optionally scoped to a board or workspace; scoped searches require token access to that board or workspace. | query, limit, boardId, organizationId, onlyOrgMembers |
 <!-- tools:end -->
 
 Regenerate the catalog with:

@@ -9,6 +9,7 @@ import { listTools } from "../src/trello/lists.js";
 import { memberTools } from "../src/trello/members.js";
 import { searchTools } from "../src/trello/search.js";
 import { workspaceTools } from "../src/trello/workspaces.js";
+import { PermissionError } from "../src/utils/errors.js";
 import { defineTool, registerTool } from "../src/utils/tool.js";
 
 const logger = {
@@ -76,6 +77,38 @@ describe("registerTool", () => {
         { type: "text", text: JSON.stringify({ id: "card1" }, null, 2) },
       ],
     });
+  });
+
+  it("maps permission errors to MCP invalid request errors with details", async () => {
+    const { server, handlers } = fakeServer();
+    const tool = defineTool({
+      name: "test_permission_tool",
+      description: "test",
+      inputSchema: z.object({ boardId: z.string() }),
+      handler: async ({ boardId }) => {
+        throw new PermissionError(
+          `Trello denied access to board ${boardId}; the configured token is valid but lacks the required permission.`,
+          { status: 403, resourceType: "board", resourceId: boardId },
+        );
+      },
+    });
+
+    registerTool(server as never, tool, {
+      trello: {} as never,
+      logger: logger as never,
+    });
+
+    await expect(handlers[0]?.({ boardId: "private-board" })).rejects.toEqual(
+      expect.objectContaining({
+        code: -32600,
+        message: expect.stringContaining("lacks the required permission"),
+        data: {
+          status: 403,
+          resourceType: "board",
+          resourceId: "private-board",
+        },
+      }),
+    );
   });
 });
 

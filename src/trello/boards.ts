@@ -226,7 +226,7 @@ export const boardTools = [
   defineTool({
     name: "board_members",
     description:
-      "Use when you need the members who can access a known Trello board before assigning cards or reviewing collaboration.",
+      "Use when you need the members who can access a known Trello board before assigning cards or reviewing collaboration; requires token visibility of private boards.",
     inputSchema: BoardMembersInput,
     handler: async ({ boardId, fields }, { trello }) =>
       trello.request(
@@ -242,7 +242,7 @@ export const boardTools = [
   defineTool({
     name: "board_memberships",
     description:
-      "Use when you need board membership records, member roles, or permission context for a known Trello board.",
+      "Use when you need board membership records, member roles, or permission context for a known Trello board; use the admins filter when checking board-admin-only operations.",
     inputSchema: BoardMembershipsInput,
     handler: async ({ boardId, filter, member, memberFields }, { trello }) =>
       trello.request(

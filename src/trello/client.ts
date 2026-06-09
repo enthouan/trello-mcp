@@ -4,7 +4,9 @@ import type { z } from "zod";
 import type { Config } from "../config.js";
 import {
   AuthError,
+  type ErrorDetails,
   NotFoundError,
+  PermissionError,
   RateLimitError,
   TrelloApiError,
   ValidationError,
@@ -304,24 +306,51 @@ export class TrelloClient {
     const trelloMessage = await this.errorMessage(response);
     if (response.status === 401) {
       return new AuthError(
-        "Trello authentication failed; check TRELLO_API_KEY and TRELLO_TOKEN.",
+        "Trello authentication failed; check TRELLO_API_KEY and TRELLO_TOKEN, then run auth_whoami or auth_token_info to confirm the configured member and token permissions.",
+        this.errorDetails(response, options),
+      );
+    }
+    if (response.status === 403) {
+      return new PermissionError(
+        `Trello denied access to ${this.resourceLabel(options)}; the configured token is valid but lacks the required permission. Confirm the authenticated member can access the relevant board or workspace and has the necessary role, including admin rights for admin-only operations.`,
+        this.errorDetails(response, options, trelloMessage),
       );
     }
     if (response.status === 404) {
       return new NotFoundError(
-        `${options.resourceType ?? "Trello resource"} not found.`,
-        {
-          resourceType: options.resourceType,
-          resourceId: options.resourceId,
-        },
+        `Trello ${this.resourceLabel(options)} was not found or is not visible to the configured token; check the id and confirm the authenticated member has access to the private board, workspace, or member resource.`,
+        this.errorDetails(response, options, trelloMessage),
       );
     }
     if (response.status === 429) {
       return new RateLimitError("Trello rate limit exceeded; try again later.");
     }
-    return new TrelloApiError(response.status, trelloMessage, {
+    return new TrelloApiError(
+      response.status,
+      trelloMessage,
+      this.errorDetails(response, options),
+    );
+  }
+
+  private resourceLabel(options: RequestOptions): string {
+    const resourceType = options.resourceType ?? "resource";
+    if (!options.resourceId) {
+      return resourceType;
+    }
+    return `${resourceType} ${options.resourceId}`;
+  }
+
+  private errorDetails(
+    response: Response,
+    options: RequestOptions,
+    trelloMessage?: string,
+  ): ErrorDetails {
+    return {
       status: response.status,
-    });
+      resourceType: options.resourceType,
+      resourceId: options.resourceId,
+      trelloMessage,
+    };
   }
 
   private async errorMessage(response: Response): Promise<string> {
