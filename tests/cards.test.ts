@@ -987,8 +987,9 @@ describe("card tools", () => {
     );
   });
 
-  it("rejects cover display options when clearing a card cover", () => {
+  it("rejects cover display options when clearing a card cover", async () => {
     const tool = getCardTool("card_cover_set");
+    const trello = { request: vi.fn() };
 
     expect(() =>
       tool.inputSchema.parse({
@@ -996,7 +997,14 @@ describe("card tools", () => {
         attachmentId: null,
         size: "full",
       }),
-    ).toThrow("Display options require an attachmentId.");
+    ).not.toThrow();
+    await expect(
+      tool.handler(
+        { cardId: "card1", attachmentId: null, size: "full" },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).rejects.toThrow("Display options require an attachmentId.");
+    expect(trello.request).not.toHaveBeenCalled();
   });
 
   it("lists card attachments without sending a default filter", async () => {
