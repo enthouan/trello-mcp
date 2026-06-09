@@ -298,6 +298,8 @@ If everything is configured correctly, the health endpoints return JSON status r
 
 This server currently uses Trello API key + token authentication. See Trello's [REST API getting started guide](https://support.atlassian.com/trello/docs/getting-started-with-trello-rest-api/) and [API introduction](https://developer.atlassian.com/cloud/trello/guides/rest-api/api-introduction/) for the official credential flow.
 
+Use the read-only `auth_whoami` and `auth_token_info` tools to verify which Trello member the configured credentials authenticate as and to inspect the configured token's owner, expiration, and permissions. These tools are diagnostics only; this server does not implement OAuth redirects, token creation, token refresh, token revocation, or other token lifecycle management.
+
 ## MCP Client Setup
 
 ### Streamable HTTP
@@ -479,6 +481,8 @@ Use `card_custom_field_clear` to clear an existing card custom field value. Trel
 <!-- tools:start -->
 | Name | When to use | Key inputs |
 | --- | --- | --- |
+| `auth_whoami` | Use as a read-only credential diagnostic to confirm which Trello member the configured API key and token authenticate as. | fields |
+| `auth_token_info` | Use as a read-only credential diagnostic to inspect the configured Trello token's owner, expiration, and permissions; it does not create, refresh, revoke, or manage tokens. | fields |
 | `list_boards` | Use first when the user has not provided a board, list, card id, or Trello URL; returns boards visible to the authenticated Trello member. | filter, fields |
 | `board_get` | Use when you need board details, common board preferences, or label names for a known Trello board before listing or summarizing it. | boardId, fields |
 | `board_field_get` | Use when you need one specific board field, such as prefs, labelNames, subscribed, name, description, or URL. | boardId, field |

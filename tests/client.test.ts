@@ -63,6 +63,53 @@ describe("TrelloClient", () => {
     expect(calledUrl.searchParams.has("pos")).toBe(false);
   });
 
+  it("requests configured token diagnostics without exposing the token as resource metadata", async () => {
+    const fetcher = vi.fn<typeof fetch>(async () =>
+      jsonResponse({ id: "tokenRecord1", idMember: "member1" }),
+    );
+    const client = new TrelloClient(
+      { ...config, TRELLO_TOKEN: "secret token" },
+      { fetcher },
+    );
+
+    await expect(
+      client.requestConfiguredToken(
+        z.object({ id: z.string(), idMember: z.string() }),
+        { query: { fields: "id,idMember" } },
+      ),
+    ).resolves.toEqual({ id: "tokenRecord1", idMember: "member1" });
+
+    const calledUrl = fetcher.mock.calls[0]?.[0];
+    expect(calledUrl).toBeInstanceOf(URL);
+    if (!(calledUrl instanceof URL)) {
+      throw new TypeError("Expected fetcher to be called with a URL");
+    }
+    expect(calledUrl.pathname).toBe("/1/tokens/secret%20token");
+    expect(calledUrl.searchParams.get("fields")).toBe("id,idMember");
+  });
+
+  it("uses redacted resource metadata for configured token not found errors", async () => {
+    const fetcher = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ message: "not found" }), {
+          status: 404,
+        }),
+    );
+    const client = new TrelloClient(
+      { ...config, TRELLO_TOKEN: "secret-token" },
+      { fetcher },
+    );
+
+    await expect(
+      client.requestConfiguredToken(z.object({ id: z.string() })),
+    ).rejects.toMatchObject({
+      details: {
+        resourceType: "configured Trello token",
+        resourceId: "configured token",
+      },
+    });
+  });
+
   it("builds multipart requests for attachment uploads inside the configured root", async () => {
     const uploadRoot = await mkdtemp(join(tmpdir(), "trello-mcp-upload-"));
     const uploadPath = join(uploadRoot, "note.txt");
