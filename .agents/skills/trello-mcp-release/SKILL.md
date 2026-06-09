@@ -70,6 +70,13 @@ corepack pnpm test
 Use `corepack pnpm test:coverage` if the release prep includes core behavior,
 tool registration, error handling, or CI/release workflow changes.
 
+If the release adds or changes public MCP tools, also smoke the common
+discovery and auth workflows from a connected MCP client when one is
+available: `auth_whoami` and `auth_token_info` should identify the configured
+member and token, and `list_boards`, `list_workspaces`, `workspace_boards`,
+and `member_get` with `me` should return compact, readable shapes. Note in the
+release PR whether this manual smoke ran or was skipped.
+
 Review the release diff like an external reviewer before publishing the PR:
 
 ```bash

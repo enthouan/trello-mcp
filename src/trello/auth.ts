@@ -8,7 +8,11 @@ const DEFAULT_TOKEN_FIELDS =
   "identifier,idMember,dateCreated,dateExpires,permissions";
 
 const AuthMemberInput = z.object({
-  fields: fieldsSchema(DEFAULT_AUTH_MEMBER_FIELDS, "authenticated member"),
+  fields: fieldsSchema(
+    DEFAULT_AUTH_MEMBER_FIELDS,
+    "authenticated member",
+    true,
+  ),
 });
 
 const AuthTokenInput = z.object({
