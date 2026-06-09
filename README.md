@@ -219,6 +219,16 @@ If you are running the Docker/HTTP server:
 codex mcp add trello --url http://localhost:3000/mcp
 ```
 
+If the server sets `MCP_AUTH_TOKEN`, put the same token in your shell and tell
+Codex which environment variable to read:
+
+```bash
+export TRELLO_MCP_BEARER_TOKEN=your-shared-secret
+codex mcp add trello \
+  --url http://localhost:3000/mcp \
+  --bearer-token-env-var TRELLO_MCP_BEARER_TOKEN
+```
+
 If you want Codex to launch the local stdio server:
 
 ```bash
