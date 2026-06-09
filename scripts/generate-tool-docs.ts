@@ -5,6 +5,7 @@ import { cardTools } from "../src/trello/cards.js";
 import { customFieldTools } from "../src/trello/custom-fields.js";
 import { labelTools } from "../src/trello/labels.js";
 import { listTools } from "../src/trello/lists.js";
+import { memberTools } from "../src/trello/members.js";
 import { searchTools } from "../src/trello/search.js";
 
 const readmePath = new URL("../README.md", import.meta.url);
@@ -14,6 +15,7 @@ const rows = ["| Name | When to use | Key inputs |", "| --- | --- | --- |"];
 for (const tool of [
   ...authTools,
   ...boardTools,
+  ...memberTools,
   ...listTools,
   ...cardTools,
   ...labelTools,

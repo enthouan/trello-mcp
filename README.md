@@ -55,6 +55,7 @@ Most of this project was built with Codex under my close supervision.
 - Search Trello cards, boards, members, and workspaces by natural language terms.
 - Scope search results to specific boards, cards, or organizations.
 - Look up Trello members by name or username before assignment.
+- Read member profiles, assigned cards, boards, and workspaces.
 
 ### Self-Hosted Runtime
 
@@ -492,6 +493,10 @@ Use `card_custom_field_clear` to clear an existing card custom field value. Trel
 | `board_labels` | Use when discovering labels available on a board before creating or updating cards with labels. | boardId, limit, fields |
 | `board_members` | Use when you need the members who can access a known Trello board before assigning cards or reviewing collaboration. | boardId, fields |
 | `board_memberships` | Use when you need board membership records, member roles, or permission context for a known Trello board. | boardId, filter, member, memberFields |
+| `member_get` | Use after member search or board member listing to inspect a Trello member profile by id, username, or me before assignment or auditing. | memberId, fields |
+| `member_boards` | Use when you need boards associated with a known Trello member by id, username, or me. | memberId, filter, fields |
+| `member_cards` | Use when you need cards assigned to a known Trello member by id, username, or me. | memberId, filter, fields, limit, since, before |
+| `member_organizations` | Use when you need Trello workspaces associated with a known member by id, username, or me. | memberId, filter, fields, paidAccount |
 | `list_get` | Use when you need metadata for a known Trello list before creating cards in it or changing it. | listId, fields |
 | `list_create` | Use when creating a new Trello list on an existing board. | boardId, name, pos |
 | `list_update` | Use when renaming a Trello list, changing its position, or setting its archive state. | listId, name, closed, pos |
@@ -567,6 +572,7 @@ MCP client
 - `src/server.ts` creates the MCP server and registers tools.
 - `src/trello/client.ts` owns Trello HTTP requests, auth query parameters, retries, and response parsing.
 - `src/trello/boards.ts` defines board discovery and board-level list, card, label, member, and custom field tools.
+- `src/trello/members.ts` defines member profile, board, card, and workspace lookup tools.
 - `src/trello/lists.ts` defines list create, inspect, update, archive, and move tools.
 - `src/trello/cards.ts` defines card tools, including attachment, checklist, member, comment, action, and card custom field item helpers.
 - `src/trello/labels.ts` defines label CRUD and card label assignment tools.
