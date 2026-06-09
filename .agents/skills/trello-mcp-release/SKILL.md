@@ -11,7 +11,7 @@ description: Use when cutting, preparing, publishing, or verifying a trello-mcp 
 - Never merge a PR unless the user explicitly approves merging that specific PR. Passing checks, GitHub review approval, or a release request is not enough by itself.
 - Do not move, delete, or retag existing release tags.
 - In this repo, the normal release artifact is an annotated Git tag, GHCR images, and a GitHub Release titled exactly `vX.Y.Z`.
-- Pushing an annotated `vX.Y.Z` tag publishes the release image. Confirm the user intends to publish before pushing the tag unless the request already explicitly says to release now.
+- Pushing an annotated `vX.Y.Z` tag publishes the release image. Merge approval is not publish approval; get separate explicit approval before pushing the tag, creating the GitHub Release, or closing the milestone.
 - Release tags should point at the current `origin/main` commit after the release prep PR has merged.
 - Keep secrets out of commits, logs, PR text, and release notes.
 
@@ -90,7 +90,7 @@ approves merging that PR:
 gh pr checks <PR_NUMBER> --repo enthouan/trello-mcp --watch
 ```
 
-## Merge And Tag
+## Merge
 
 Only after the user explicitly approves merging the specific PR and CI is
 green, merge through GitHub. Do not bypass the branch protection rule.
@@ -115,6 +115,35 @@ gh run watch --repo enthouan/trello-mcp <MAIN_RUN_ID>
 gh run view --repo enthouan/trello-mcp <MAIN_RUN_ID> --log-failed
 ```
 
+After the merge, stop and report the merged PR, merge commit, main-branch
+verification, and main release workflow result. Do not push a release tag,
+create a GitHub Release, or close a milestone unless the user explicitly
+approves publishing that exact `vX.Y.Z` release. Merge approval is not publish
+approval.
+
+Ask for publish approval with the side effects named explicitly, for example:
+
+```text
+Approve publishing vX.Y.Z? This will push the annotated vX.Y.Z tag, publish the
+GHCR version and moving-minor images, create the GitHub Release, and close the
+release milestone if applicable.
+```
+
+## Tag And Publish
+
+Proceed only after the user explicitly approves the release-side effects for
+the exact `vX.Y.Z`: tag push, GHCR publish, GitHub Release creation, and
+milestone closure.
+
+Fetch the merged main commit and ensure the tag does not already exist:
+
+```bash
+git fetch --prune --tags origin
+git show origin/main:package.json | rg '"version": "X.Y.Z"'
+git show origin/main:CHANGELOG.md | sed -n '1,80p'
+git tag --list "vX.Y.Z"
+```
+
 Create and push an annotated tag on `origin/main`:
 
 ```bash
@@ -122,14 +151,16 @@ git tag -a vX.Y.Z origin/main -m "vX.Y.Z"
 git push origin vX.Y.Z
 ```
 
-## Verify Publication
-
-Watch the release workflow and inspect published package tags:
+Watch release workflows for both the merged `main` push and the tag push. The
+main workflow publishes `latest` and `sha-<full-main-sha>`; the tag workflow
+publishes `X.Y.Z`, moving minor `X.Y`, and `sha-<full-main-sha>`.
 
 ```bash
-gh run list --repo enthouan/trello-mcp --workflow Release --limit 5
-gh run watch --repo enthouan/trello-mcp <RUN_ID> --exit-status
-gh run view --repo enthouan/trello-mcp <RUN_ID> --log-failed
+gh run list --repo enthouan/trello-mcp --workflow Release --limit 10 \
+  --json databaseId,name,headBranch,headSha,status,conclusion,event,createdAt,url
+gh run watch --repo enthouan/trello-mcp <MAIN_RUN_ID> --exit-status
+gh run watch --repo enthouan/trello-mcp <TAG_RUN_ID> --exit-status
+gh run view --repo enthouan/trello-mcp <TAG_RUN_ID> --log-failed
 ```
 
 For GHCR, verify the exact version, moving minor, and commit tags. `latest`
