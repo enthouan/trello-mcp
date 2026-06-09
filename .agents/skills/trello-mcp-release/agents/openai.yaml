@@ -1,0 +1,4 @@
+interface:
+  display_name: "Trello MCP Release"
+  short_description: "Release trello-mcp safely"
+  default_prompt: "Use $trello-mcp-release to prepare, publish, and verify a trello-mcp release."

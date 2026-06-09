@@ -65,6 +65,10 @@ corepack pnpm test
 
 Use `corepack pnpm test:coverage` when changing core behavior, error handling, or tool registration.
 
+## Repo Agent Skills
+
+- Use `.agents/skills/trello-mcp-release/SKILL.md` when preparing, cutting, publishing, or verifying a release. The release flow must respect protected `main`: release metadata changes go through a PR, then the merged `origin/main` commit is tagged with an annotated `vX.Y.Z` tag.
+
 ## Formatting And Linting
 
 - Biome is the formatter/linter.
@@ -268,6 +272,7 @@ Only run Docker locally if the environment supports it and the user actually nee
 ## Pull Request Expectations
 
 - Keep commits small and messages short but specific.
+- Never merge a PR unless the user explicitly approves merging that specific PR.
 - Explain behavioral changes and test coverage in PR descriptions.
 - Note any skipped checks with the reason.
 - Do not include Codex attribution in commit messages.
