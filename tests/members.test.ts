@@ -173,7 +173,7 @@ describe("member tools", () => {
           fields: "url,name,displayName",
           paid_account: true,
         },
-        resourceType: "member organizations",
+        resourceType: "member workspaces",
         resourceId: "member1",
       }),
     );

@@ -66,7 +66,9 @@ const SearchInput = SearchQueryInput.extend({
     .array(SearchModelTypeSchema)
     .min(1)
     .default(["cards", "boards"])
-    .describe("Trello object types to search."),
+    .describe(
+      "Trello object types to search; use organizations for Trello workspaces.",
+    ),
   boardIds: BoardScopeSchema.optional().describe(
     "Use mine to search the current member's boards, or provide one or more board ids.",
   ),
@@ -74,7 +76,7 @@ const SearchInput = SearchQueryInput.extend({
     .array(TrelloIdSchema)
     .min(1)
     .optional()
-    .describe("Optional organization ids to scope search results."),
+    .describe("Optional workspace ids to scope search results."),
   cardIds: z
     .array(TrelloIdSchema)
     .min(1)
@@ -96,7 +98,7 @@ const SearchInput = SearchQueryInput.extend({
   ),
   organizationFields: fieldsSchema(
     DEFAULT_SEARCH_ORGANIZATION_FIELDS,
-    "organization search result",
+    "workspace search result",
     true,
   ),
   cardsLimit: SearchLimitSchema,
@@ -124,7 +126,7 @@ const SearchInput = SearchQueryInput.extend({
     .boolean()
     .default(false)
     .describe(
-      "Whether to include parent organization objects with board results.",
+      "Whether to include parent workspace objects with board results.",
     ),
 });
 
@@ -134,12 +136,12 @@ const SearchMembersInput = SearchQueryInput.extend({
     "Optional board id to scope member search.",
   ),
   organizationId: TrelloIdSchema.optional().describe(
-    "Optional organization id to scope member search.",
+    "Optional workspace id to scope member search.",
   ),
   onlyOrgMembers: z
     .boolean()
     .default(false)
-    .describe("Whether to restrict results to organization members."),
+    .describe("Whether to restrict results to workspace members."),
 });
 
 function joinedIds(ids: "mine" | string[] | undefined): string | undefined {
@@ -154,7 +156,7 @@ export const searchTools = [
   defineTool({
     name: "search",
     description:
-      "Use when you need to find Trello cards, boards, members, or organizations by natural language search terms.",
+      "Use when you need to find Trello cards, boards, members, or workspaces by natural language search terms.",
     inputSchema: SearchInput,
     handler: async (
       {
@@ -222,7 +224,7 @@ export const searchTools = [
   defineTool({
     name: "search_members",
     description:
-      "Use when looking up Trello members by name or username, optionally scoped to a board or organization.",
+      "Use when looking up Trello members by name or username, optionally scoped to a board or workspace.",
     inputSchema: SearchMembersInput,
     handler: async (
       { query, limit, boardId, organizationId, onlyOrgMembers },
