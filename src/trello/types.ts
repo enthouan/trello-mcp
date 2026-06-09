@@ -12,6 +12,24 @@ export const TrelloMemberSchema = z
   })
   .passthrough();
 
+export const TrelloTokenPermissionSchema = z
+  .object({
+    idModel: TrelloIdSchema.optional(),
+    modelType: z.string().optional(),
+    read: z.boolean().optional(),
+    write: z.boolean().optional(),
+  })
+  .passthrough();
+
+export const TrelloTokenSchema = z.object({
+  id: TrelloIdSchema,
+  identifier: z.string().nullable().optional(),
+  idMember: TrelloIdSchema,
+  dateCreated: z.string().nullable().optional(),
+  dateExpires: z.string().nullable().optional(),
+  permissions: z.array(TrelloTokenPermissionSchema).optional(),
+});
+
 export const TrelloSearchMemberSchema = z.object({
   id: TrelloIdSchema,
   username: z.string().nullable().optional(),

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
+import { authTools } from "../src/trello/auth.js";
 import { boardTools } from "../src/trello/boards.js";
 import { cardTools } from "../src/trello/cards.js";
 import { customFieldTools } from "../src/trello/custom-fields.js";
@@ -79,6 +80,7 @@ describe("registerTool", () => {
 describe("Trello tool names", () => {
   it("omit the redundant server prefix and remain unique MCP names", () => {
     const names = [
+      ...authTools,
       ...boardTools,
       ...listTools,
       ...cardTools,

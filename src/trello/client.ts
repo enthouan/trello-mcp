@@ -143,6 +143,21 @@ export class TrelloClient {
     );
   }
 
+  public async requestConfiguredToken<TSchema extends z.ZodType>(
+    schema: TSchema,
+    options: Pick<RequestOptions, "query"> = {},
+  ): Promise<z.infer<TSchema>> {
+    return this.request(
+      `/tokens/${encodeURIComponent(this.config.TRELLO_TOKEN)}`,
+      schema,
+      {
+        ...(options.query ? { query: options.query } : {}),
+        resourceType: "configured Trello token",
+        resourceId: "configured token",
+      },
+    );
+  }
+
   private buildUrl(path: string, query: RequestOptions["query"]): URL {
     const url = new URL(
       `${TRELLO_API_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`,

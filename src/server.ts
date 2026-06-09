@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { Config } from "./config.js";
+import { authTools } from "./trello/auth.js";
 import { boardTools } from "./trello/boards.js";
 import { cardTools } from "./trello/cards.js";
 import { TrelloClient } from "./trello/client.js";
@@ -32,6 +33,7 @@ export function createServer(config: Config, logger: Logger): AppServer {
   });
   const trello = new TrelloClient(config);
   const tools = [
+    ...authTools,
     ...boardTools,
     ...listTools,
     ...cardTools,
