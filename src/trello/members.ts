@@ -86,7 +86,7 @@ export const memberTools = [
   defineTool({
     name: "member_boards",
     description:
-      "Use when you need boards associated with a known Trello member by id, username, or me.",
+      "Use when you need boards associated with a known Trello member by id, username, or me; results are limited to boards visible to the configured token.",
     inputSchema: MemberBoardsInput,
     handler: async ({ memberId, filter, fields }, { trello }) =>
       trello.request(`${memberPath(memberId)}/boards`, TrelloBoardListSchema, {
@@ -98,7 +98,7 @@ export const memberTools = [
   defineTool({
     name: "member_cards",
     description:
-      "Use when you need cards assigned to a known Trello member by id, username, or me.",
+      "Use when you need cards assigned to a known Trello member by id, username, or me; private board cards require token access to those boards.",
     inputSchema: MemberCardsInput,
     handler: async (
       { memberId, filter, fields, limit, since, before },
@@ -117,7 +117,7 @@ export const memberTools = [
   defineTool({
     name: "member_organizations",
     description:
-      "Use when you need Trello workspaces associated with a known member by id, username, or me.",
+      "Use when you need Trello workspaces associated with a known member by id, username, or me; workspace visibility and role permissions constrain results.",
     inputSchema: MemberOrganizationsInput,
     handler: async ({ memberId, filter, fields, paidAccount }, { trello }) =>
       trello.request(

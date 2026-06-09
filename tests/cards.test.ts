@@ -1302,8 +1302,8 @@ describe("card tools", () => {
       expect.anything(),
       expect.objectContaining({
         method: "DELETE",
-        resourceType: "card member",
-        resourceId: "member1",
+        resourceType: "card",
+        resourceId: "card1",
       }),
     );
   });

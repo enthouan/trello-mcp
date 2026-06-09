@@ -7,6 +7,7 @@ import { TrelloClient } from "../src/trello/client.js";
 import {
   AuthError,
   NotFoundError,
+  PermissionError,
   RateLimitError,
   TrelloApiError,
   ValidationError,
@@ -15,6 +16,26 @@ import {
 const config = { TRELLO_API_KEY: "key", TRELLO_TOKEN: "token" };
 const OkSchema = z.object({ ok: z.boolean() });
 const AttachmentSchema = z.object({ id: z.string(), name: z.string() });
+const collaborationErrorCases = [
+  {
+    status: 401,
+    ErrorClass: AuthError,
+    messageFragment: "auth_whoami or auth_token_info",
+    trelloMessage: "invalid token",
+  },
+  {
+    status: 403,
+    ErrorClass: PermissionError,
+    messageFragment: "lacks the required permission",
+    trelloMessage: "insufficient permissions",
+  },
+  {
+    status: 404,
+    ErrorClass: NotFoundError,
+    messageFragment: "not found or is not visible",
+    trelloMessage: "model not found",
+  },
+] as const;
 
 function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
   return new Response(JSON.stringify(body), {
@@ -264,6 +285,7 @@ describe("TrelloClient", () => {
 
   it.each([
     [401, AuthError],
+    [403, PermissionError],
     [404, NotFoundError],
     [500, TrelloApiError],
   ])("maps HTTP %i to typed errors", async (status, ErrorClass) => {
@@ -278,5 +300,45 @@ describe("TrelloClient", () => {
         resourceId: "abc",
       }),
     ).rejects.toBeInstanceOf(ErrorClass);
+  });
+
+  it.each(
+    collaborationErrorCases,
+  )("surfaces actionable HTTP $status errors for board collaboration workflows", async ({
+    status,
+    ErrorClass,
+    messageFragment,
+    trelloMessage,
+  }) => {
+    const fetcher = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ message: trelloMessage }), { status }),
+    );
+    const client = new TrelloClient(config, { fetcher });
+
+    let thrown: unknown;
+    try {
+      await client.request(
+        "/boards/private-board/memberships",
+        z.array(z.unknown()),
+        {
+          resourceType: "board",
+          resourceId: "private-board",
+        },
+      );
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(ErrorClass);
+    expect(thrown).toBeInstanceOf(Error);
+    expect((thrown as Error).message).toContain(messageFragment);
+    expect(thrown).toMatchObject({
+      details: {
+        status,
+        resourceType: "board",
+        resourceId: "private-board",
+      },
+    });
   });
 });

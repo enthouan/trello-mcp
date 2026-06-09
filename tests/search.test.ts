@@ -178,6 +178,49 @@ describe("search tools", () => {
           idOrganization: "org1",
           onlyOrgMembers: true,
         },
+        resourceType: "board-scoped member search",
+        resourceId: "board1",
+      }),
+    );
+  });
+
+  it("uses organization scope as member search resource metadata", async () => {
+    const tool = getSearchTool("search_members");
+    const trello = {
+      request: vi.fn(async () => [{ id: "member1", username: "ada" }]),
+    };
+
+    await tool.handler(
+      tool.inputSchema.parse({ query: "Ada", organizationId: "org1" }),
+      { trello: trello as never, logger: {} as never, requestId: "req1" },
+    );
+
+    expect(trello.request).toHaveBeenCalledWith(
+      "/search/members/",
+      expect.anything(),
+      expect.objectContaining({
+        resourceType: "organization-scoped member search",
+        resourceId: "org1",
+      }),
+    );
+  });
+
+  it("uses the query as unscoped member search resource metadata", async () => {
+    const tool = getSearchTool("search_members");
+    const trello = {
+      request: vi.fn(async () => [{ id: "member1", username: "ada" }]),
+    };
+
+    await tool.handler(tool.inputSchema.parse({ query: "Ada" }), {
+      trello: trello as never,
+      logger: {} as never,
+      requestId: "req1",
+    });
+
+    expect(trello.request).toHaveBeenCalledWith(
+      "/search/members/",
+      expect.anything(),
+      expect.objectContaining({
         resourceType: "member search",
         resourceId: "Ada",
       }),

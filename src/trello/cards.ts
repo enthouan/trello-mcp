@@ -913,7 +913,7 @@ export const cardTools = [
   defineTool({
     name: "card_members",
     description:
-      "Use when listing members assigned to a card; use fields to keep member output small.",
+      "Use when listing members assigned to a card; requires token access to the card's board. Use fields to keep member output small.",
     inputSchema: CardIdInput.extend({
       fields: fieldsSchema(DEFAULT_MEMBER_FIELDS, "member"),
     }),
@@ -926,7 +926,8 @@ export const cardTools = [
   }),
   defineTool({
     name: "card_member_add",
-    description: "Use when assigning a Trello member to a card by member id.",
+    description:
+      "Use when assigning a Trello member to a card by member id; requires write access to the card's board and a member who can be assigned to that board.",
     inputSchema: CardMemberInput,
     handler: async ({ cardId, memberId }, { trello }) => {
       await trello.request(
@@ -950,7 +951,7 @@ export const cardTools = [
   defineTool({
     name: "card_member_remove",
     description:
-      "Use when unassigning a Trello member from a card by member id.",
+      "Use when unassigning a Trello member from a card by member id; requires write access to the card's board.",
     inputSchema: CardMemberInput,
     handler: async ({ cardId, memberId }, { trello }) => {
       await trello.request(
@@ -958,8 +959,8 @@ export const cardTools = [
         DeleteResponseSchema.or(TrelloMutationSuccessSchema),
         {
           method: "DELETE",
-          resourceType: "card member",
-          resourceId: memberId,
+          resourceType: "card",
+          resourceId: cardId,
         },
       );
       return {
