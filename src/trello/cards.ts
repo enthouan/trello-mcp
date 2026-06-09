@@ -62,13 +62,7 @@ const CardDueDateInput = CardIdInput.extend({
     .boolean()
     .optional()
     .describe("Whether the due date should be marked complete."),
-}).refine(
-  (input) => input.due !== undefined || input.dueComplete !== undefined,
-  {
-    message: "Provide at least one of due or dueComplete.",
-    path: ["due"],
-  },
-);
+});
 
 const CardPositionInput = CardIdInput.extend({
   pos: z
@@ -507,10 +501,16 @@ export const cardTools = [
   defineTool({
     name: "card_due_date_set",
     description:
-      "Use when setting, clearing, or marking completion of a card due date without changing other card metadata.",
+      "Use when setting, clearing, or marking completion of a card due date without changing other card metadata. Provide at least one of due or dueComplete.",
     inputSchema: CardDueDateInput,
-    handler: async ({ cardId, due, dueComplete }, { trello }) =>
-      trello.request(cardPath(cardId), TrelloCardSchema, {
+    handler: async ({ cardId, due, dueComplete }, { trello }) => {
+      if (due === undefined && dueComplete === undefined) {
+        throw new ValidationError(
+          "Provide at least one of due or dueComplete.",
+        );
+      }
+
+      return trello.request(cardPath(cardId), TrelloCardSchema, {
         method: "PUT",
         query: {
           ...(due !== undefined ? { due } : {}),
@@ -518,7 +518,8 @@ export const cardTools = [
         },
         resourceType: "card",
         resourceId: cardId,
-      }),
+      });
+    },
   }),
   defineTool({
     name: "card_position_set",

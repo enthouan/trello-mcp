@@ -819,12 +819,18 @@ describe("card tools", () => {
     );
   });
 
-  it("rejects no-op focused due date updates", () => {
+  it("rejects no-op focused due date updates", async () => {
     const tool = getCardTool("card_due_date_set");
+    const trello = { request: vi.fn() };
 
-    expect(() => tool.inputSchema.parse({ cardId: "card1" })).toThrow(
-      "Provide at least one of due or dueComplete.",
-    );
+    expect(() => tool.inputSchema.parse({ cardId: "card1" })).not.toThrow();
+    await expect(
+      tool.handler(
+        { cardId: "card1" },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).rejects.toThrow("Provide at least one of due or dueComplete.");
+    expect(trello.request).not.toHaveBeenCalled();
   });
 
   it("sets card position without moving lists or boards", async () => {
