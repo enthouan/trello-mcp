@@ -68,6 +68,7 @@ Use `corepack pnpm test:coverage` when changing core behavior, error handling, o
 ## Repo Agent Skills
 
 - Use `.agents/skills/trello-mcp-release/SKILL.md` when preparing, cutting, publishing, or verifying a release. The release flow must respect protected `main`: release metadata changes go through a PR, then the merged `origin/main` commit is tagged with an annotated `vX.Y.Z` tag.
+- Release PR merge approval does not approve release-side effects. Before pushing a tag, publishing GHCR images, creating a GitHub Release, or closing a milestone, request explicit publish approval for that exact `vX.Y.Z`.
 
 ## Formatting And Linting
 
