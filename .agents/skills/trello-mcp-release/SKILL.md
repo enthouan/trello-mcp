@@ -8,10 +8,10 @@ description: Use when cutting, preparing, publishing, or verifying a trello-mcp 
 ## Guardrails
 
 - `main` is protected. Do not commit or push directly to `main`; all file changes must land through a PR.
-- Never merge a PR unless the user explicitly approves merging that specific PR. Passing checks, GitHub review approval, or a release request is not enough by itself.
+- The user's review of the release PR is the only normal approval boundary. After opening the release PR, ask the user to review that exact PR and wait for their approval.
+- Once the user says the release PR is reviewed or approved, continue automatically for that exact `vX.Y.Z`: wait for required checks, merge it, push the tag, verify workflows/GHCR, create the GitHub Release, and close the milestone. Do not ask separately for merge approval or publish approval.
 - Do not move, delete, or retag existing release tags.
 - In this repo, the normal release artifact is an annotated Git tag, GHCR images, and a GitHub Release titled exactly `vX.Y.Z`.
-- Pushing an annotated `vX.Y.Z` tag publishes the release image. Merge approval is not publish approval; get separate explicit approval before pushing the tag, creating the GitHub Release, or closing the milestone.
 - Release tags should point at the current `origin/main` commit after the release prep PR has merged.
 - Keep secrets out of commits, logs, PR text, and release notes.
 
@@ -83,8 +83,12 @@ commands and note any skipped checks with reasons. Keep Codex attribution out
 of the PR title, commits, and body. If the release maps to a milestone or
 GitHub Project item, add the PR to the same tracking surfaces.
 
-Wait for PR checks, then report the result and stop unless the user explicitly
-approves merging that PR:
+Ask the user once to review the release PR. Include the PR URL, target version,
+and validation summary, and state that after they approve/review that PR you
+will automatically wait for checks, merge, tag, publish, verify, and close the
+milestone for the same version.
+
+After the user says the release PR is reviewed or approved, wait for PR checks:
 
 ```bash
 gh pr checks <PR_NUMBER> --repo enthouan/trello-mcp --watch
@@ -92,8 +96,9 @@ gh pr checks <PR_NUMBER> --repo enthouan/trello-mcp --watch
 
 ## Merge
 
-Only after the user explicitly approves merging the specific PR and CI is
-green, merge through GitHub. Do not bypass the branch protection rule.
+If checks fail, stop and report the failure. If checks pass, merge through
+GitHub without asking for another approval. Do not bypass the branch protection
+rule.
 
 Refresh and verify the merged state:
 
@@ -115,25 +120,21 @@ gh run watch --repo enthouan/trello-mcp <MAIN_RUN_ID>
 gh run view --repo enthouan/trello-mcp <MAIN_RUN_ID> --log-failed
 ```
 
-After the merge, stop and report the merged PR, merge commit, main-branch
-verification, and main release workflow result. Do not push a release tag,
-create a GitHub Release, or close a milestone unless the user explicitly
-approves publishing that exact `vX.Y.Z` release. Merge approval is not publish
-approval.
-
-Ask for publish approval with the side effects named explicitly, for example:
-
-```text
-Approve publishing vX.Y.Z? This will push the annotated vX.Y.Z tag, publish the
-GHCR version and moving-minor images, create the GitHub Release, and close the
-release milestone if applicable.
-```
+After the merge, verify the main-branch state and main release workflow result,
+then continue directly to Tag And Publish. Do not pause for another approval
+before pushing the release tag, creating the GitHub Release, or closing the
+milestone.
 
 ## Tag And Publish
 
-Proceed only after the user explicitly approves the release-side effects for
-the exact `vX.Y.Z`: tag push, GHCR publish, GitHub Release creation, and
-milestone closure.
+Run this immediately after the reviewed/approved release PR is merged and the
+main release workflow result is verified. The user's PR review approval covers
+the normal release-side effects for the exact `vX.Y.Z`: tag push, GHCR publish
+verification, GitHub Release creation, and milestone closure.
+
+Stop and ask for explicit approval only when a corrective action would rewrite
+history or replace published release state, such as moving/deleting a tag,
+force-pushing, rewriting `main`, or replacing an existing GitHub Release.
 
 Fetch the merged main commit and ensure the tag does not already exist:
 
