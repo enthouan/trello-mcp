@@ -87,20 +87,12 @@ const CardCoverInput = CardIdInput.extend({
     "Attachment id to use as the card cover, or null to clear the attachment cover.",
   ),
   size: CardCoverSizeSchema.optional().describe(
-    "Trello cover display size: normal for the regular half cover, or full for an integrated full cover.",
+    "Trello cover display size: normal for the regular half cover, or full for an integrated full cover. Requires attachmentId.",
   ),
   brightness: CardCoverBrightnessSchema.optional().describe(
-    "Text contrast for full covers: light or dark.",
+    "Text contrast for full covers: light or dark. Requires attachmentId.",
   ),
-}).refine(
-  (input) =>
-    input.attachmentId !== null ||
-    (input.size === undefined && input.brightness === undefined),
-  {
-    message: "Display options require an attachmentId.",
-    path: ["attachmentId"],
-  },
-);
+});
 
 const CardLabelCreateInput = CardIdInput.extend({
   name: z.string().min(1).describe("Human-readable label name."),
