@@ -12,6 +12,7 @@
 # - TRELLO_MCP_NETWORK:-trello-mcp_network
 # - TRANSPORT:-http
 # - LOG_LEVEL:-info
+# - MCP_AUTH_TOKEN:-
 
 #########################
 # Global Configurations #
@@ -36,6 +37,7 @@ services:
       - TRELLO_TOKEN=${TRELLO_TOKEN:?Set TRELLO_TOKEN in .env}
       - TRANSPORT=${TRANSPORT:-http}
       - LOG_LEVEL=${LOG_LEVEL:-info}
+      - MCP_AUTH_TOKEN=${MCP_AUTH_TOKEN:-}
     networks:
       - trello-mcp_network
     restart: unless-stopped

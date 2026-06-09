@@ -1,4 +1,8 @@
-import type { IncomingMessage, ServerResponse } from "node:http";
+import type {
+  IncomingMessage,
+  OutgoingHttpHeaders,
+  ServerResponse,
+} from "node:http";
 import type { Config } from "./config.js";
 
 type HealthState = {
@@ -32,7 +36,8 @@ export function writeJson(
   res: ServerResponse,
   statusCode: number,
   body: unknown,
+  headers: OutgoingHttpHeaders = {},
 ): void {
-  res.writeHead(statusCode, { "content-type": "application/json" });
+  res.writeHead(statusCode, { "content-type": "application/json", ...headers });
   res.end(JSON.stringify(body));
 }

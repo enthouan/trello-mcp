@@ -10,6 +10,7 @@ import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { ZodError } from "zod";
 import { loadConfig } from "./config.js";
 import { handleHealth, writeJson } from "./health.js";
+import { authorizeHttpMcpRequest } from "./http-auth.js";
 import { createServer } from "./server.js";
 import { createLogger } from "./utils/logger.js";
 
@@ -34,6 +35,9 @@ async function main(): Promise<void> {
 
   const httpServer = createHttpServer(async (req, res) => {
     if (handleHealth(req, res, { ready: accepting, config })) {
+      return;
+    }
+    if (!authorizeHttpMcpRequest(config, req, res)) {
       return;
     }
     if (!accepting) {

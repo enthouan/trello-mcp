@@ -7,6 +7,28 @@ const baseEnv = {
 };
 
 describe("loadConfig", () => {
+  it("loads the optional HTTP MCP auth token when provided", () => {
+    expect(
+      loadConfig({
+        ...baseEnv,
+        MCP_AUTH_TOKEN: "shared-secret",
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        MCP_AUTH_TOKEN: "shared-secret",
+      }),
+    );
+  });
+
+  it("treats an empty HTTP MCP auth token as disabled", () => {
+    expect(
+      loadConfig({
+        ...baseEnv,
+        MCP_AUTH_TOKEN: "   ",
+      }).MCP_AUTH_TOKEN,
+    ).toBeUndefined();
+  });
+
   it("loads the optional attachment upload root when provided", () => {
     expect(
       loadConfig({
