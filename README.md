@@ -64,6 +64,7 @@ Most of this project was built with Codex under my close supervision.
 - Use stdio for local MCP clients that launch the server as a child process.
 - Keep stdio logs on stderr so local MCP clients receive protocol-only stdout.
 - Expose HTTP health and readiness endpoints.
+- Optionally require a bearer token for HTTP MCP endpoint requests.
 - Validate config, tool input, and Trello API responses with Zod.
 - Redact Trello credentials from logs.
 - Run typecheck, lint, build, tests, and coverage in GitHub Actions.
@@ -107,6 +108,7 @@ TRELLO_API_KEY=your-api-key
 TRELLO_TOKEN=your-token
 TRANSPORT=http
 LOG_LEVEL=info
+# MCP_AUTH_TOKEN=optional-shared-secret
 TRELLO_MCP_HOST_BIND_IP=127.0.0.1
 TRELLO_MCP_HOST_PORT=3000
 TRELLO_MCP_IMAGE_TAG=latest
@@ -126,6 +128,8 @@ ghcr.io/enthouan/trello-mcp:latest
 ```
 
 Docker Compose values such as image tag, host bind IP, host port, and network name can be overridden with environment variables or the `.env` file. The compose files document their defaults at the top; for example, `TRELLO_MCP_IMAGE_TAG` defaults to the `latest` tag in `docker-compose.yml` (`latest` follows the `main` branch, and release tags such as `0.4` and `0.4.1` are available for versioned deployments), `TRELLO_MCP_HOST_BIND_IP` defaults to `127.0.0.1` for local-only access, `TRELLO_MCP_HOST_PORT` defaults to `3000` and maps that host port to the container's fixed internal `3000` listener, while `TRELLO_MCP_NETWORK` defaults to `trello-mcp_network`. Set `TRELLO_MCP_HOST_BIND_IP=0.0.0.0` only when you intentionally want Docker to publish the service on all host interfaces, such as for LAN access.
+
+Set `MCP_AUTH_TOKEN` to require `Authorization: Bearer <token>` on HTTP MCP requests to `/mcp`. Leave it unset for the default unauthenticated local behavior. Health and readiness endpoints remain unauthenticated for container and reverse-proxy checks.
 
 Published Docker image tags use these conventions:
 
@@ -312,6 +316,14 @@ Start the Compose service, then point an MCP client with Streamable HTTP support
 http://localhost:3000/mcp
 ```
 
+If `MCP_AUTH_TOKEN` is set, configure the client to send this header on every MCP request:
+
+```http
+Authorization: Bearer your-shared-secret
+```
+
+The bearer token is a simple shared-secret guardrail. Use HTTPS and, for public exposure, a reverse proxy authentication layer or equivalent access control; tokens sent over plain HTTP can be observed on the network.
+
 Health endpoints:
 
 ```text
@@ -368,6 +380,7 @@ Example MCP config shape:
 | --- | --- | --- | --- |
 | `TRELLO_API_KEY` | yes | | Trello API key. |
 | `TRELLO_TOKEN` | yes | | Trello token for token auth. |
+| `MCP_AUTH_TOKEN` | no | | If set, HTTP MCP requests to `/mcp` require `Authorization: Bearer <token>`. Leave unset for no HTTP bearer-token check. |
 | `TRELLO_ATTACHMENT_UPLOAD_ROOT` | no | | Absolute server-side directory that enables local file attachment uploads. Leave unset to disable local uploads. |
 | `TRANSPORT` | no | `http` | `http` or `stdio`. |
 | `PORT` | no | `3000` | HTTP listen port for the Node process. Docker Compose keeps the container listener on `3000` and uses `TRELLO_MCP_HOST_PORT` for the published host port. |
@@ -562,8 +575,9 @@ MCP client
 ## Security Notes
 
 - Trello credentials stay in your environment or MCP client config.
-- Logs redact `TRELLO_API_KEY`, `TRELLO_TOKEN`, and common key/token fields.
+- Logs redact `TRELLO_API_KEY`, `TRELLO_TOKEN`, `MCP_AUTH_TOKEN`, authorization headers, and common key/token fields.
 - Trello API requests use HTTPS.
+- Set `MCP_AUTH_TOKEN` for a basic shared-secret check on HTTP MCP traffic. This does not replace HTTPS, reverse-proxy authentication, IP allowlists, or careful host binding.
 - Local file attachment uploads are disabled unless `TRELLO_ATTACHMENT_UPLOAD_ROOT` is configured; upload paths are restricted to that directory.
 - Tests use mocks and injected fetchers instead of live Trello calls.
 - Do not publish `.env` files or paste tokens into issues and PRs.

@@ -14,6 +14,13 @@ const LogLevelSchema = z.enum([
 const ConfigSchema = z.object({
   TRELLO_API_KEY: z.string().min(1, "TRELLO_API_KEY is required"),
   TRELLO_TOKEN: z.string().min(1, "TRELLO_TOKEN is required"),
+  MCP_AUTH_TOKEN: z
+    .preprocess(
+      (value) =>
+        typeof value === "string" && value.trim() === "" ? undefined : value,
+      z.string().trim().min(1).optional(),
+    )
+    .describe("Optional bearer token required for HTTP MCP endpoint requests."),
   TRELLO_ATTACHMENT_UPLOAD_ROOT: z
     .preprocess(
       (value) =>
