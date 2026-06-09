@@ -68,7 +68,7 @@ Use `corepack pnpm test:coverage` when changing core behavior, error handling, o
 ## Repo Agent Skills
 
 - Use `.agents/skills/trello-mcp-release/SKILL.md` when preparing, cutting, publishing, or verifying a release. The release flow must respect protected `main`: release metadata changes go through a PR, then the merged `origin/main` commit is tagged with an annotated `vX.Y.Z` tag.
-- Release PR merge approval does not approve release-side effects. Before pushing a tag, publishing GHCR images, creating a GitHub Release, or closing a milestone, request explicit publish approval for that exact `vX.Y.Z`.
+- The user's review of the release PR is the only normal release approval boundary. Once the user says the release PR is reviewed or approved, continue automatically for that exact `vX.Y.Z` through required checks, merge, tag push, GHCR verification, GitHub Release creation, and milestone closure.
 
 ## Formatting And Linting
 
@@ -273,7 +273,7 @@ Only run Docker locally if the environment supports it and the user actually nee
 ## Pull Request Expectations
 
 - Keep commits small and messages short but specific.
-- Never merge a PR unless the user explicitly approves merging that specific PR.
+- Never merge a PR unless the user explicitly approves merging that specific PR. For release PRs, follow the release skill's single PR-review approval boundary.
 - Explain behavioral changes and test coverage in PR descriptions.
 - Note any skipped checks with the reason.
 - Do not include Codex attribution in commit messages.
