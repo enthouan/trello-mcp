@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.5.1
+
+Patch release for Trello label color compatibility.
+
+- Accept Trello's newer light and dark label color keys in label, card label, and card cover response validation.
+- Allow the same label color variants in label creation and update inputs.
+- Add regression coverage for board labels, individual label reads, embedded card labels, cover colors, and label creation inputs.
+
 ## v0.5.0
 
 Members, workspaces, and auth diagnostics release, with HTTP bearer auth and
