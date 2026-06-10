@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import { labelTools } from "../src/trello/labels.js";
+import {
+  TrelloCardLabelsSchema,
+  TrelloCoverSchema,
+  TrelloLabelListSchema,
+  TrelloLabelSchema,
+} from "../src/trello/types.js";
 
 type LabelTool = (typeof labelTools)[number];
 
@@ -66,6 +72,25 @@ describe("label tools", () => {
     ).toThrow();
   });
 
+  it("accepts light and dark Trello label colors on label creation", () => {
+    const tool = getLabelTool("label_create");
+
+    expect(
+      tool.inputSchema.parse({
+        boardId: "board1",
+        name: "Flying",
+        color: "blue_dark",
+      }),
+    ).toEqual({ boardId: "board1", name: "Flying", color: "blue_dark" });
+    expect(
+      tool.inputSchema.parse({
+        boardId: "board1",
+        name: "Sandvue",
+        color: "orange_light",
+      }),
+    ).toEqual({ boardId: "board1", name: "Sandvue", color: "orange_light" });
+  });
+
   it("normalizes Trello card URLs before adding a label to a card", async () => {
     const tool = getLabelTool("card_label_add");
     const trello = {
@@ -128,5 +153,82 @@ describe("label tools", () => {
         resourceId: "label1",
       }),
     );
+  });
+});
+
+describe("label color schemas", () => {
+  const lightDarkColors = [
+    "green_dark",
+    "yellow_dark",
+    "orange_dark",
+    "red_dark",
+    "purple_dark",
+    "blue_dark",
+    "sky_dark",
+    "lime_dark",
+    "pink_dark",
+    "black_dark",
+    "green_light",
+    "yellow_light",
+    "orange_light",
+    "red_light",
+    "purple_light",
+    "blue_light",
+    "sky_light",
+    "lime_light",
+    "pink_light",
+    "black_light",
+  ];
+
+  it("parses board label listings with light and dark colors", () => {
+    const labels = lightDarkColors.map((color, index) => ({
+      id: `label${index}`,
+      idBoard: "board1",
+      name: `Label ${color}`,
+      color,
+    }));
+
+    expect(TrelloLabelListSchema.parse(labels)).toEqual(labels);
+  });
+
+  it("parses single labels with legacy colors, new colors, and null", () => {
+    for (const color of ["blue", "blue_dark", "orange_light", null]) {
+      expect(
+        TrelloLabelSchema.parse({
+          id: "label1",
+          idBoard: "board1",
+          name: "Flying",
+          color,
+        }),
+      ).toEqual({ id: "label1", idBoard: "board1", name: "Flying", color });
+    }
+  });
+
+  it("rejects unknown label colors in responses", () => {
+    expect(
+      TrelloLabelSchema.safeParse({
+        id: "label1",
+        idBoard: "board1",
+        name: "Flying",
+        color: "teal",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("parses embedded card labels with light and dark colors", () => {
+    const card = {
+      id: "card1",
+      idLabels: ["label1"],
+      labels: [{ id: "label1", name: "Flying", color: "blue_dark" }],
+    };
+
+    expect(TrelloCardLabelsSchema.parse(card)).toEqual(card);
+  });
+
+  it("parses card covers reusing label color values", () => {
+    expect(TrelloCoverSchema.parse({ color: "blue_dark" })).toEqual({
+      color: "blue_dark",
+    });
+    expect(TrelloCoverSchema.parse({ color: null })).toEqual({ color: null });
   });
 });
