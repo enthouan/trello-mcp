@@ -1,5 +1,29 @@
 # Changelog
 
+## v0.5.0
+
+Members, workspaces, and auth diagnostics release, with HTTP bearer auth and
+more specific Trello permission and validation errors.
+
+### Trello Tools
+
+- Add auth diagnostic tools to identify the authenticated Trello member and inspect token metadata without managing or exposing tokens.
+- Add member profile, board, card, and workspace lookup tools for Trello member-centric workflows.
+- Add workspace discovery, metadata, board listing, and member listing tools for Trello organizations.
+- Polish MCP tool names, descriptions, schemas, and output shapes for the 0.5 tool surface.
+
+### Runtime And Configuration
+
+- Add optional `MCP_AUTH_TOKEN` bearer authentication for Streamable HTTP MCP requests.
+- Map permission-related Trello failures to clearer MCP errors for collaboration and access-limited workflows.
+- Document HTTP bearer auth, updated environment variables, and the refreshed 0.5 tool catalog.
+
+### Validation And Tests
+
+- Surface specific validation errors for `card_cover_set` cover-clearing requests with display options.
+- Surface a specific no-op validation error for `card_due_date_set`.
+- Add focused tests for auth diagnostics, HTTP auth, member tools, workspace tools, permission-aware errors, logger redaction, and validation behavior.
+
 ## v0.4.0
 
 Search and MCP ergonomics release, with smaller tool names, shared output
