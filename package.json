@@ -15,6 +15,7 @@
     "start": "node dist/index.js",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "smoke:live": "tsx scripts/live-smoke.ts",
     "lint": "biome check .",
     "typecheck": "tsc --noEmit",
     "verify": "tsc --noEmit && biome check . && tsc -p tsconfig.build.json && vitest run",

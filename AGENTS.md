@@ -68,6 +68,7 @@ Use `corepack pnpm test:coverage` when changing core behavior, error handling, o
 ## Repo Agent Skills
 
 - Use `.agents/skills/trello-mcp-release/SKILL.md` when preparing, cutting, publishing, or verifying a release. The release flow must respect protected `main`: release metadata changes go through a PR, then the merged `origin/main` commit is tagged with an annotated `vX.Y.Z` tag.
+- Use `.agents/skills/trello-mcp-live-smoke-test/SKILL.md` when running, verifying, debugging, or reporting the opt-in live Trello smoke test harness. Live smoke runs must stay explicit-env-gated and must never run as part of normal CI or offline tests.
 - The user's review of the release PR is the only normal release approval boundary. Once the user says the release PR is reviewed or approved, continue automatically for that exact `vX.Y.Z` through required checks, merge, tag push, GHCR verification, GitHub Release creation, and milestone closure.
 
 ## Formatting And Linting

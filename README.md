@@ -423,6 +423,56 @@ Example MCP config shape:
 | `TRELLO_MCP_IMAGE_TAG` | no | `latest` | Published image tag; `latest` follows `main`, `X.Y` follows the newest patch in that minor release line, and `X.Y.Z` pins to an exact release. |
 | `TRELLO_MCP_NETWORK` | no | `trello-mcp_network` | Docker Compose bridge network name. |
 
+## Live Trello Smoke Tests
+
+Normal tests are mocked and offline. `corepack pnpm test`, `corepack pnpm test:coverage`, and the default CI workflow never require Trello credentials and never contact Trello.
+
+For release validation against real Trello, use the explicit live smoke command:
+
+```bash
+TRELLO_LIVE_SMOKE=1 \
+TRELLO_LIVE_SMOKE_BOARD_ID=your-disposable-board-id-or-short-link \
+TRELLO_API_KEY=your-api-key \
+TRELLO_TOKEN=your-token \
+corepack pnpm smoke:live
+```
+
+You may use `TRELLO_LIVE_SMOKE_BOARD_URL` instead of `TRELLO_LIVE_SMOKE_BOARD_ID`; Trello board URLs are normalized to their short link, then the harness resolves the canonical board id with `board_get` before creating anything. `TRELLO_LIVE_SMOKE_RUN_ID` is optional and is included in temporary artifact names when set.
+
+Safety model:
+
+- The command exits before any Trello request unless `TRELLO_LIVE_SMOKE=1`, Trello credentials, and a smoke board id or URL are all present.
+- The configured board should be a disposable board reserved for validation, not an active production board.
+- The harness creates uniquely named temporary lists, one card, one label, one checklist, one checklist item, and one comment. It deletes the card and label, archives the temporary lists, and verifies that no open temporary lists, cards, or labels remain.
+- Cleanup runs even when an intermediate validation step fails. Cleanup failures are reported and cause the command to fail.
+- The harness invokes the existing tool handlers with a real `TrelloClient`, so tool input validation, Trello response validation, retry/rate-limit handling, and credential redaction stay on the normal code path.
+- The harness does not log API keys, tokens, credential-bearing URLs, raw environment objects, or raw request data.
+
+The smoke flow validates representative pre-1.0 coverage:
+
+- Auth and discovery: `auth_whoami`, `auth_token_info`, `list_boards`, board reads, lists, cards, labels, members, memberships, and custom-field discovery.
+- List and card writes: disposable list creation/rename/archive, card create/read/update/due-date/position/archive/restore/move/delete.
+- Checklist and item behavior: checklist creation, item create/list/update/check/delete.
+- Labels and members: disposable label create/read/update/apply/remove/delete, plus authenticated-member assignment/removal when that member is visible on the smoke board.
+- Card activity: comment create/update/list/delete on the disposable card.
+
+If the live env vars are absent during local validation, record the live smoke run as skipped. The skipped state is explicit: `corepack pnpm smoke:live` fails before contacting Trello and prints the missing variable names. Do not add this command to normal CI unless the job is intentionally secret-backed and opt-in.
+
+### GitHub Actions
+
+The repository includes a `Live Trello Smoke` workflow for PR and release validation. It runs on same-repository pull requests and manual dispatch. Fork pull requests are skipped so Trello credentials are not exposed to untrusted PR code.
+
+Before using it, configure a GitHub Environment named `live-smoke` with these secrets:
+
+| Secret | Description |
+| --- | --- |
+| `TRELLO_LIVE_SMOKE_API_KEY` | Trello API key for a dedicated smoke-test Trello member. |
+| `TRELLO_LIVE_SMOKE_TOKEN` | Trello token for that same member, with write access to the disposable smoke board. |
+
+Use environment required reviewers if the repository has more than one maintainer or if the token can access anything beyond the smoke board. The workflow maps those secrets to `TRELLO_API_KEY` and `TRELLO_TOKEN` only for the `pnpm smoke:live` step. Do not use `pull_request_target` for this workflow.
+
+The default smoke board is the public disposable test board short link `hUaItfNq`. Override it for same-repository PR runs with environment variable `TRELLO_LIVE_SMOKE_BOARD_ID`, or override `board_ref` when running manually from the Actions tab. A public board is acceptable for smoke testing when temporary artifact names and activity history can be visible, but public visibility does not remove the need for Trello credentials because the harness performs writes.
+
 ## Usage Examples
 
 Once connected to an MCP client, ask for Trello actions in natural language:
@@ -653,6 +703,16 @@ Run the coverage gate:
 
 ```bash
 corepack pnpm verify:coverage
+```
+
+Run the opt-in live Trello smoke test:
+
+```bash
+TRELLO_LIVE_SMOKE=1 \
+TRELLO_LIVE_SMOKE_BOARD_ID=your-disposable-board-id-or-short-link \
+TRELLO_API_KEY=your-api-key \
+TRELLO_TOKEN=your-token \
+corepack pnpm smoke:live
 ```
 
 Run locally in watch mode:
