@@ -1,29 +1,11 @@
 import { readFile, writeFile } from "node:fs/promises";
-import { authTools } from "../src/trello/auth.js";
-import { boardTools } from "../src/trello/boards.js";
-import { cardTools } from "../src/trello/cards.js";
-import { customFieldTools } from "../src/trello/custom-fields.js";
-import { labelTools } from "../src/trello/labels.js";
-import { listTools } from "../src/trello/lists.js";
-import { memberTools } from "../src/trello/members.js";
-import { searchTools } from "../src/trello/search.js";
-import { workspaceTools } from "../src/trello/workspaces.js";
+import { allTools } from "../src/trello/tools.js";
 
 const readmePath = new URL("../README.md", import.meta.url);
 const readme = await readFile(readmePath, "utf8");
 const rows = ["| Name | When to use | Key inputs |", "| --- | --- | --- |"];
 
-for (const tool of [
-  ...authTools,
-  ...boardTools,
-  ...workspaceTools,
-  ...memberTools,
-  ...listTools,
-  ...cardTools,
-  ...labelTools,
-  ...customFieldTools,
-  ...searchTools,
-]) {
+for (const tool of allTools) {
   const keys =
     "shape" in tool.inputSchema
       ? Object.keys(tool.inputSchema.shape as Record<string, unknown>).join(

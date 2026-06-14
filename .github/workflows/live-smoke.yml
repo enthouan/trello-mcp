@@ -1,0 +1,39 @@
+name: Live Trello Smoke
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+    inputs:
+      board_ref:
+        description: "Disposable Trello smoke board id, short link, or URL."
+        required: true
+        default: "hUaItfNq"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    environment: live-smoke
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v4.4.0
+        with:
+          version: 10.34.1
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm smoke:live
+        env:
+          TRELLO_LIVE_SMOKE: "1"
+          TRELLO_LIVE_SMOKE_BOARD_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.board_ref || vars.TRELLO_LIVE_SMOKE_BOARD_ID || 'hUaItfNq' }}
+          TRELLO_API_KEY: ${{ secrets.TRELLO_LIVE_SMOKE_API_KEY }}
+          TRELLO_TOKEN: ${{ secrets.TRELLO_LIVE_SMOKE_TOKEN }}
