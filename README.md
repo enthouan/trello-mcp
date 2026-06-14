@@ -177,7 +177,7 @@ For a non-Docker local build:
 
 ```bash
 corepack pnpm install
-corepack pnpm build
+corepack pnpm build:clean
 ```
 
 Then run the compiled server directly:
@@ -637,19 +637,22 @@ Install dependencies:
 corepack pnpm install
 ```
 
+Rebuild the project from scratch:
+
+```bash
+corepack pnpm build:clean
+```
+
 Run the local checks:
 
 ```bash
-corepack pnpm typecheck
-corepack pnpm lint
-corepack pnpm build
-corepack pnpm test
+corepack pnpm verify
 ```
 
-Run coverage:
+Run the coverage gate:
 
 ```bash
-corepack pnpm test:coverage
+corepack pnpm verify:coverage
 ```
 
 Run locally in watch mode:
