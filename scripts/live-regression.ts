@@ -148,6 +148,10 @@ const ALL_TOOL_NAME_SET = new Set(ALL_TOOL_NAMES);
 const DOMAIN_SET = new Set<string>(LIVE_REGRESSION_DOMAINS);
 const UNSUPPORTED_TOOL_REASONS = new Map<string, string>([
   [
+    "board_create",
+    "Creates a real Trello board; live regression defers coverage until a verified board cleanup path exists.",
+  ],
+  [
     "list_move_to_board",
     "Requires a second disposable board and is intentionally outside the default single-board live regression suite.",
   ],
@@ -2175,6 +2179,7 @@ function toolDomain(tool: string): LiveRegressionDomain {
     return "auth";
   }
   if (
+    tool === "board_create" ||
     tool === "list_boards" ||
     tool === "board_get" ||
     tool === "board_field_get"

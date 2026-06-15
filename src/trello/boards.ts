@@ -29,6 +29,20 @@ const BoardFieldsInput = z.object({
   fields: fieldsSchema(DEFAULT_BOARD_FIELDS, "board", true),
 });
 
+const CreateBoardInput = z.object({
+  name: z.string().trim().min(1).describe("Name for the new Trello board."),
+  desc: z.string().optional().describe("Optional board description."),
+  workspaceId: TrelloIdSchema.optional().describe(
+    "Optional Trello workspace/organization id where the board should be created.",
+  ),
+  permissionLevel: z
+    .enum(["private", "org", "public"])
+    .default("private")
+    .describe(
+      "Board visibility to request. Defaults to private; use org only with a workspace id and public only when intentional.",
+    ),
+});
+
 const ListBoardsInput = z.object({
   filter: z
     .enum([
@@ -119,6 +133,24 @@ export const boardTools = [
         query: { filter, fields: includeRequiredFields(fields, ["name"]) },
         resourceType: "member boards",
         resourceId: "me",
+      }),
+  }),
+  defineTool({
+    name: "board_create",
+    description:
+      "Use when creating a new Trello board. Creates boards as private by default, can place them in a workspace with workspaceId, and only supports explicit private, workspace, or public visibility.",
+    inputSchema: CreateBoardInput,
+    handler: async ({ name, desc, workspaceId, permissionLevel }, { trello }) =>
+      trello.request("/boards", TrelloBoardSchema, {
+        method: "POST",
+        query: {
+          name,
+          ...(desc !== undefined ? { desc } : {}),
+          ...(workspaceId !== undefined ? { idOrganization: workspaceId } : {}),
+          prefs_permissionLevel: permissionLevel,
+        },
+        resourceType: "board creation",
+        resourceId: name,
       }),
   }),
   defineTool({

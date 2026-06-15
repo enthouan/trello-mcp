@@ -250,6 +250,10 @@ describe("live regression suite", () => {
           tool: "card_checklist_item_move",
         }),
         expect.objectContaining({
+          status: "unsupported",
+          tool: "board_create",
+        }),
+        expect.objectContaining({
           status: "skipped",
           tool: "card_attachment_upload",
         }),
@@ -364,6 +368,28 @@ describe("live regression suite", () => {
         result.coverage.filter((entry) => entry.status === "missing"),
       ).toEqual([]);
     }
+  });
+
+  it("marks board_create unsupported until live board cleanup is available", async () => {
+    const fake = createFakeRegressionInvoker();
+
+    const result = await runLiveRegressionSuite({
+      boardRef: "board1",
+      invoke: fake.invoke,
+      runId: "board-create",
+      tools: ["board_create"],
+    });
+
+    expect(fake.calls.map((call) => call.name)).not.toContain("board_create");
+    expect(result.coverage).toEqual([
+      expect.objectContaining({
+        domain: "boards",
+        reason:
+          "Creates a real Trello board; live regression defers coverage until a verified board cleanup path exists.",
+        status: "unsupported",
+        tool: "board_create",
+      }),
+    ]);
   });
 
   it("classifies list_workspaces under the workspaces domain", async () => {

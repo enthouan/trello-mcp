@@ -649,6 +649,10 @@ The write tool `card_custom_field_set` accepts one custom field at a time with a
 
 Use `card_custom_field_clear` to clear an existing card custom field value. Trello clears custom field items with an empty PUT request shape rather than a DELETE request, so clearing is intentionally separate from setting values.
 
+## Board Creation
+
+`board_create` creates a new Trello board with `prefs_permissionLevel` defaulting to `private`. Pass `workspaceId` to place the board in a Trello workspace/organization and set `permissionLevel` explicitly only when you intend workspace-visible (`org`) or public (`public`) board visibility.
+
 ## Tool Catalog
 
 <!-- tools:start -->
@@ -657,6 +661,7 @@ Use `card_custom_field_clear` to clear an existing card custom field value. Trel
 | `auth_whoami` | Use as a read-only credential diagnostic to confirm which Trello member the configured API key and token authenticate as. | fields |
 | `auth_token_info` | Use as a read-only credential diagnostic to inspect the configured Trello token's owner, expiration, and permissions; it does not create, refresh, revoke, or manage tokens. | fields |
 | `list_boards` | Use first when the user has not provided a board, list, card id, or Trello URL; returns boards visible to the authenticated Trello member. | filter, fields |
+| `board_create` | Use when creating a new Trello board. Creates boards as private by default, can place them in a workspace with workspaceId, and only supports explicit private, workspace, or public visibility. | name, desc, workspaceId, permissionLevel |
 | `board_get` | Use when you need board details, common board preferences, or label names for a known Trello board before listing or summarizing it. | boardId, fields |
 | `board_field_get` | Use when you need one specific board field, such as prefs, labelNames, subscribed, name, description, or URL. | boardId, field |
 | `board_lists` | Use when you need the lists on a known Trello board so you can find the right list id before listing or creating cards. | boardId, filter, fields |
