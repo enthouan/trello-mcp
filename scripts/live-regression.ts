@@ -840,6 +840,7 @@ async function runLabelRegression(context: RegressionContext): Promise<void> {
     "card_label_create_and_add",
   ]);
   const needsTrackedLabel = shouldRunAnyTool(context, [
+    "label_create",
     "label_get",
     "label_update",
     "label_delete",
@@ -956,14 +957,17 @@ async function runMemberRegression(context: RegressionContext): Promise<void> {
     "card_member_add",
     "card_member_remove",
   ]);
+  const needsBoardMembers = shouldRunAnyTool(context, [
+    "board_members",
+    "card_member_add",
+    "card_member_remove",
+  ]);
   const needsAssignableMember = shouldRunAnyTool(context, [
     "card_member_add",
     "card_member_remove",
   ]);
   const card = needsCard ? await ensureRegressionCard(context) : undefined;
-  const boardMembers = needsAssignableMember
-    ? await getBoardMembers(context)
-    : [];
+  const boardMembers = needsBoardMembers ? await getBoardMembers(context) : [];
 
   if (shouldRunTool(context, "board_memberships")) {
     await arrayResult(
@@ -1090,6 +1094,7 @@ async function runChecklistRegression(
 ): Promise<void> {
   const card = await ensureRegressionCard(context);
   const needsPrimaryChecklist = shouldRunAnyTool(context, [
+    "card_checklist_create",
     "card_checklists",
     "card_checklist_item_create",
     "card_checklist_items",
@@ -2163,11 +2168,11 @@ function toolDomain(tool: string): LiveRegressionDomain {
   if (tool === "list_workspaces" || tool.startsWith("workspace_")) {
     return "workspaces";
   }
-  if (tool === "board_lists" || tool.startsWith("list_")) {
-    return "lists";
-  }
   if (tool === "board_cards" || tool === "list_cards") {
     return "cards";
+  }
+  if (tool === "board_lists" || tool.startsWith("list_")) {
+    return "lists";
   }
   if (
     tool === "board_labels" ||
