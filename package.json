@@ -16,6 +16,7 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "smoke:live": "tsx scripts/live-smoke.ts",
+    "regression:live": "tsx scripts/live-regression.ts",
     "lint": "biome check .",
     "typecheck": "tsc --noEmit",
     "verify": "tsc --noEmit && biome check . && tsc -p tsconfig.build.json && vitest run",

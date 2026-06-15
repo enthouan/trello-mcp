@@ -1,0 +1,57 @@
+name: Live Trello Regression
+
+on:
+  workflow_dispatch:
+    inputs:
+      board_ref:
+        description: "Disposable Trello regression board id, short link, or URL."
+        required: true
+        default: "hUaItfNq"
+        type: string
+      domains:
+        description: "Optional comma-separated regression domains to run."
+        required: false
+        type: string
+      tools:
+        description: "Optional comma-separated tool names to run."
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    environment:
+      name: live-regression
+      deployment: false
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v4.4.0
+        with:
+          version: 10.34.1
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm build
+      - run: pnpm test
+      - run: pnpm regression:live
+        env:
+          TRELLO_LIVE_REGRESSION: "1"
+          TRELLO_LIVE_REGRESSION_BOARD_ID: ${{ inputs.board_ref }}
+          TRELLO_LIVE_REGRESSION_DOMAINS: ${{ inputs.domains }}
+          TRELLO_LIVE_REGRESSION_TOOLS: ${{ inputs.tools }}
+          TRELLO_LIVE_REGRESSION_REPORT_JSON: reports/live-regression.json
+          TRELLO_API_KEY: ${{ secrets.TRELLO_LIVE_REGRESSION_API_KEY }}
+          TRELLO_TOKEN: ${{ secrets.TRELLO_LIVE_REGRESSION_TOKEN }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: live-regression-report
+          path: reports/live-regression.json
+          if-no-files-found: ignore
