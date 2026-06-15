@@ -271,6 +271,7 @@ export function loadLiveRegressionConfig(
   const tools = parseToolFilters(
     cli.tools ?? splitFilterValue(env.TRELLO_LIVE_REGRESSION_TOOLS),
   );
+  assertNonEmptyFilterIntersection(domains, tools);
 
   const config: LiveRegressionConfig = {
     TRELLO_API_KEY: apiKey as string,
@@ -529,43 +530,57 @@ async function resolveRegressionBoard(
 
 async function runBoardRegression(context: RegressionContext): Promise<void> {
   const boardId = requireBoardId(context);
-  await invokeTool(context, "board_field_get", { boardId, field: "name" });
-  await getBoardCustomFields(context);
-  await arrayResult(
-    invokeTool(context, "board_lists", {
-      boardId,
-      fields: "name,closed,idBoard,pos",
-      filter: "open",
-    }),
-    "board_lists",
-  );
-  await arrayResult(
-    invokeTool(context, "board_cards", {
-      boardId,
-      fields: "name,idList,closed",
-      filter: "open",
-      limit: 20,
-    }),
-    "board_cards",
-  );
-  await arrayResult(
-    invokeTool(context, "board_labels", {
-      boardId,
-      fields: "name,color,uses",
-      limit: 100,
-    }),
-    "board_labels",
-  );
-  await getBoardMembers(context);
-  await arrayResult(
-    invokeTool(context, "board_memberships", {
-      boardId,
-      filter: "all",
-      member: true,
-      memberFields: "username,fullName",
-    }),
-    "board_memberships",
-  );
+  if (shouldRunTool(context, "board_field_get")) {
+    await invokeTool(context, "board_field_get", { boardId, field: "name" });
+  }
+  if (shouldRunTool(context, "board_custom_fields")) {
+    await getBoardCustomFields(context);
+  }
+  if (shouldRunTool(context, "board_lists")) {
+    await arrayResult(
+      invokeTool(context, "board_lists", {
+        boardId,
+        fields: "name,closed,idBoard,pos",
+        filter: "open",
+      }),
+      "board_lists",
+    );
+  }
+  if (shouldRunTool(context, "board_cards")) {
+    await arrayResult(
+      invokeTool(context, "board_cards", {
+        boardId,
+        fields: "name,idList,closed",
+        filter: "open",
+        limit: 20,
+      }),
+      "board_cards",
+    );
+  }
+  if (shouldRunTool(context, "board_labels")) {
+    await arrayResult(
+      invokeTool(context, "board_labels", {
+        boardId,
+        fields: "name,color,uses",
+        limit: 100,
+      }),
+      "board_labels",
+    );
+  }
+  if (shouldRunTool(context, "board_members")) {
+    await getBoardMembers(context);
+  }
+  if (shouldRunTool(context, "board_memberships")) {
+    await arrayResult(
+      invokeTool(context, "board_memberships", {
+        boardId,
+        filter: "all",
+        member: true,
+        memberFields: "username,fullName",
+      }),
+      "board_memberships",
+    );
+  }
   verify(
     context.result,
     "read board discovery, list, card, label, and member data",
@@ -603,490 +618,675 @@ async function runWorkspaceRegression(
     return;
   }
 
-  await objectResult(
-    invokeTool(context, "workspace_get", {
-      workspaceId,
-      fields: "name,displayName,url,website,idBoards",
-    }),
-    "workspace_get",
-  );
-  await arrayResult(
-    invokeTool(context, "workspace_boards", {
-      workspaceId,
-      fields: "name,closed,url",
-      filter: "open",
-    }),
-    "workspace_boards",
-  );
-  await arrayResult(
-    invokeTool(context, "workspace_members", {
-      workspaceId,
-      fields: "username,fullName,initials,avatarUrl",
-      filter: "all",
-    }),
-    "workspace_members",
-  );
-  verify(
-    context.result,
-    "read visible workspace metadata, boards, and members",
-  );
+  if (shouldRunTool(context, "workspace_get")) {
+    await objectResult(
+      invokeTool(context, "workspace_get", {
+        workspaceId,
+        fields: "name,displayName,url,website,idBoards",
+      }),
+      "workspace_get",
+    );
+  }
+  if (shouldRunTool(context, "workspace_boards")) {
+    await arrayResult(
+      invokeTool(context, "workspace_boards", {
+        workspaceId,
+        fields: "name,closed,url",
+        filter: "open",
+      }),
+      "workspace_boards",
+    );
+  }
+  if (shouldRunTool(context, "workspace_members")) {
+    await arrayResult(
+      invokeTool(context, "workspace_members", {
+        workspaceId,
+        fields: "username,fullName,initials,avatarUrl",
+        filter: "all",
+      }),
+      "workspace_members",
+    );
+  }
+  verify(context.result, "exercised selected workspace regression scenarios");
 }
 
 async function runListRegression(context: RegressionContext): Promise<void> {
   const { primaryList, secondaryList } = await ensureRegressionLists(context);
-  await objectResult(
-    invokeTool(context, "list_get", {
-      fields: "name,closed,idBoard,pos",
-      listId: primaryList.id,
-    }),
-    "list_get",
-  );
+  if (shouldRunTool(context, "list_get")) {
+    await objectResult(
+      invokeTool(context, "list_get", {
+        fields: "name,closed,idBoard,pos",
+        listId: primaryList.id,
+      }),
+      "list_get",
+    );
+  }
 
   const renamedListName = `${context.prefix} primary list renamed`;
-  await objectResult(
-    invokeTool(context, "list_update", {
-      listId: primaryList.id,
-      name: renamedListName,
-      pos: "top",
-    }),
-    "list_update",
-  );
-  updateArtifactName(
-    context.result.created.lists,
-    primaryList.id,
-    renamedListName,
-  );
+  if (shouldRunTool(context, "list_update")) {
+    await objectResult(
+      invokeTool(context, "list_update", {
+        listId: primaryList.id,
+        name: renamedListName,
+        pos: "top",
+      }),
+      "list_update",
+    );
+    updateArtifactName(
+      context.result.created.lists,
+      primaryList.id,
+      renamedListName,
+    );
+  }
 
-  await objectResult(
-    invokeTool(context, "list_archive", {
-      closed: true,
-      listId: secondaryList.id,
-    }),
-    "list_archive",
-  );
-  await objectResult(
-    invokeTool(context, "list_archive", {
-      closed: false,
-      listId: secondaryList.id,
-    }),
-    "list_archive",
-  );
-  verify(
-    context.result,
-    "created, read, renamed, archived, and restored disposable lists",
-  );
+  if (shouldRunTool(context, "list_archive")) {
+    await objectResult(
+      invokeTool(context, "list_archive", {
+        closed: true,
+        listId: secondaryList.id,
+      }),
+      "list_archive",
+    );
+    await objectResult(
+      invokeTool(context, "list_archive", {
+        closed: false,
+        listId: secondaryList.id,
+      }),
+      "list_archive",
+    );
+  }
+  verify(context.result, "exercised selected list regression scenarios");
 }
 
 async function runCardRegression(context: RegressionContext): Promise<void> {
   const card = await ensureRegressionCard(context);
   const lists = await ensureRegressionLists(context);
 
-  await objectResult(
-    invokeTool(context, "card_get", {
-      cardId: card.id,
-      fields:
-        "name,desc,idBoard,idList,closed,due,dueComplete,idLabels,labels,idAttachmentCover",
-    }),
-    "card_get",
-  );
-  await objectResult(
-    invokeTool(context, "card_board", {
-      cardId: card.id,
-      fields: "name,closed",
-    }),
-    "card_board",
-  );
-  await objectResult(
-    invokeTool(context, "card_list", {
-      cardId: card.id,
-      fields: "name,closed,idBoard",
-    }),
-    "card_list",
-  );
-  await objectResult(
-    invokeTool(context, "card_labels", { cardId: card.id }),
-    "card_labels",
-  );
-  assertContainsId(
-    await arrayResult(
-      invokeTool(context, "list_cards", {
-        fields: "name,idList,closed",
-        filter: "open",
-        listId: lists.primaryList.id,
-        limit: 20,
+  if (shouldRunTool(context, "board_cards")) {
+    assertContainsId(
+      await arrayResult(
+        invokeTool(context, "board_cards", {
+          boardId: requireBoardId(context),
+          fields: "name,idList,closed",
+          filter: "open",
+          limit: 20,
+        }),
+        "board_cards",
+      ),
+      card.id,
+      "board_cards",
+    );
+  }
+  if (shouldRunTool(context, "card_get")) {
+    await objectResult(
+      invokeTool(context, "card_get", {
+        cardId: card.id,
+        fields:
+          "name,desc,idBoard,idList,closed,due,dueComplete,idLabels,labels,idAttachmentCover",
       }),
+      "card_get",
+    );
+  }
+  if (shouldRunTool(context, "card_board")) {
+    await objectResult(
+      invokeTool(context, "card_board", {
+        cardId: card.id,
+        fields: "name,closed",
+      }),
+      "card_board",
+    );
+  }
+  if (shouldRunTool(context, "card_list")) {
+    await objectResult(
+      invokeTool(context, "card_list", {
+        cardId: card.id,
+        fields: "name,closed,idBoard",
+      }),
+      "card_list",
+    );
+  }
+  if (shouldRunTool(context, "card_labels")) {
+    await objectResult(
+      invokeTool(context, "card_labels", { cardId: card.id }),
+      "card_labels",
+    );
+  }
+  if (shouldRunTool(context, "list_cards")) {
+    assertContainsId(
+      await arrayResult(
+        invokeTool(context, "list_cards", {
+          fields: "name,idList,closed",
+          filter: "open",
+          listId: lists.primaryList.id,
+          limit: 20,
+        }),
+        "list_cards",
+      ),
+      card.id,
       "list_cards",
-    ),
-    card.id,
-    "list_cards",
-  );
+    );
+  }
 
   const updatedCardName = `${context.prefix} card updated`;
-  await objectResult(
-    invokeTool(context, "card_update", {
-      cardId: card.id,
-      desc: `Updated by live regression run ${context.result.runId}.`,
-      name: updatedCardName,
-    }),
-    "card_update",
-  );
-  updateArtifactName(context.result.created.cards, card.id, updatedCardName);
-  await objectResult(
-    invokeTool(context, "card_due_date_set", {
-      cardId: card.id,
-      due: "2030-01-01T00:00:00.000Z",
-      dueComplete: false,
-    }),
-    "card_due_date_set",
-  );
-  await objectResult(
-    invokeTool(context, "card_position_set", { cardId: card.id, pos: "top" }),
-    "card_position_set",
-  );
-  await objectResult(
-    invokeTool(context, "card_cover_set", {
-      attachmentId: null,
-      cardId: card.id,
-    }),
-    "card_cover_set",
-  );
-  await objectResult(
-    invokeTool(context, "card_archive", { cardId: card.id, closed: true }),
-    "card_archive",
-  );
-  await objectResult(
-    invokeTool(context, "card_archive", { cardId: card.id, closed: false }),
-    "card_archive",
-  );
-  const movedCard = await objectResult(
-    invokeTool(context, "card_move", {
-      cardId: card.id,
-      listId: lists.secondaryList.id,
-      pos: "bottom",
-    }),
-    "card_move",
-  );
-  assertFieldEquals(movedCard, "idList", lists.secondaryList.id, "card_move");
-  verify(
-    context.result,
-    "created, read, updated, covered, archived, restored, and moved disposable card",
-  );
+  if (shouldRunTool(context, "card_update")) {
+    await objectResult(
+      invokeTool(context, "card_update", {
+        cardId: card.id,
+        desc: `Updated by live regression run ${context.result.runId}.`,
+        name: updatedCardName,
+      }),
+      "card_update",
+    );
+    updateArtifactName(context.result.created.cards, card.id, updatedCardName);
+  }
+  if (shouldRunTool(context, "card_due_date_set")) {
+    await objectResult(
+      invokeTool(context, "card_due_date_set", {
+        cardId: card.id,
+        due: "2030-01-01T00:00:00.000Z",
+        dueComplete: false,
+      }),
+      "card_due_date_set",
+    );
+  }
+  if (shouldRunTool(context, "card_position_set")) {
+    await objectResult(
+      invokeTool(context, "card_position_set", {
+        cardId: card.id,
+        pos: "top",
+      }),
+      "card_position_set",
+    );
+  }
+  if (shouldRunTool(context, "card_cover_set")) {
+    await objectResult(
+      invokeTool(context, "card_cover_set", {
+        attachmentId: null,
+        cardId: card.id,
+      }),
+      "card_cover_set",
+    );
+  }
+  if (shouldRunTool(context, "card_archive")) {
+    await objectResult(
+      invokeTool(context, "card_archive", { cardId: card.id, closed: true }),
+      "card_archive",
+    );
+    await objectResult(
+      invokeTool(context, "card_archive", { cardId: card.id, closed: false }),
+      "card_archive",
+    );
+  }
+  if (shouldRunTool(context, "card_move")) {
+    const movedCard = await objectResult(
+      invokeTool(context, "card_move", {
+        cardId: card.id,
+        listId: lists.secondaryList.id,
+        pos: "bottom",
+      }),
+      "card_move",
+    );
+    assertFieldEquals(movedCard, "idList", lists.secondaryList.id, "card_move");
+  }
+  verify(context.result, "exercised selected card regression scenarios");
 }
 
 async function runLabelRegression(context: RegressionContext): Promise<void> {
   const boardId = requireBoardId(context);
-  const card = await ensureRegressionCard(context);
-
-  await arrayResult(
-    invokeTool(context, "board_labels", {
-      boardId,
-      fields: "name,color,uses",
-      limit: 100,
-    }),
-    "board_labels",
-  );
-
-  const label = await createTrackedLabel(
-    context,
-    `${context.prefix} label`,
-    "blue",
-  );
-  await objectResult(
-    invokeTool(context, "label_get", { labelId: label.id }),
-    "label_get",
-  );
-  const renamedLabel = `${context.prefix} label updated`;
-  await objectResult(
-    invokeTool(context, "label_update", {
-      color: "green",
-      labelId: label.id,
-      name: renamedLabel,
-    }),
-    "label_update",
-  );
-  updateArtifactName(context.result.created.labels, label.id, renamedLabel);
-
-  await invokeTool(context, "card_label_add", {
-    cardId: card.id,
-    labelId: label.id,
-  });
-  trackLabelAssignment(context, card.id, label.id);
-  const cardLabels = await objectResult(
-    invokeTool(context, "card_labels", { cardId: card.id }),
+  const needsCard = shouldRunAnyTool(context, [
     "card_labels",
-  );
-  assertNestedArrayContainsId(cardLabels, "labels", label.id, "card_labels");
-  await invokeTool(context, "card_label_remove", {
-    cardId: card.id,
-    labelId: label.id,
-  });
-  untrackLabelAssignment(context, card.id, label.id);
+    "card_label_add",
+    "card_label_remove",
+    "card_label_create_and_add",
+  ]);
+  const needsTrackedLabel = shouldRunAnyTool(context, [
+    "label_get",
+    "label_update",
+    "label_delete",
+    "card_label_add",
+    "card_label_remove",
+  ]);
+  const card = needsCard ? await ensureRegressionCard(context) : undefined;
 
-  const inlineLabel = await objectResult(
-    invokeTool(context, "card_label_create_and_add", {
+  if (shouldRunTool(context, "board_labels")) {
+    await arrayResult(
+      invokeTool(context, "board_labels", {
+        boardId,
+        fields: "name,color,uses",
+        limit: 100,
+      }),
+      "board_labels",
+    );
+  }
+
+  const label = needsTrackedLabel
+    ? await createTrackedLabel(context, `${context.prefix} label`, "blue")
+    : undefined;
+  if (label && shouldRunTool(context, "label_get")) {
+    await objectResult(
+      invokeTool(context, "label_get", { labelId: label.id }),
+      "label_get",
+    );
+  }
+  const renamedLabel = `${context.prefix} label updated`;
+  if (label && shouldRunTool(context, "label_update")) {
+    await objectResult(
+      invokeTool(context, "label_update", {
+        color: "green",
+        labelId: label.id,
+        name: renamedLabel,
+      }),
+      "label_update",
+    );
+    updateArtifactName(context.result.created.labels, label.id, renamedLabel);
+  }
+
+  if (card && shouldRunTool(context, "card_labels")) {
+    await objectResult(
+      invokeTool(context, "card_labels", { cardId: card.id }),
+      "card_labels",
+    );
+  }
+  if (card && label && shouldRunTool(context, "card_label_add")) {
+    await invokeTool(context, "card_label_add", {
       cardId: card.id,
-      color: "yellow",
-      name: `${context.prefix} inline label`,
-    }),
-    "card_label_create_and_add",
-  );
-  const inlineLabelId = stringField(
-    inlineLabel,
-    "id",
-    "card_label_create_and_add",
-  );
-  context.result.created.labels.push({
-    id: inlineLabelId,
-    name: stringField(inlineLabel, "name", "card_label_create_and_add"),
-  });
-  trackLabelAssignment(context, card.id, inlineLabelId);
-  await invokeTool(context, "card_label_remove", {
-    cardId: card.id,
-    labelId: inlineLabelId,
-  });
-  untrackLabelAssignment(context, card.id, inlineLabelId);
-  verify(
-    context.result,
-    "created, read, updated, applied, removed, and inline-created disposable labels",
-  );
+      labelId: label.id,
+    });
+    trackLabelAssignment(context, card.id, label.id);
+    if (shouldRunTool(context, "card_labels")) {
+      const cardLabels = await objectResult(
+        invokeTool(context, "card_labels", { cardId: card.id }),
+        "card_labels",
+      );
+      assertNestedArrayContainsId(
+        cardLabels,
+        "labels",
+        label.id,
+        "card_labels",
+      );
+    }
+  }
+  if (card && label && shouldRunTool(context, "card_label_remove")) {
+    if (
+      !context.state.labelAssignments.some(
+        (assignment) =>
+          assignment.cardId === card.id && assignment.labelId === label.id,
+      )
+    ) {
+      await invokeTool(context, "card_label_add", {
+        cardId: card.id,
+        labelId: label.id,
+      });
+      trackLabelAssignment(context, card.id, label.id);
+    }
+    await invokeTool(context, "card_label_remove", {
+      cardId: card.id,
+      labelId: label.id,
+    });
+    untrackLabelAssignment(context, card.id, label.id);
+  }
+
+  if (card && shouldRunTool(context, "card_label_create_and_add")) {
+    const inlineLabel = await objectResult(
+      invokeTool(context, "card_label_create_and_add", {
+        cardId: card.id,
+        color: "yellow",
+        name: `${context.prefix} inline label`,
+      }),
+      "card_label_create_and_add",
+    );
+    const inlineLabelId = stringField(
+      inlineLabel,
+      "id",
+      "card_label_create_and_add",
+    );
+    context.result.created.labels.push({
+      id: inlineLabelId,
+      name: stringField(inlineLabel, "name", "card_label_create_and_add"),
+    });
+    trackLabelAssignment(context, card.id, inlineLabelId);
+  }
+  verify(context.result, "exercised selected label regression scenarios");
 }
 
 async function runMemberRegression(context: RegressionContext): Promise<void> {
   const memberId = requireAuthMemberId(context);
-  const card = await ensureRegressionCard(context);
-  const boardMembers = await getBoardMembers(context);
-
-  await arrayResult(
-    invokeTool(context, "board_memberships", {
-      boardId: requireBoardId(context),
-      filter: "all",
-      member: true,
-      memberFields: "username,fullName",
-    }),
-    "board_memberships",
-  );
-  await objectResult(
-    invokeTool(context, "member_get", {
-      fields: "username,fullName,initials,avatarUrl",
-      memberId,
-    }),
-    "member_get",
-  );
-  await arrayResult(
-    invokeTool(context, "member_boards", {
-      fields: "name,closed,url",
-      filter: "open",
-      memberId,
-    }),
-    "member_boards",
-  );
-  await arrayResult(
-    invokeTool(context, "member_workspaces", {
-      fields: "name,displayName,url,website,idBoards",
-      filter: "all",
-      memberId,
-      paidAccount: false,
-    }),
-    "member_workspaces",
-  );
-  await arrayResult(
-    invokeTool(context, "card_members", {
-      cardId: card.id,
-      fields: "username,fullName,initials,avatarUrl",
-    }),
+  const needsCard = shouldRunAnyTool(context, [
     "card_members",
-  );
+    "card_member_add",
+    "card_member_remove",
+  ]);
+  const needsAssignableMember = shouldRunAnyTool(context, [
+    "card_member_add",
+    "card_member_remove",
+  ]);
+  const card = needsCard ? await ensureRegressionCard(context) : undefined;
+  const boardMembers = needsAssignableMember
+    ? await getBoardMembers(context)
+    : [];
 
-  if (containsId(boardMembers, memberId)) {
-    await invokeTool(context, "card_member_add", { cardId: card.id, memberId });
-    trackMemberAssignment(context, card.id, memberId);
-    assertContainsId(
-      await arrayResult(
-        invokeTool(context, "card_members", {
-          cardId: card.id,
-          fields: "username,fullName,initials,avatarUrl",
-        }),
-        "card_members",
-      ),
-      memberId,
-      "card_members",
-    );
+  if (shouldRunTool(context, "board_memberships")) {
     await arrayResult(
-      invokeTool(context, "member_cards", {
-        fields: "name,idBoard,idList",
-        filter: "visible",
-        limit: 20,
-        memberId,
+      invokeTool(context, "board_memberships", {
+        boardId: requireBoardId(context),
+        filter: "all",
+        member: true,
+        memberFields: "username,fullName",
       }),
-      "member_cards",
-    );
-    await invokeTool(context, "card_member_remove", {
-      cardId: card.id,
-      memberId,
-    });
-    untrackMemberAssignment(context, card.id, memberId);
-  } else {
-    await arrayResult(
-      invokeTool(context, "member_cards", {
-        fields: "name,idBoard,idList",
-        filter: "visible",
-        limit: 20,
-        memberId,
-      }),
-      "member_cards",
-    );
-    skipTool(
-      context,
-      "card_member_add",
-      "Authenticated member is not assignable on the disposable board.",
-    );
-    skipTool(
-      context,
-      "card_member_remove",
-      "Authenticated member is not assignable on the disposable board.",
+      "board_memberships",
     );
   }
-  verify(
-    context.result,
-    "read member context and exercised safe card assignment when available",
-  );
+  if (shouldRunTool(context, "member_get")) {
+    await objectResult(
+      invokeTool(context, "member_get", {
+        fields: "username,fullName,initials,avatarUrl",
+        memberId,
+      }),
+      "member_get",
+    );
+  }
+  if (shouldRunTool(context, "member_boards")) {
+    await arrayResult(
+      invokeTool(context, "member_boards", {
+        fields: "name,closed,url",
+        filter: "open",
+        memberId,
+      }),
+      "member_boards",
+    );
+  }
+  if (shouldRunTool(context, "member_workspaces")) {
+    await arrayResult(
+      invokeTool(context, "member_workspaces", {
+        fields: "name,displayName,url,website,idBoards",
+        filter: "all",
+        memberId,
+        paidAccount: false,
+      }),
+      "member_workspaces",
+    );
+  }
+  if (card && shouldRunTool(context, "card_members")) {
+    await arrayResult(
+      invokeTool(context, "card_members", {
+        cardId: card.id,
+        fields: "username,fullName,initials,avatarUrl",
+      }),
+      "card_members",
+    );
+  }
+
+  if (card && needsAssignableMember) {
+    if (containsId(boardMembers, memberId)) {
+      await invokeTool(context, "card_member_add", {
+        cardId: card.id,
+        memberId,
+      });
+      trackMemberAssignment(context, card.id, memberId);
+      if (shouldRunTool(context, "card_members")) {
+        assertContainsId(
+          await arrayResult(
+            invokeTool(context, "card_members", {
+              cardId: card.id,
+              fields: "username,fullName,initials,avatarUrl",
+            }),
+            "card_members",
+          ),
+          memberId,
+          "card_members",
+        );
+      }
+      if (shouldRunTool(context, "member_cards")) {
+        await arrayResult(
+          invokeTool(context, "member_cards", {
+            fields: "name,idBoard,idList",
+            filter: "visible",
+            limit: 20,
+            memberId,
+          }),
+          "member_cards",
+        );
+      }
+      if (shouldRunTool(context, "card_member_remove")) {
+        await invokeTool(context, "card_member_remove", {
+          cardId: card.id,
+          memberId,
+        });
+        untrackMemberAssignment(context, card.id, memberId);
+      }
+    } else {
+      skipTool(
+        context,
+        "card_member_add",
+        "Authenticated member is not assignable on the disposable board.",
+      );
+      skipTool(
+        context,
+        "card_member_remove",
+        "Authenticated member is not assignable on the disposable board.",
+      );
+    }
+  }
+
+  if (
+    shouldRunTool(context, "member_cards") &&
+    (!card || !needsAssignableMember || !containsId(boardMembers, memberId))
+  ) {
+    await arrayResult(
+      invokeTool(context, "member_cards", {
+        fields: "name,idBoard,idList",
+        filter: "visible",
+        limit: 20,
+        memberId,
+      }),
+      "member_cards",
+    );
+  }
+  verify(context.result, "exercised selected member regression scenarios");
 }
 
 async function runChecklistRegression(
   context: RegressionContext,
 ): Promise<void> {
   const card = await ensureRegressionCard(context);
-  const primaryChecklist = await createTrackedChecklist(
-    context,
-    card.id,
-    `${context.prefix} checklist`,
-  );
-  const secondaryChecklist = await createTrackedChecklist(
-    context,
-    card.id,
-    `${context.prefix} secondary checklist`,
-  );
-
-  assertContainsId(
-    await arrayResult(
-      invokeTool(context, "card_checklists", { cardId: card.id }),
-      "card_checklists",
-    ),
-    primaryChecklist.id,
+  const needsPrimaryChecklist = shouldRunAnyTool(context, [
     "card_checklists",
-  );
-  const item = await objectResult(
-    invokeTool(context, "card_checklist_item_create", {
-      checked: false,
-      checklistId: primaryChecklist.id,
-      name: `${context.prefix} checklist item`,
-      pos: "bottom",
-    }),
     "card_checklist_item_create",
-  );
-  const checkItemId = stringField(item, "id", "card_checklist_item_create");
-  context.result.created.checklistItems.push({
-    id: checkItemId,
-    name: stringField(item, "name", "card_checklist_item_create"),
-  });
-  assertContainsId(
-    await arrayResult(
-      invokeTool(context, "card_checklist_items", {
-        checklistId: primaryChecklist.id,
-        fields: "name,state,pos",
-        filter: "all",
-      }),
-      "card_checklist_items",
-    ),
-    checkItemId,
     "card_checklist_items",
-  );
-  await objectResult(
-    invokeTool(context, "card_checklist_item_update", {
-      cardId: card.id,
-      checkItemId,
-      name: `${context.prefix} checklist item updated`,
-      state: "incomplete",
-    }),
     "card_checklist_item_update",
-  );
-  const checkedItem = await objectResult(
-    invokeTool(context, "card_checklist_item_set_checked", {
-      cardId: card.id,
-      checkItemId,
-      checked: true,
-    }),
     "card_checklist_item_set_checked",
-  );
-  assertFieldEquals(
-    checkedItem,
-    "state",
-    "complete",
-    "card_checklist_item_set_checked",
-  );
-  await objectResult(
-    invokeTool(context, "card_checklist_item_move", {
-      cardId: card.id,
-      checkItemId,
-      checklistId: secondaryChecklist.id,
-      pos: "bottom",
-    }),
     "card_checklist_item_move",
-  );
-  assertContainsId(
-    await arrayResult(
-      invokeTool(context, "card_checklist_items", {
-        checklistId: secondaryChecklist.id,
-        fields: "name,state,pos",
-        filter: "all",
-      }),
+    "card_checklist_item_delete",
+  ]);
+  const primaryChecklist = needsPrimaryChecklist
+    ? await createTrackedChecklist(
+        context,
+        card.id,
+        `${context.prefix} checklist`,
+      )
+    : undefined;
+  const secondaryChecklist = shouldRunTool(context, "card_checklist_item_move")
+    ? await createTrackedChecklist(
+        context,
+        card.id,
+        `${context.prefix} secondary checklist`,
+      )
+    : undefined;
+
+  if (primaryChecklist && shouldRunTool(context, "card_checklists")) {
+    assertContainsId(
+      await arrayResult(
+        invokeTool(context, "card_checklists", { cardId: card.id }),
+        "card_checklists",
+      ),
+      primaryChecklist.id,
+      "card_checklists",
+    );
+  }
+  const needsItem =
+    primaryChecklist &&
+    shouldRunAnyTool(context, [
+      "card_checklist_item_create",
       "card_checklist_items",
-    ),
-    checkItemId,
-    "card_checklist_items",
-  );
-  await invokeTool(context, "card_checklist_item_delete", {
-    cardId: card.id,
-    checkItemId,
-  });
-  verify(
-    context.result,
-    "created, read, updated, checked, moved, and deleted checklist items",
-  );
+      "card_checklist_item_update",
+      "card_checklist_item_set_checked",
+      "card_checklist_item_move",
+      "card_checklist_item_delete",
+    ]);
+  const item = needsItem
+    ? await objectResult(
+        invokeTool(context, "card_checklist_item_create", {
+          checked: false,
+          checklistId: primaryChecklist.id,
+          name: `${context.prefix} checklist item`,
+          pos: "bottom",
+        }),
+        "card_checklist_item_create",
+      )
+    : undefined;
+  const checkItemId = item
+    ? stringField(item, "id", "card_checklist_item_create")
+    : undefined;
+  if (item && checkItemId) {
+    context.result.created.checklistItems.push({
+      id: checkItemId,
+      name: stringField(item, "name", "card_checklist_item_create"),
+    });
+  }
+  if (
+    primaryChecklist &&
+    checkItemId &&
+    shouldRunTool(context, "card_checklist_items")
+  ) {
+    assertContainsId(
+      await arrayResult(
+        invokeTool(context, "card_checklist_items", {
+          checklistId: primaryChecklist.id,
+          fields: "name,state,pos",
+          filter: "all",
+        }),
+        "card_checklist_items",
+      ),
+      checkItemId,
+      "card_checklist_items",
+    );
+  }
+  if (checkItemId && shouldRunTool(context, "card_checklist_item_update")) {
+    await objectResult(
+      invokeTool(context, "card_checklist_item_update", {
+        cardId: card.id,
+        checkItemId,
+        name: `${context.prefix} checklist item updated`,
+        state: "incomplete",
+      }),
+      "card_checklist_item_update",
+    );
+  }
+  if (
+    checkItemId &&
+    shouldRunTool(context, "card_checklist_item_set_checked")
+  ) {
+    const checkedItem = await objectResult(
+      invokeTool(context, "card_checklist_item_set_checked", {
+        cardId: card.id,
+        checkItemId,
+        checked: true,
+      }),
+      "card_checklist_item_set_checked",
+    );
+    assertFieldEquals(
+      checkedItem,
+      "state",
+      "complete",
+      "card_checklist_item_set_checked",
+    );
+  }
+  if (
+    checkItemId &&
+    secondaryChecklist &&
+    shouldRunTool(context, "card_checklist_item_move")
+  ) {
+    await objectResult(
+      invokeTool(context, "card_checklist_item_move", {
+        cardId: card.id,
+        checkItemId,
+        checklistId: secondaryChecklist.id,
+        pos: "bottom",
+      }),
+      "card_checklist_item_move",
+    );
+    if (shouldRunTool(context, "card_checklist_items")) {
+      assertContainsId(
+        await arrayResult(
+          invokeTool(context, "card_checklist_items", {
+            checklistId: secondaryChecklist.id,
+            fields: "name,state,pos",
+            filter: "all",
+          }),
+          "card_checklist_items",
+        ),
+        checkItemId,
+        "card_checklist_items",
+      );
+    }
+  }
+  if (checkItemId && shouldRunTool(context, "card_checklist_item_delete")) {
+    await invokeTool(context, "card_checklist_item_delete", {
+      cardId: card.id,
+      checkItemId,
+    });
+  }
+  verify(context.result, "exercised selected checklist regression scenarios");
 }
 
 async function runCommentRegression(context: RegressionContext): Promise<void> {
   const card = await ensureRegressionCard(context);
-  const comment = await objectResult(
-    invokeTool(context, "card_comment_add", {
-      cardId: card.id,
-      text: `${context.prefix} comment`,
-    }),
+  const needsComment = shouldRunAnyTool(context, [
     "card_comment_add",
-  );
-  const actionId = stringField(comment, "id", "card_comment_add");
-  await objectResult(
-    invokeTool(context, "card_comment_update", {
-      actionId,
-      text: `${context.prefix} comment updated`,
-    }),
     "card_comment_update",
-  );
-  await arrayResult(
-    invokeTool(context, "card_actions", {
-      cardId: card.id,
-      fields: "id,type,date",
-      filter: "commentCard",
-      limit: 20,
-      member: false,
-      memberCreator: false,
-    }),
     "card_actions",
-  );
-  await invokeTool(context, "card_comment_delete", { actionId });
+    "card_comment_delete",
+  ]);
+  const comment = needsComment
+    ? await objectResult(
+        invokeTool(context, "card_comment_add", {
+          cardId: card.id,
+          text: `${context.prefix} comment`,
+        }),
+        "card_comment_add",
+      )
+    : undefined;
+  const actionId = comment
+    ? stringField(comment, "id", "card_comment_add")
+    : undefined;
+  if (actionId && shouldRunTool(context, "card_comment_update")) {
+    await objectResult(
+      invokeTool(context, "card_comment_update", {
+        actionId,
+        text: `${context.prefix} comment updated`,
+      }),
+      "card_comment_update",
+    );
+  }
+  if (shouldRunTool(context, "card_actions")) {
+    await arrayResult(
+      invokeTool(context, "card_actions", {
+        cardId: card.id,
+        fields: "id,type,date",
+        filter: "commentCard",
+        limit: 20,
+        member: false,
+        memberCreator: false,
+      }),
+      "card_actions",
+    );
+  }
+  if (actionId && shouldRunTool(context, "card_comment_delete")) {
+    await invokeTool(context, "card_comment_delete", { actionId });
+  }
   verify(
     context.result,
-    "created, updated, listed, and deleted a card comment",
+    "exercised selected comment/action regression scenarios",
   );
 }
 
@@ -1094,60 +1294,78 @@ async function runAttachmentRegression(
   context: RegressionContext,
 ): Promise<void> {
   const card = await ensureRegressionCard(context);
-  await arrayResult(
-    invokeTool(context, "card_attachments", {
-      cardId: card.id,
-      fields: "id,name,url,bytes,date,edgeColor",
-    }),
-    "card_attachments",
-  );
+  if (shouldRunTool(context, "card_attachments")) {
+    await arrayResult(
+      invokeTool(context, "card_attachments", {
+        cardId: card.id,
+        fields: "id,name,url,bytes,date,edgeColor",
+      }),
+      "card_attachments",
+    );
+  }
 
-  const attachment = await objectResult(
-    invokeTool(context, "card_attachment_add_url", {
-      cardId: card.id,
-      name: `${context.prefix} URL attachment`,
-      setCover: false,
-      url: "https://example.com/",
-    }),
-    "card_attachment_add_url",
-  );
-  const attachmentId = stringField(attachment, "id", "card_attachment_add_url");
-  trackAttachment(
-    context,
-    card.id,
-    attachmentId,
-    stringField(attachment, "name", "card_attachment_add_url"),
-  );
-  await objectResult(
-    invokeTool(context, "card_attachment_get", {
+  let attachmentId: string | undefined;
+  if (
+    shouldRunAnyTool(context, [
+      "card_attachment_add_url",
+      "card_attachment_get",
+      "card_cover_set",
+      "card_attachment_delete",
+    ])
+  ) {
+    const attachment = await objectResult(
+      invokeTool(context, "card_attachment_add_url", {
+        cardId: card.id,
+        name: `${context.prefix} URL attachment`,
+        setCover: false,
+        url: "https://example.com/",
+      }),
+      "card_attachment_add_url",
+    );
+    attachmentId = stringField(attachment, "id", "card_attachment_add_url");
+    trackAttachment(
+      context,
+      card.id,
+      attachmentId,
+      stringField(attachment, "name", "card_attachment_add_url"),
+    );
+  }
+  if (attachmentId && shouldRunTool(context, "card_attachment_get")) {
+    await objectResult(
+      invokeTool(context, "card_attachment_get", {
+        attachmentId,
+        cardId: card.id,
+        fields: "all",
+      }),
+      "card_attachment_get",
+    );
+  }
+  if (attachmentId && shouldRunTool(context, "card_cover_set")) {
+    await objectResult(
+      invokeTool(context, "card_cover_set", {
+        attachmentId,
+        cardId: card.id,
+        size: "normal",
+      }),
+      "card_cover_set",
+    );
+    await objectResult(
+      invokeTool(context, "card_cover_set", {
+        attachmentId: null,
+        cardId: card.id,
+      }),
+      "card_cover_set",
+    );
+  }
+  if (attachmentId && shouldRunTool(context, "card_attachment_delete")) {
+    await invokeTool(context, "card_attachment_delete", {
       attachmentId,
       cardId: card.id,
-      fields: "all",
-    }),
-    "card_attachment_get",
-  );
-  await objectResult(
-    invokeTool(context, "card_cover_set", {
-      attachmentId,
-      cardId: card.id,
-      size: "normal",
-    }),
-    "card_cover_set",
-  );
-  await objectResult(
-    invokeTool(context, "card_cover_set", {
-      attachmentId: null,
-      cardId: card.id,
-    }),
-    "card_cover_set",
-  );
-  await invokeTool(context, "card_attachment_delete", {
-    attachmentId,
-    cardId: card.id,
-  });
-  untrackAttachment(context, attachmentId);
+    });
+    untrackAttachment(context, attachmentId);
+  }
 
-  if (context.uploadFile) {
+  if (context.uploadFile && shouldRunTool(context, "card_attachment_upload")) {
     const upload = await objectResult(
       invokeTool(context, "card_attachment_upload", {
         cardId: card.id,
@@ -1165,14 +1383,16 @@ async function runAttachmentRegression(
       uploadId,
       stringField(upload, "name", "card_attachment_upload"),
     );
-    await objectResult(
-      invokeTool(context, "card_attachment_get", {
-        attachmentId: uploadId,
-        cardId: card.id,
-        fields: "all",
-      }),
-      "card_attachment_get",
-    );
+    if (shouldRunTool(context, "card_attachment_get")) {
+      await objectResult(
+        invokeTool(context, "card_attachment_get", {
+          attachmentId: uploadId,
+          cardId: card.id,
+          fields: "all",
+        }),
+        "card_attachment_get",
+      );
+    }
   } else {
     skipTool(
       context,
@@ -1180,20 +1400,36 @@ async function runAttachmentRegression(
       "Set both TRELLO_ATTACHMENT_UPLOAD_ROOT and TRELLO_LIVE_REGRESSION_UPLOAD_FILE to cover local upload behavior.",
     );
   }
-  verify(
-    context.result,
-    "created, read, covered, deleted, and conditionally uploaded attachments",
-  );
+  verify(context.result, "exercised selected attachment regression scenarios");
 }
 
 async function runCustomFieldRegression(
   context: RegressionContext,
 ): Promise<void> {
-  const card = await ensureRegressionCard(context);
-  await arrayResult(
-    invokeTool(context, "card_custom_field_items", { cardId: card.id }),
+  const needsCard = shouldRunAnyTool(context, [
     "card_custom_field_items",
-  );
+    "card_custom_field_set",
+    "card_custom_field_clear",
+  ]);
+  const needsDefinitions = shouldRunAnyTool(context, [
+    "board_custom_fields",
+    "custom_field_get",
+    "custom_field_options",
+    "card_custom_field_set",
+    "card_custom_field_clear",
+  ]);
+  const card = needsCard ? await ensureRegressionCard(context) : undefined;
+  if (card && shouldRunTool(context, "card_custom_field_items")) {
+    await arrayResult(
+      invokeTool(context, "card_custom_field_items", { cardId: card.id }),
+      "card_custom_field_items",
+    );
+  }
+  if (!needsDefinitions) {
+    verify(context.result, "exercised selected custom field scenarios");
+    return;
+  }
+
   const customFields = await getBoardCustomFields(context);
   const firstField = firstRecord(customFields);
   if (!firstField) {
@@ -1221,27 +1457,40 @@ async function runCustomFieldRegression(
   }
 
   const customFieldId = stringField(firstField, "id", "board_custom_fields");
-  await objectResult(
-    invokeTool(context, "custom_field_get", { customFieldId }),
-    "custom_field_get",
-  );
+  if (shouldRunTool(context, "custom_field_get")) {
+    await objectResult(
+      invokeTool(context, "custom_field_get", { customFieldId }),
+      "custom_field_get",
+    );
+  }
 
   const listField = customFields.find(
     (field) => isRecord(field) && field.type === "list",
   );
-  if (isRecord(listField)) {
+  if (isRecord(listField) && shouldRunTool(context, "custom_field_options")) {
     await arrayResult(
       invokeTool(context, "custom_field_options", {
         customFieldId: stringField(listField, "id", "board_custom_fields"),
       }),
       "custom_field_options",
     );
-  } else {
+  } else if (shouldRunTool(context, "custom_field_options")) {
     skipTool(
       context,
       "custom_field_options",
       "The disposable board has no dropdown/list custom field definitions.",
     );
+  }
+
+  if (
+    !card ||
+    !shouldRunAnyTool(context, [
+      "card_custom_field_set",
+      "card_custom_field_clear",
+    ])
+  ) {
+    verify(context.result, "exercised selected custom field scenarios");
+    return;
   }
 
   const settable = writableCustomField(customFields);
@@ -1271,39 +1520,40 @@ async function runCustomFieldRegression(
     cardId: card.id,
     customFieldId: settable.customFieldId,
   });
-  await objectResult(
-    invokeTool(context, "card_custom_field_clear", {
-      cardId: card.id,
-      customFieldId: settable.customFieldId,
-    }),
-    "card_custom_field_clear",
-  );
-  untrackCustomField(context, card.id, settable.customFieldId);
-  verify(
-    context.result,
-    "read and conditionally wrote disposable card custom field values",
-  );
+  if (shouldRunTool(context, "card_custom_field_clear")) {
+    await objectResult(
+      invokeTool(context, "card_custom_field_clear", {
+        cardId: card.id,
+        customFieldId: settable.customFieldId,
+      }),
+      "card_custom_field_clear",
+    );
+    untrackCustomField(context, card.id, settable.customFieldId);
+  }
+  verify(context.result, "exercised selected custom field scenarios");
 }
 
 async function runSearchRegression(context: RegressionContext): Promise<void> {
-  await ensureRegressionCard(context);
   const boardId = requireBoardId(context);
-  await objectResult(
-    invokeTool(context, "search", {
-      boardIds: [boardId],
-      boardsLimit: 10,
-      cardFields: "name,idBoard,idList,closed",
-      cardsLimit: 10,
-      includeCardBoard: true,
-      includeCardList: true,
-      includeCardMembers: true,
-      modelTypes: ["cards", "boards"],
-      query: context.result.runId,
-    }),
-    "search",
-  );
+  if (shouldRunTool(context, "search")) {
+    await ensureRegressionCard(context);
+    await objectResult(
+      invokeTool(context, "search", {
+        boardIds: [boardId],
+        boardsLimit: 10,
+        cardFields: "name,idBoard,idList,closed",
+        cardsLimit: 10,
+        includeCardBoard: true,
+        includeCardList: true,
+        includeCardMembers: true,
+        modelTypes: ["cards", "boards"],
+        query: context.result.runId,
+      }),
+      "search",
+    );
+  }
   const query = context.state.authUsername ?? context.state.authMemberId;
-  if (!query) {
+  if (!query && shouldRunTool(context, "search_members")) {
     skipTool(
       context,
       "search_members",
@@ -1311,18 +1561,17 @@ async function runSearchRegression(context: RegressionContext): Promise<void> {
     );
     return;
   }
-  await arrayResult(
-    invokeTool(context, "search_members", {
-      boardId,
-      limit: 10,
-      query,
-    }),
-    "search_members",
-  );
-  verify(
-    context.result,
-    "searched cards, boards, and members in disposable context",
-  );
+  if (query && shouldRunTool(context, "search_members")) {
+    await arrayResult(
+      invokeTool(context, "search_members", {
+        boardId,
+        limit: 10,
+        query,
+      }),
+      "search_members",
+    );
+  }
+  verify(context.result, "exercised selected search regression scenarios");
 }
 
 async function ensureRegressionLists(context: RegressionContext): Promise<{
@@ -1736,7 +1985,9 @@ async function invokeTool(
   input: Record<string, unknown>,
 ): Promise<unknown> {
   const result = await context.invoke(name, input);
-  recordCoverage(context.result, name, "covered");
+  if (shouldReportTool(context, name)) {
+    recordCoverage(context.result, name, "covered");
+  }
   return result;
 }
 
@@ -1745,7 +1996,9 @@ function skipTool(
   tool: string,
   reason: string,
 ): void {
-  recordCoverage(context.result, tool, "skipped", reason);
+  if (shouldReportTool(context, tool)) {
+    recordCoverage(context.result, tool, "skipped", reason);
+  }
 }
 
 function recordCoverage(
@@ -1837,6 +2090,26 @@ function shouldRunDomain(
   return [...context.filters.tools].some((tool) => toolDomain(tool) === domain);
 }
 
+function shouldRunTool(context: RegressionContext, tool: string): boolean {
+  if (context.filters.tools) {
+    return context.filters.tools.has(tool);
+  }
+  return (
+    !context.filters.domains || context.filters.domains.has(toolDomain(tool))
+  );
+}
+
+function shouldRunAnyTool(
+  context: RegressionContext,
+  tools: readonly string[],
+): boolean {
+  return tools.some((tool) => shouldRunTool(context, tool));
+}
+
+function shouldReportTool(context: RegressionContext, tool: string): boolean {
+  return matchesFilters(tool, context.filters);
+}
+
 function matchesFilters(tool: string, filters: NormalizedFilters): boolean {
   if (filters.domains && !filters.domains.has(toolDomain(tool))) {
     return false;
@@ -1848,6 +2121,7 @@ function matchesFilters(tool: string, filters: NormalizedFilters): boolean {
 }
 
 function normalizeFilters(filters: LiveRegressionFilters): NormalizedFilters {
+  assertNonEmptyFilterIntersection(filters.domains, filters.tools);
   const normalized: NormalizedFilters = {};
   if (filters.domains && filters.domains.length > 0) {
     normalized.domains = new Set(filters.domains);
@@ -1856,6 +2130,23 @@ function normalizeFilters(filters: LiveRegressionFilters): NormalizedFilters {
     normalized.tools = new Set(filters.tools);
   }
   return normalized;
+}
+
+function assertNonEmptyFilterIntersection(
+  domains: readonly LiveRegressionDomain[] | undefined,
+  tools: readonly string[] | undefined,
+): void {
+  if (!domains || domains.length === 0 || !tools || tools.length === 0) {
+    return;
+  }
+
+  const domainSet = new Set(domains);
+  const hasOverlap = tools.some((tool) => domainSet.has(toolDomain(tool)));
+  if (!hasOverlap) {
+    throw new LiveRegressionConfigError(
+      `Live regression domain/tool filters have no overlap. Selected domains: ${domains.join(", ")}. Selected tools: ${tools.join(", ")}.`,
+    );
+  }
 }
 
 function toolDomain(tool: string): LiveRegressionDomain {

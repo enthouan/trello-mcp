@@ -299,13 +299,40 @@ describe("live regression suite", () => {
         expect.objectContaining({ status: "covered", tool: "card_get" }),
       ]),
     );
-    expect(cardOnly.calls.map((call) => call.name)).toContain("card_create");
-    expect(cardOnly.calls.map((call) => call.name)).not.toContain(
-      "label_create",
-    );
+    const cardCallNames = cardOnly.calls.map((call) => call.name);
+    expect(cardCallNames).toContain("card_create");
+    expect(cardCallNames).not.toContain("label_create");
+    expect(cardCallNames).not.toContain("card_update");
+    expect(cardCallNames).not.toContain("card_due_date_set");
+    expect(cardCallNames).not.toContain("card_position_set");
+    expect(cardCallNames).not.toContain("card_cover_set");
+    expect(cardCallNames).not.toContain("card_archive");
+    expect(cardCallNames).not.toContain("card_move");
     expect(
       cardResult.coverage.filter((entry) => entry.status === "missing"),
     ).toEqual([]);
+  });
+
+  it("rejects domain and tool filter combinations with no overlap before invoking tools", async () => {
+    expect(() =>
+      loadLiveRegressionConfig(
+        regressionEnv(),
+        new Date("2026-06-14T10:11:12.123Z"),
+        { domains: ["labels"], tools: ["card_get"] },
+      ),
+    ).toThrow(LiveRegressionConfigError);
+
+    const fake = createFakeRegressionInvoker();
+    await expect(
+      runLiveRegressionSuite({
+        boardRef: "board1",
+        domains: ["labels"],
+        invoke: fake.invoke,
+        runId: "empty-intersection",
+        tools: ["card_get"],
+      }),
+    ).rejects.toThrow(LiveRegressionConfigError);
+    expect(fake.calls).toEqual([]);
   });
 
   it("classifies list_workspaces under the workspaces domain", async () => {
