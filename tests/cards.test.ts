@@ -467,6 +467,23 @@ describe("card tools", () => {
     );
   });
 
+  it("normalizes Trello array responses from card checklist deletion", async () => {
+    const tool = getCardTool("card_checklist_delete");
+    const trello = {
+      request: vi.fn(
+        async (_path: string, schema: { parse: (value: unknown) => unknown }) =>
+          schema.parse([]),
+      ),
+    };
+
+    await expect(
+      tool.handler(
+        { cardId: "card1", checklistId: "checklist1" },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual({ _value: null });
+  });
+
   it.each([
     { cardId: "", checklistId: "checklist1" },
     { cardId: "card1", checklistId: "" },
