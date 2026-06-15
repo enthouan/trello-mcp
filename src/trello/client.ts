@@ -374,10 +374,13 @@ export class TrelloClient {
     options: RequestOptions,
     init: RequestInit,
   ): RequestLogFields {
+    const resourceId = options.resourceId
+      ? safeLogResourceId(options.resourceId)
+      : undefined;
     return {
       method: init.method ?? options.method ?? "GET",
       ...(options.resourceType ? { resourceType: options.resourceType } : {}),
-      ...(options.resourceId ? { resourceId: options.resourceId } : {}),
+      ...(resourceId ? { resourceId } : {}),
     };
   }
 
@@ -460,4 +463,48 @@ export class TrelloClient {
     const text = await response.text();
     return text ? (JSON.parse(text) as unknown) : null;
   }
+}
+
+function safeLogResourceId(resourceId: string): string | undefined {
+  const value = resourceId.trim();
+  if (!value) {
+    return undefined;
+  }
+
+  const urlIdentifier = trelloIdentifierFromUrl(value);
+  if (urlIdentifier) {
+    return urlIdentifier;
+  }
+
+  if (isUnsafeLogResourceId(value)) {
+    return "[redacted]";
+  }
+
+  return value;
+}
+
+function trelloIdentifierFromUrl(value: string): string | undefined {
+  try {
+    const url = new URL(value);
+    const pathParts = url.pathname.split("/").filter(Boolean);
+    if (
+      url.hostname.endsWith("trello.com") &&
+      ["b", "c", "w"].includes(pathParts[0] ?? "") &&
+      pathParts[1]
+    ) {
+      return pathParts[1];
+    }
+    return undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function isUnsafeLogResourceId(value: string): boolean {
+  return (
+    value.includes("?") ||
+    value.includes("#") ||
+    value.includes("/") ||
+    /(?:^|[?&#\s])(?:key|token|authorization)\s*=/i.test(value)
+  );
 }

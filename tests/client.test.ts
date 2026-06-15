@@ -436,6 +436,36 @@ describe("TrelloClient", () => {
     expect(logs).not.toContain("/cards/");
   });
 
+  it("sanitizes URL-shaped resource ids before logging retry events", async () => {
+    const { logger, output } = captureLogger();
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response("rate limited", { status: 429 }))
+      .mockResolvedValueOnce(jsonResponse({ ok: true }));
+    const client = new TrelloClient(config, {
+      fetcher,
+      sleep: async () => undefined,
+      random: () => 0,
+      logger,
+      retry: { maxAttempts: 2 },
+    });
+
+    await client.request("/cards/AbCd1234", OkSchema, {
+      resourceType: "card",
+      resourceId:
+        "https://trello.com/c/AbCd1234/card-name?key=leaky-key&token=leaky-token",
+    });
+
+    const logs = await output();
+    expect(logs).toContain('"resourceId":"AbCd1234"');
+    expect(logs).not.toContain("https://trello.com");
+    expect(logs).not.toContain("card-name");
+    expect(logs).not.toContain("leaky-key");
+    expect(logs).not.toContain("leaky-token");
+    expect(logs).not.toContain("key=");
+    expect(logs).not.toContain("token=");
+  });
+
   it("uses request-scoped loggers for retry observability", async () => {
     const baseLogger = {
       debug: vi.fn(),

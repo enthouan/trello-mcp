@@ -11,7 +11,7 @@ import { ZodError } from "zod";
 import { loadConfig } from "./config.js";
 import { handleHealth, writeJson } from "./health.js";
 import { authorizeHttpMcpRequest } from "./http-auth.js";
-import { createServer } from "./server.js";
+import { createServer, createTrelloClient } from "./server.js";
 import { createLogger } from "./utils/logger.js";
 
 async function main(): Promise<void> {
@@ -30,6 +30,7 @@ async function main(): Promise<void> {
   }
 
   const sessions = new Map<string, HttpSession>();
+  const trello = createTrelloClient(config, logger);
   let accepting = true;
   let inFlight = 0;
 
@@ -46,7 +47,7 @@ async function main(): Promise<void> {
     }
     inFlight += 1;
     try {
-      await handleMcpRequest({ config, logger, sessions }, req, res);
+      await handleMcpRequest({ config, logger, sessions, trello }, req, res);
     } catch (error) {
       logger.error(
         { errorType: error instanceof Error ? error.name : "UnknownError" },
@@ -90,6 +91,7 @@ type HttpContext = {
   config: ReturnType<typeof loadConfig>;
   logger: ReturnType<typeof createLogger>;
   sessions: Map<string, HttpSession>;
+  trello: ReturnType<typeof createTrelloClient>;
 };
 
 async function handleMcpRequest(
@@ -127,7 +129,9 @@ async function createHttpSession(context: HttpContext): Promise<HttpSession> {
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: randomUUID,
   });
-  const app = createServer(context.config, context.logger);
+  const app = createServer(context.config, context.logger, {
+    trello: context.trello,
+  });
 
   transport.onclose = () => {
     if (transport.sessionId) {
