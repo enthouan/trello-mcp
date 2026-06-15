@@ -456,7 +456,74 @@ The smoke flow validates representative pre-1.0 coverage:
 - Labels and members: disposable label create/read/update/apply/remove/delete, plus authenticated-member assignment/removal when that member is visible on the smoke board.
 - Card activity: comment create/update/list/delete on the disposable card.
 
-If the live env vars are absent during local validation, record the live smoke run as skipped. The skipped state is explicit: `corepack pnpm smoke:live` fails before contacting Trello and prints the missing variable names. Do not add this command to normal CI unless the job is intentionally secret-backed and opt-in.
+## Live Trello Regression Tests
+
+`corepack pnpm smoke:live` is the shallow release smoke check: it proves the most important workflow can authenticate, create disposable artifacts, mutate them, and clean up. `corepack pnpm regression:live` is the broader opt-in release-validation suite. It walks the public MCP tool surface by domain, reports live coverage against the registered tool catalog, and makes skipped or missing live coverage visible.
+
+The regression suite has a separate opt-in gate from smoke tests:
+
+```bash
+TRELLO_LIVE_REGRESSION=1 \
+TRELLO_LIVE_REGRESSION_BOARD_ID=your-disposable-board-id-or-short-link \
+TRELLO_API_KEY=your-api-key \
+TRELLO_TOKEN=your-token \
+corepack pnpm regression:live
+```
+
+Use `TRELLO_LIVE_REGRESSION_BOARD_URL` instead of `TRELLO_LIVE_REGRESSION_BOARD_ID` when a `trello.com/b/...` board URL is more convenient. Non-board URLs are rejected before any Trello request and without logging raw query strings.
+
+Targeted runs are useful when debugging a domain or one tool:
+
+```bash
+TRELLO_LIVE_REGRESSION=1 \
+TRELLO_LIVE_REGRESSION_BOARD_ID=your-disposable-board-id-or-short-link \
+TRELLO_API_KEY=your-api-key \
+TRELLO_TOKEN=your-token \
+corepack pnpm regression:live --domain cards
+```
+
+```bash
+TRELLO_LIVE_REGRESSION=1 \
+TRELLO_LIVE_REGRESSION_BOARD_ID=your-disposable-board-id-or-short-link \
+TRELLO_API_KEY=your-api-key \
+TRELLO_TOKEN=your-token \
+corepack pnpm regression:live --tool card_attachment_upload
+```
+
+You may also use `TRELLO_LIVE_REGRESSION_DOMAINS=cards,attachments` and `TRELLO_LIVE_REGRESSION_TOOLS=card_get,card_update`. Supported domains are `auth`, `boards`, `lists`, `cards`, `labels`, `checklists`, `members`, `workspaces`, `search`, `custom-fields`, `comments-actions`, and `attachments`.
+
+Set `TRELLO_LIVE_REGRESSION_REPORT_JSON=reports/live-regression.json` to emit a machine-readable report in addition to the human-readable terminal report. The report groups tools by domain and shows:
+
+- `covered`: tool handlers successfully exercised against Trello.
+- `skipped`: intentional runtime skips, such as no visible workspace, no board custom fields, or upload coverage not configured.
+- `unsupported`: non-goal live cases that are intentionally outside the single-board regression suite, such as `list_move_to_board`.
+- `missing`: selected public tools with no regression coverage classification. Missing coverage fails the command so new public tools do not silently disappear from release validation.
+- cleanup status, including attempted/completed cleanup steps and any remaining prefix-matched open artifacts.
+
+Regression safety model:
+
+- The command exits before any Trello request unless `TRELLO_LIVE_REGRESSION=1`, Trello credentials, and a regression board id or URL are all present.
+- The configured board should be a disposable board reserved for validation, not an active production board.
+- Temporary artifacts use a unique run id and the `trello-mcp live regression ...` prefix. Set `TRELLO_LIVE_REGRESSION_RUN_ID` when you want a human-readable run marker.
+- Cleanup runs after intermediate failures. It removes tracked temporary cards, labels, attachments, member/label assignments, custom-field values, and archives temporary lists. It also searches for prefix-matched lists, cards, and labels that were created before the response could be tracked.
+- The suite invokes registered tool handlers with a real `TrelloClient`; it does not call Trello through a separate ad hoc client.
+- The suite does not log API keys, tokens, credential-bearing URLs, raw environment objects, or raw request data.
+
+Local file upload coverage is skipped by default. To include `card_attachment_upload`, both the normal upload root and an explicit regression test file must be configured:
+
+```bash
+TRELLO_ATTACHMENT_UPLOAD_ROOT=/absolute/path/to/trello-uploads \
+TRELLO_LIVE_REGRESSION_UPLOAD_FILE=sample.txt \
+TRELLO_LIVE_REGRESSION=1 \
+TRELLO_LIVE_REGRESSION_BOARD_ID=your-disposable-board-id-or-short-link \
+TRELLO_API_KEY=your-api-key \
+TRELLO_TOKEN=your-token \
+corepack pnpm regression:live --domain attachments
+```
+
+The upload file path may be relative to `TRELLO_ATTACHMENT_UPLOAD_ROOT` or absolute, but it must resolve inside the upload root.
+
+If the live env vars are absent during local validation, record the live command as skipped. The skipped state is explicit: `corepack pnpm smoke:live` and `corepack pnpm regression:live` fail before contacting Trello and print the missing variable names. Do not add either command to normal CI unless the job is intentionally secret-backed and opt-in.
 
 ### GitHub Actions
 
@@ -471,9 +538,18 @@ Before using it, configure a GitHub Environment named `live-smoke` with these se
 | `TRELLO_LIVE_SMOKE_API_KEY` | Trello API key for a dedicated smoke-test Trello member. |
 | `TRELLO_LIVE_SMOKE_TOKEN` | Trello token for that same member, with write access to the disposable smoke board. |
 
-Use environment required reviewers if the repository has more than one maintainer or if the token can access anything beyond the smoke board. The workflow maps those secrets to `TRELLO_API_KEY` and `TRELLO_TOKEN` only for the `pnpm smoke:live` step. Do not use `pull_request_target` for this workflow.
+Use environment required reviewers if the repository has more than one maintainer or if the token can access anything beyond the smoke board. The workflow maps those secrets to `TRELLO_API_KEY` and `TRELLO_TOKEN` only for the `pnpm smoke:live` step. The job sets `environment.deployment: false`, so the GitHub Environment still scopes secrets and protection rules without creating Deployment records. Do not use `pull_request_target` for this workflow.
 
 The default smoke board is the public disposable test board short link `hUaItfNq`. Override it for same-repository PR runs with environment variable `TRELLO_LIVE_SMOKE_BOARD_ID`, or override `board_ref` when running manually from the Actions tab. A public board is acceptable for smoke testing when temporary artifact names and activity history can be visible, but public visibility does not remove the need for Trello credentials because the harness performs writes.
+
+The broader `Live Trello Regression` workflow is manual-only and should be used for release candidates or focused live debugging, not as an ordinary PR gate. Configure a GitHub Environment named `live-regression` with:
+
+| Secret | Description |
+| --- | --- |
+| `TRELLO_LIVE_REGRESSION_API_KEY` | Trello API key for a dedicated regression-test Trello member. |
+| `TRELLO_LIVE_REGRESSION_TOKEN` | Trello token for that same member, with write access to the disposable regression board. |
+
+The manual workflow accepts optional `domains` and `tools` inputs and uploads `reports/live-regression.json` when the command produces it. It also sets `environment.deployment: false` because live regression is secret-backed validation, not an app deployment. Fork pull requests must not receive Trello credentials; keep live regression on `workflow_dispatch` or another explicitly secret-backed workflow.
 
 ## Usage Examples
 
