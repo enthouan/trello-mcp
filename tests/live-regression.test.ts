@@ -243,6 +243,10 @@ describe("live regression suite", () => {
         expect.objectContaining({ status: "covered", tool: "card_get" }),
         expect.objectContaining({
           status: "covered",
+          tool: "card_checklist_delete",
+        }),
+        expect.objectContaining({
+          status: "covered",
           tool: "card_checklist_item_move",
         }),
         expect.objectContaining({
@@ -936,6 +940,16 @@ function createFakeRegressionInvoker(
       case "card_checklist_item_delete":
         state.checklistItems.delete(requiredInputString(input, "checkItemId"));
         return { _value: null };
+      case "card_checklist_delete": {
+        const checklistId = requiredInputString(input, "checklistId");
+        state.checklists.delete(checklistId);
+        for (const [itemId, item] of state.checklistItems) {
+          if (item.idChecklist === checklistId) {
+            state.checklistItems.delete(itemId);
+          }
+        }
+        return { _value: null };
+      }
       case "card_comment_add": {
         const id = next("action");
         const action = {

@@ -1102,6 +1102,7 @@ async function runChecklistRegression(
     "card_checklist_item_set_checked",
     "card_checklist_item_move",
     "card_checklist_item_delete",
+    "card_checklist_delete",
   ]);
   const primaryChecklist = needsPrimaryChecklist
     ? await createTrackedChecklist(
@@ -1240,6 +1241,21 @@ async function runChecklistRegression(
       cardId: card.id,
       checkItemId,
     });
+  }
+  if (primaryChecklist && shouldRunTool(context, "card_checklist_delete")) {
+    await invokeTool(context, "card_checklist_delete", {
+      cardId: card.id,
+      checklistId: primaryChecklist.id,
+    });
+    const checklists = await arrayResult(
+      invokeTool(context, "card_checklists", { cardId: card.id }),
+      "card_checklists",
+    );
+    if (containsId(checklists, primaryChecklist.id)) {
+      throw new Error(
+        "card_checklist_delete did not remove the deleted checklist from card_checklists.",
+      );
+    }
   }
   verify(context.result, "exercised selected checklist regression scenarios");
 }

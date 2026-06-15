@@ -441,6 +441,43 @@ describe("card tools", () => {
     ).toThrow();
   });
 
+  it("deletes checklists from cards", async () => {
+    const tool = getCardTool("card_checklist_delete");
+    const trello = {
+      request: vi.fn(
+        async (_path: string, schema: { parse: (value: unknown) => unknown }) =>
+          schema.parse({ _value: null }),
+      ),
+    };
+
+    await expect(
+      tool.handler(
+        { cardId: "card1", checklistId: "checklist1" },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual({ _value: null });
+    expect(trello.request).toHaveBeenCalledWith(
+      "/cards/card1/checklists/checklist1",
+      expect.anything(),
+      expect.objectContaining({
+        method: "DELETE",
+        resourceType: "checklist",
+        resourceId: "checklist1",
+      }),
+    );
+  });
+
+  it.each([
+    { cardId: "", checklistId: "checklist1" },
+    { cardId: "card1", checklistId: "" },
+    { cardId: "card1" },
+    { checklistId: "checklist1" },
+  ])("rejects invalid checklist delete input %#", (input) => {
+    const tool = getCardTool("card_checklist_delete");
+
+    expect(() => tool.inputSchema.parse(input)).toThrow();
+  });
+
   it("creates checklist items on an existing checklist", async () => {
     const tool = getCardTool("card_checklist_item_create");
     const trello = {
