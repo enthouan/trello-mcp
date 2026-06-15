@@ -37,6 +37,141 @@ describe("board tools", () => {
     );
   });
 
+  it("creates a private board by default", async () => {
+    const tool = getBoardTool("board_create");
+    const trello = {
+      request: vi.fn(async () => ({
+        id: "board1",
+        name: "Roadmap",
+        prefs: { permissionLevel: "private" },
+      })),
+    };
+
+    await expect(
+      tool.handler(tool.inputSchema.parse({ name: "Roadmap" }), {
+        trello: trello as never,
+        logger: {} as never,
+        requestId: "req1",
+      }),
+    ).resolves.toEqual({
+      id: "board1",
+      name: "Roadmap",
+      prefs: { permissionLevel: "private" },
+    });
+    expect(trello.request).toHaveBeenCalledWith(
+      "/boards",
+      expect.anything(),
+      expect.objectContaining({
+        method: "POST",
+        query: {
+          name: "Roadmap",
+          prefs_permissionLevel: "private",
+        },
+        resourceType: "board creation",
+        resourceId: "Roadmap",
+      }),
+    );
+  });
+
+  it("creates a board with optional description, workspace, and permission level", async () => {
+    const tool = getBoardTool("board_create");
+    const trello = {
+      request: vi.fn(async () => ({
+        desc: "Planning board",
+        id: "board1",
+        idOrganization: "workspace1",
+        name: "Roadmap",
+        prefs: { permissionLevel: "org" },
+      })),
+    };
+
+    await expect(
+      tool.handler(
+        tool.inputSchema.parse({
+          desc: "Planning board",
+          name: "Roadmap",
+          permissionLevel: "org",
+          workspaceId: "workspace1",
+        }),
+        {
+          trello: trello as never,
+          logger: {} as never,
+          requestId: "req1",
+        },
+      ),
+    ).resolves.toEqual({
+      desc: "Planning board",
+      id: "board1",
+      idOrganization: "workspace1",
+      name: "Roadmap",
+      prefs: { permissionLevel: "org" },
+    });
+    expect(trello.request).toHaveBeenCalledWith(
+      "/boards",
+      expect.anything(),
+      expect.objectContaining({
+        method: "POST",
+        query: {
+          desc: "Planning board",
+          idOrganization: "workspace1",
+          name: "Roadmap",
+          prefs_permissionLevel: "org",
+        },
+        resourceType: "board creation",
+        resourceId: "Roadmap",
+      }),
+    );
+  });
+
+  it("rejects invalid board creation input before requesting Trello", () => {
+    const tool = getBoardTool("board_create");
+
+    expect(() => tool.inputSchema.parse({ name: "" })).toThrow();
+    expect(() => tool.inputSchema.parse({ name: "   " })).toThrow();
+    expect(() =>
+      tool.inputSchema.parse({ name: "Roadmap", permissionLevel: "team" }),
+    ).toThrow();
+  });
+
+  it("parses created board metadata useful for follow-up tools", async () => {
+    const tool = getBoardTool("board_create");
+    const trello = {
+      request: vi.fn(
+        async (_path: string, schema: { parse: (value: unknown) => unknown }) =>
+          schema.parse({
+            closed: false,
+            desc: "Planning board",
+            id: "board1",
+            idOrganization: "workspace1",
+            name: "Roadmap",
+            prefs: {
+              canBePrivate: true,
+              permissionLevel: "private",
+            },
+            shortUrl: "https://trello.com/b/abc123",
+            url: "https://trello.com/b/abc123/roadmap",
+          }),
+      ),
+    };
+
+    await expect(
+      tool.handler(tool.inputSchema.parse({ name: "Roadmap" }), {
+        trello: trello as never,
+        logger: {} as never,
+        requestId: "req1",
+      }),
+    ).resolves.toMatchObject({
+      closed: false,
+      desc: "Planning board",
+      id: "board1",
+      idOrganization: "workspace1",
+      name: "Roadmap",
+      prefs: { permissionLevel: "private" },
+      shortUrl: "https://trello.com/b/abc123",
+      url: "https://trello.com/b/abc123/roadmap",
+    });
+  });
+
   it("gets board details with common preferences and label names by default", async () => {
     const tool = getBoardTool("board_get");
     const trello = {
