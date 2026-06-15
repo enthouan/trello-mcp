@@ -541,7 +541,7 @@ If the live env vars are absent during local validation, record the live command
 
 ### GitHub Actions
 
-The repository includes a `Live Trello Smoke` workflow for PR and release validation. It runs on same-repository pull requests and manual dispatch. Fork pull requests are skipped so Trello credentials are not exposed to untrusted PR code.
+The repository includes a `Live Trello Smoke` workflow for PR, post-merge `main`, and release validation. It runs on same-repository pull requests, pushes to `main`, and manual dispatch. Fork pull requests are skipped so Trello credentials are not exposed to untrusted PR code.
 
 The workflow runs the offline gates (`pnpm typecheck`, `pnpm lint`, `pnpm build`, and `pnpm test`) before the secret-backed live smoke step.
 

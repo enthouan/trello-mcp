@@ -3,6 +3,8 @@ name: Live Trello Smoke
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       board_ref:
@@ -18,6 +20,7 @@ jobs:
   smoke:
     if: >-
       github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'push' ||
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     environment:
