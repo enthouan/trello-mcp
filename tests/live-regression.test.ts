@@ -335,6 +335,33 @@ describe("live regression suite", () => {
     expect(fake.calls).toEqual([]);
   });
 
+  it("covers create and list tools when they are the focused tool filter", async () => {
+    for (const { domain, tool } of [
+      { domain: "labels", tool: "label_create" },
+      { domain: "checklists", tool: "card_checklist_create" },
+      { domain: "members", tool: "board_members" },
+      { domain: "cards", tool: "list_cards" },
+    ]) {
+      const fake = createFakeRegressionInvoker();
+      const result = await runLiveRegressionSuite({
+        boardRef: "board1",
+        invoke: fake.invoke,
+        runId: `focused-${tool}`,
+        tools: [tool],
+      });
+
+      expect(fake.calls.map((call) => call.name)).toContain(tool);
+      expect(result.coverage).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ domain, status: "covered", tool }),
+        ]),
+      );
+      expect(
+        result.coverage.filter((entry) => entry.status === "missing"),
+      ).toEqual([]);
+    }
+  });
+
   it("classifies list_workspaces under the workspaces domain", async () => {
     const fake = createFakeRegressionInvoker();
 
