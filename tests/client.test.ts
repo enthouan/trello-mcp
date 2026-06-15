@@ -1,6 +1,7 @@
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { Writable } from "node:stream";
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { TrelloClient } from "../src/trello/client.js";
@@ -12,6 +13,7 @@ import {
   TrelloApiError,
   ValidationError,
 } from "../src/utils/errors.js";
+import { createLogger } from "../src/utils/logger.js";
 
 const config = { TRELLO_API_KEY: "key", TRELLO_TOKEN: "token" };
 const OkSchema = z.object({ ok: z.boolean() });
@@ -43,6 +45,24 @@ function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
     ...init,
     headers: { "content-type": "application/json" },
   });
+}
+
+function captureLogger() {
+  let output = "";
+  const stream = new Writable({
+    write(chunk, _encoding, callback) {
+      output += chunk.toString();
+      callback();
+    },
+  });
+  const logger = createLogger({ LOG_LEVEL: "debug" }, stream);
+  return {
+    logger,
+    output: async () => {
+      await new Promise((resolve) => setImmediate(resolve));
+      return output;
+    },
+  };
 }
 
 describe("TrelloClient", () => {
@@ -248,6 +268,29 @@ describe("TrelloClient", () => {
     expect(fetcher).toHaveBeenCalledTimes(2);
   });
 
+  it("uses configured token-bucket capacity and refill interval", async () => {
+    const fetcher = vi.fn(async () => jsonResponse({ ok: true }));
+    const sleep = vi.fn(async () => undefined);
+    const now = vi.spyOn(Date, "now").mockReturnValue(1_000);
+    const client = new TrelloClient(config, {
+      fetcher,
+      sleep,
+      rateLimit: { capacity: 2, refillIntervalMs: 1_234 },
+    });
+
+    try {
+      await client.request("/one", OkSchema);
+      await client.request("/two", OkSchema);
+      await client.request("/three", OkSchema);
+    } finally {
+      now.mockRestore();
+    }
+
+    expect(sleep).toHaveBeenCalledTimes(1);
+    expect(sleep).toHaveBeenCalledWith(1_234);
+    expect(fetcher).toHaveBeenCalledTimes(3);
+  });
+
   it("retries HTTP 429 with backoff and eventually succeeds", async () => {
     const fetcher = vi
       .fn<typeof fetch>()
@@ -267,6 +310,63 @@ describe("TrelloClient", () => {
     expect(sleep).toHaveBeenCalledWith(100);
   });
 
+  it("uses configured retry max attempts", async () => {
+    const fetcher = vi.fn(
+      async () => new Response("rate limited", { status: 429 }),
+    );
+    const sleep = vi.fn(async () => undefined);
+    const client = new TrelloClient(config, {
+      fetcher,
+      sleep,
+      random: () => 0,
+      retry: { maxAttempts: 2 },
+    });
+
+    await expect(client.request("/cards/abc", OkSchema)).rejects.toBeInstanceOf(
+      RateLimitError,
+    );
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(sleep).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses configured retry base delay with deterministic jitter", async () => {
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response("rate limited", { status: 429 }))
+      .mockResolvedValueOnce(jsonResponse({ ok: true }));
+    const sleep = vi.fn(async () => undefined);
+    const client = new TrelloClient(config, {
+      fetcher,
+      sleep,
+      random: () => 0.5,
+      retry: { baseDelayMs: 250, maxDelayMs: 1_000 },
+    });
+
+    await expect(client.request("/cards/abc", OkSchema)).resolves.toEqual({
+      ok: true,
+    });
+    expect(sleep).toHaveBeenCalledWith(375);
+  });
+
+  it("caps configured retry delays", async () => {
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response("rate limited", { status: 429 }))
+      .mockResolvedValueOnce(jsonResponse({ ok: true }));
+    const sleep = vi.fn(async () => undefined);
+    const client = new TrelloClient(config, {
+      fetcher,
+      sleep,
+      random: () => 0.75,
+      retry: { baseDelayMs: 1_000, maxDelayMs: 500 },
+    });
+
+    await expect(client.request("/cards/abc", OkSchema)).resolves.toEqual({
+      ok: true,
+    });
+    expect(sleep).toHaveBeenCalledWith(500);
+  });
+
   it("surfaces a distinct RateLimitError after retry cap", async () => {
     const fetcher = vi.fn(
       async () => new Response("rate limited", { status: 429 }),
@@ -281,6 +381,162 @@ describe("TrelloClient", () => {
       RateLimitError,
     );
     expect(fetcher).toHaveBeenCalledTimes(3);
+  });
+
+  it("logs retry and rate-limit wait events with safe metadata", async () => {
+    const { logger, output } = captureLogger();
+    const secretConfig = {
+      TRELLO_API_KEY: "retry-key-secret",
+      TRELLO_TOKEN: "retry-token-secret",
+    };
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response("rate limited", { status: 429 }))
+      .mockImplementation(async () => jsonResponse({ ok: true }));
+    const sleep = vi.fn(async () => undefined);
+    const now = vi.spyOn(Date, "now").mockReturnValue(1_000);
+    const client = new TrelloClient(secretConfig, {
+      fetcher,
+      sleep,
+      random: () => 0,
+      logger,
+      rateLimit: { capacity: 1, refillIntervalMs: 1_234 },
+      retry: { maxAttempts: 2 },
+    });
+
+    try {
+      await client.request("/cards/abc", OkSchema, {
+        resourceType: "card",
+        resourceId: "abc",
+      });
+      await client.request("/cards/def", OkSchema, {
+        method: "POST",
+        resourceType: "card",
+        resourceId: "def",
+      });
+    } finally {
+      now.mockRestore();
+    }
+
+    const logs = await output();
+    expect(logs).toContain("trello request rate limited; retrying");
+    expect(logs).toContain("trello rate limit wait");
+    expect(logs).toContain('"statusCode":429');
+    expect(logs).toContain('"attempt":1');
+    expect(logs).toContain('"maxAttempts":2');
+    expect(logs).toContain('"waitMs":1234');
+    expect(logs).toContain('"method":"POST"');
+    expect(logs).toContain('"resourceType":"card"');
+    expect(logs).toContain('"resourceId":"def"');
+    expect(logs).not.toContain("retry-key-secret");
+    expect(logs).not.toContain("retry-token-secret");
+    expect(logs).not.toContain("https://api.trello.com");
+    expect(logs).not.toContain("key=");
+    expect(logs).not.toContain("token=");
+    expect(logs).not.toContain("/cards/");
+  });
+
+  it("sanitizes URL-shaped resource ids before logging retry events", async () => {
+    const { logger, output } = captureLogger();
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response("rate limited", { status: 429 }))
+      .mockResolvedValueOnce(jsonResponse({ ok: true }));
+    const client = new TrelloClient(config, {
+      fetcher,
+      sleep: async () => undefined,
+      random: () => 0,
+      logger,
+      retry: { maxAttempts: 2 },
+    });
+
+    await client.request("/cards/AbCd1234", OkSchema, {
+      resourceType: "card",
+      resourceId:
+        "https://trello.com/c/AbCd1234/card-name?key=leaky-key&token=leaky-token",
+    });
+
+    const logs = await output();
+    expect(logs).toContain('"resourceId":"AbCd1234"');
+    expect(logs).not.toContain("https://trello.com");
+    expect(logs).not.toContain("card-name");
+    expect(logs).not.toContain("leaky-key");
+    expect(logs).not.toContain("leaky-token");
+    expect(logs).not.toContain("key=");
+    expect(logs).not.toContain("token=");
+  });
+
+  it("uses request-scoped loggers for retry observability", async () => {
+    const baseLogger = {
+      debug: vi.fn(),
+      warn: vi.fn(),
+    };
+    const scopedLogger = {
+      debug: vi.fn(),
+      warn: vi.fn(),
+    };
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response("rate limited", { status: 429 }))
+      .mockResolvedValueOnce(jsonResponse({ ok: true }));
+    const client = new TrelloClient(config, {
+      fetcher,
+      sleep: async () => undefined,
+      random: () => 0,
+      logger: baseLogger as never,
+    });
+
+    await client.withLogger(scopedLogger as never, () =>
+      client.request("/cards/abc", OkSchema),
+    );
+
+    expect(scopedLogger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        statusCode: 429,
+        attempt: 1,
+        maxAttempts: 3,
+        waitMs: 100,
+      }),
+      "trello request rate limited; retrying",
+    );
+    expect(baseLogger.warn).not.toHaveBeenCalled();
+  });
+
+  it("does not log credentials, authenticated URLs, or configured-token paths", async () => {
+    const { logger, output } = captureLogger();
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response("rate limited", { status: 429 }))
+      .mockResolvedValueOnce(
+        jsonResponse({ id: "tokenRecord1", idMember: "member1" }),
+      );
+    const client = new TrelloClient(
+      {
+        TRELLO_API_KEY: "trello-key-secret",
+        TRELLO_TOKEN: "configured-token-secret",
+      },
+      {
+        fetcher,
+        sleep: async () => undefined,
+        random: () => 0,
+        logger,
+        retry: { maxAttempts: 2 },
+      },
+    );
+
+    await client.requestConfiguredToken(
+      z.object({ id: z.string(), idMember: z.string() }),
+      { query: { fields: "id,idMember" } },
+    );
+
+    const logs = await output();
+    expect(logs).toContain("trello request rate limited; retrying");
+    expect(logs).not.toContain("trello-key-secret");
+    expect(logs).not.toContain("configured-token-secret");
+    expect(logs).not.toContain("https://api.trello.com");
+    expect(logs).not.toContain("key=");
+    expect(logs).not.toContain("token=");
+    expect(logs).not.toContain("/tokens/");
   });
 
   it.each([

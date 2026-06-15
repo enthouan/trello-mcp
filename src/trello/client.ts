@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import { readFile, realpath, stat } from "node:fs/promises";
 import { basename, isAbsolute, join, relative } from "node:path";
 import type { z } from "zod";
@@ -11,11 +12,14 @@ import {
   TrelloApiError,
   ValidationError,
 } from "../utils/errors.js";
+import type { Logger } from "../utils/logger.js";
 
 const TRELLO_API_BASE_URL = "https://api.trello.com/1";
 const DEFAULT_CAPACITY = 100;
 const DEFAULT_REFILL_INTERVAL_MS = 10_000;
-const MAX_ATTEMPTS = 3;
+const DEFAULT_RETRY_MAX_ATTEMPTS = 3;
+const DEFAULT_RETRY_BASE_DELAY_MS = 100;
+const DEFAULT_RETRY_MAX_DELAY_MS = 2_000;
 
 type Fetcher = typeof fetch;
 
@@ -41,11 +45,25 @@ type RateLimitOptions = {
   refillIntervalMs?: number;
 };
 
+type RetryOptions = {
+  maxAttempts?: number;
+  baseDelayMs?: number;
+  maxDelayMs?: number;
+};
+
 type TrelloClientOptions = {
   fetcher?: Fetcher;
   sleep?: (ms: number) => Promise<void>;
   random?: () => number;
   rateLimit?: RateLimitOptions;
+  retry?: RetryOptions;
+  logger?: Logger;
+};
+
+type RequestLogFields = {
+  method: string;
+  resourceType?: string;
+  resourceId?: string;
 };
 
 class TokenBucket {
@@ -61,7 +79,7 @@ class TokenBucket {
     this.updatedAt = Date.now();
   }
 
-  public async take(): Promise<void> {
+  public async take(onWait?: (waitMs: number) => void): Promise<void> {
     this.refill();
     if (this.tokens > 0) {
       this.tokens -= 1;
@@ -71,6 +89,7 @@ class TokenBucket {
       1,
       this.refillIntervalMs - (Date.now() - this.updatedAt),
     );
+    onWait?.(waitMs);
     await this.sleep(waitMs);
     this.refill(true);
     this.tokens = Math.max(0, this.tokens - 1);
@@ -90,6 +109,9 @@ export class TrelloClient {
   private readonly sleep: (ms: number) => Promise<void>;
   private readonly random: () => number;
   private readonly bucket: TokenBucket;
+  private readonly retry: Required<RetryOptions>;
+  private readonly logger: Logger | undefined;
+  private readonly loggerContext = new AsyncLocalStorage<Logger>();
 
   public constructor(
     private readonly config: Pick<
@@ -103,11 +125,24 @@ export class TrelloClient {
       options.sleep ??
       ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
     this.random = options.random ?? Math.random;
+    this.retry = {
+      maxAttempts: options.retry?.maxAttempts ?? DEFAULT_RETRY_MAX_ATTEMPTS,
+      baseDelayMs: options.retry?.baseDelayMs ?? DEFAULT_RETRY_BASE_DELAY_MS,
+      maxDelayMs: options.retry?.maxDelayMs ?? DEFAULT_RETRY_MAX_DELAY_MS,
+    };
+    this.logger = options.logger;
     this.bucket = new TokenBucket(
       options.rateLimit?.capacity ?? DEFAULT_CAPACITY,
       options.rateLimit?.refillIntervalMs ?? DEFAULT_REFILL_INTERVAL_MS,
       this.sleep,
     );
+  }
+
+  public async withLogger<T>(
+    logger: Logger,
+    operation: () => Promise<T>,
+  ): Promise<T> {
+    return this.loggerContext.run(logger, operation);
   }
 
   public async request<TSchema extends z.ZodType>(
@@ -117,9 +152,19 @@ export class TrelloClient {
   ): Promise<z.infer<TSchema>> {
     const url = this.buildUrl(path, options.query);
     const init = await this.buildRequestInit(options);
+    const logger = this.requestLogger();
+    const logFields = this.requestLogFields(options, init);
 
-    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
-      await this.bucket.take();
+    for (let attempt = 1; attempt <= this.retry.maxAttempts; attempt += 1) {
+      await this.bucket.take((waitMs) => {
+        logger?.debug(
+          {
+            ...logFields,
+            waitMs,
+          },
+          "trello rate limit wait",
+        );
+      });
       let response: Response;
       try {
         response = await this.fetcher(url, init);
@@ -127,9 +172,32 @@ export class TrelloClient {
         throw new TrelloApiError(0, "Unable to reach Trello API.");
       }
 
-      if (response.status === 429 && attempt < MAX_ATTEMPTS) {
-        await this.sleep(this.backoffMs(attempt));
+      if (response.status === 429 && attempt < this.retry.maxAttempts) {
+        const waitMs = this.backoffMs(attempt);
+        logger?.warn(
+          {
+            ...logFields,
+            statusCode: response.status,
+            attempt,
+            maxAttempts: this.retry.maxAttempts,
+            waitMs,
+          },
+          "trello request rate limited; retrying",
+        );
+        await this.sleep(waitMs);
         continue;
+      }
+
+      if (response.status === 429) {
+        logger?.warn(
+          {
+            ...logFields,
+            statusCode: response.status,
+            attempt,
+            maxAttempts: this.retry.maxAttempts,
+          },
+          "trello request rate limited; retry attempts exhausted",
+        );
       }
 
       if (!response.ok) {
@@ -293,10 +361,27 @@ export class TrelloClient {
   }
 
   private backoffMs(attempt: number): number {
-    return Math.min(
-      2_000,
-      100 * 2 ** (attempt - 1) + Math.floor(this.random() * 100),
-    );
+    const exponentialDelayMs = this.retry.baseDelayMs * 2 ** (attempt - 1);
+    const jitterMs = Math.floor(this.random() * this.retry.baseDelayMs);
+    return Math.min(this.retry.maxDelayMs, exponentialDelayMs + jitterMs);
+  }
+
+  private requestLogger(): Logger | undefined {
+    return this.loggerContext.getStore() ?? this.logger;
+  }
+
+  private requestLogFields(
+    options: RequestOptions,
+    init: RequestInit,
+  ): RequestLogFields {
+    const resourceId = options.resourceId
+      ? safeLogResourceId(options.resourceId)
+      : undefined;
+    return {
+      method: init.method ?? options.method ?? "GET",
+      ...(options.resourceType ? { resourceType: options.resourceType } : {}),
+      ...(resourceId ? { resourceId } : {}),
+    };
   }
 
   private async errorForResponse(
@@ -378,4 +463,48 @@ export class TrelloClient {
     const text = await response.text();
     return text ? (JSON.parse(text) as unknown) : null;
   }
+}
+
+function safeLogResourceId(resourceId: string): string | undefined {
+  const value = resourceId.trim();
+  if (!value) {
+    return undefined;
+  }
+
+  const urlIdentifier = trelloIdentifierFromUrl(value);
+  if (urlIdentifier) {
+    return urlIdentifier;
+  }
+
+  if (isUnsafeLogResourceId(value)) {
+    return "[redacted]";
+  }
+
+  return value;
+}
+
+function trelloIdentifierFromUrl(value: string): string | undefined {
+  try {
+    const url = new URL(value);
+    const pathParts = url.pathname.split("/").filter(Boolean);
+    if (
+      url.hostname.endsWith("trello.com") &&
+      ["b", "c", "w"].includes(pathParts[0] ?? "") &&
+      pathParts[1]
+    ) {
+      return pathParts[1];
+    }
+    return undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function isUnsafeLogResourceId(value: string): boolean {
+  return (
+    value.includes("?") ||
+    value.includes("#") ||
+    value.includes("/") ||
+    /(?:^|[?&#\s])(?:key|token|authorization)\s*=/i.test(value)
+  );
 }

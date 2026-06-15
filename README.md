@@ -114,6 +114,11 @@ TRELLO_API_KEY=your-api-key
 TRELLO_TOKEN=your-token
 TRANSPORT=http
 LOG_LEVEL=info
+TRELLO_RATE_LIMIT_CAPACITY=100
+TRELLO_RATE_LIMIT_REFILL_INTERVAL_MS=10000
+TRELLO_RETRY_MAX_ATTEMPTS=3
+TRELLO_RETRY_BASE_DELAY_MS=100
+TRELLO_RETRY_MAX_DELAY_MS=2000
 # MCP_AUTH_TOKEN=optional-shared-secret
 TRELLO_MCP_HOST_BIND_IP=127.0.0.1
 TRELLO_MCP_HOST_PORT=3000
@@ -136,6 +141,8 @@ ghcr.io/enthouan/trello-mcp:latest
 Docker Compose values such as image tag, host bind IP, host port, and network name can be overridden with environment variables or the `.env` file. The compose files document their defaults at the top; for example, `TRELLO_MCP_IMAGE_TAG` defaults to the `latest` tag in `docker-compose.yml` (`latest` follows the `main` branch, and release tags such as `0.4` and `0.4.1` are available for versioned deployments), `TRELLO_MCP_HOST_BIND_IP` defaults to `127.0.0.1` for local-only access, `TRELLO_MCP_HOST_PORT` defaults to `3000` and maps that host port to the container's fixed internal `3000` listener, while `TRELLO_MCP_NETWORK` defaults to `trello-mcp_network`. Set `TRELLO_MCP_HOST_BIND_IP=0.0.0.0` only when you intentionally want Docker to publish the service on all host interfaces, such as for LAN access.
 
 Set `MCP_AUTH_TOKEN` to require `Authorization: Bearer <token>` on HTTP MCP requests to `/mcp`. Leave it unset for the default unauthenticated local behavior. Health and readiness endpoints remain unauthenticated for container and reverse-proxy checks.
+
+Keep the Trello rate-limit and retry values at their defaults unless logs show `trello rate limit wait` or `trello request rate limited; retrying` during large workflows. Lower the capacity for shared tokens or constrained deployments; raise it carefully only after narrowing the workflow's board, card, field, and pagination scope.
 
 Published Docker image tags use these conventions:
 
@@ -306,6 +313,8 @@ TRELLO_API_KEY=your-api-key
 TRELLO_TOKEN=your-token
 ```
 
+Add the `TRELLO_RATE_LIMIT_*` and `TRELLO_RETRY_*` environment variables to the same MCP client environment only when you need to tune large workflows that are waiting or retrying against Trello rate limits. The defaults are appropriate for ordinary local use.
+
 ### 4. Verify
 
 Check the HTTP server:
@@ -415,6 +424,11 @@ Example MCP config shape:
 | `TRELLO_TOKEN` | yes | | Trello token for token auth. |
 | `MCP_AUTH_TOKEN` | no | | If set, HTTP MCP requests to `/mcp` require `Authorization: Bearer <token>`. Leave unset for no HTTP bearer-token check. |
 | `TRELLO_ATTACHMENT_UPLOAD_ROOT` | no | | Absolute server-side directory that enables local file attachment uploads. Leave unset to disable local uploads. |
+| `TRELLO_RATE_LIMIT_CAPACITY` | no | `100` | Token-bucket capacity for Trello requests before the client waits for a refill. Must be a positive integer. |
+| `TRELLO_RATE_LIMIT_REFILL_INTERVAL_MS` | no | `10000` | Token-bucket refill interval in milliseconds. Must be a positive integer. |
+| `TRELLO_RETRY_MAX_ATTEMPTS` | no | `3` | Total attempts for a Trello request when Trello returns HTTP `429`. Must be a positive integer. |
+| `TRELLO_RETRY_BASE_DELAY_MS` | no | `100` | Exponential backoff base delay in milliseconds for HTTP `429` retries, with bounded jitter. Must be a positive integer. |
+| `TRELLO_RETRY_MAX_DELAY_MS` | no | `2000` | Maximum delay in milliseconds for any HTTP `429` retry wait. Must be a positive integer. |
 | `TRANSPORT` | no | `http` | `http` or `stdio`. |
 | `PORT` | no | `3000` | HTTP listen port for the Node process. Docker Compose keeps the container listener on `3000` and uses `TRELLO_MCP_HOST_PORT` for the published host port. |
 | `LOG_LEVEL` | no | `info` | Pino log level. |
@@ -844,9 +858,27 @@ The setup script enables Corepack, activates the pinned pnpm version, installs d
 
 ### I hit Trello rate limits
 
-- The client retries `429` responses with backoff.
-- Wait a few minutes before retrying large workflows.
-- Prefer narrower prompts that touch fewer cards or lists at once.
+- The client uses a token-bucket limiter before each Trello request. `TRELLO_RATE_LIMIT_CAPACITY` controls how many requests can run in one bucket window, and `TRELLO_RATE_LIMIT_REFILL_INTERVAL_MS` controls how often the bucket refills.
+- When Trello returns HTTP `429`, the client retries with exponential backoff. `TRELLO_RETRY_MAX_ATTEMPTS` controls the total request attempts, `TRELLO_RETRY_BASE_DELAY_MS` controls the starting delay and jitter range, and `TRELLO_RETRY_MAX_DELAY_MS` caps each retry wait.
+- At `LOG_LEVEL=debug`, token-bucket waits are logged as `trello rate limit wait`. HTTP `429` retries are logged as `trello request rate limited; retrying` at warn level. These logs include safe metadata such as method, resource type, resource id, attempt, max attempts, status code, and wait duration; they do not include Trello credentials, full URLs, query strings, or raw request paths.
+- First narrow the prompt or workflow: target one board or list, request only needed fields, use `limit`, `since`, `before`, and `page` where available, and avoid asking an LLM to inspect every card when a smaller search or filtered read will work.
+- If large workflows still wait too often, tune cautiously. For a shared token or automation that should be gentler, lower the bucket:
+
+```bash
+TRELLO_RATE_LIMIT_CAPACITY=50
+TRELLO_RATE_LIMIT_REFILL_INTERVAL_MS=10000
+```
+
+- For a deliberately large, user-triggered workflow, you can allow more retries without increasing the request bucket:
+
+```bash
+TRELLO_RETRY_MAX_ATTEMPTS=5
+TRELLO_RETRY_BASE_DELAY_MS=250
+TRELLO_RETRY_MAX_DELAY_MS=5000
+```
+
+- Avoid raising `TRELLO_RATE_LIMIT_CAPACITY` aggressively unless you understand the Trello account and token's real workload. Higher capacity can make a broad LLM-driven workflow hit Trello's server-side limits faster.
+- Wait a few minutes before retrying a workflow after repeated `429` responses.
 
 ## Contributing
 

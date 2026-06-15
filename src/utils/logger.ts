@@ -21,6 +21,22 @@ export const LOGGER_REDACTION_PATHS = [
   "headers.Authorization",
   "*.headers.authorization",
   "*.headers.Authorization",
+  "url",
+  "*.url",
+  "request.url",
+  "*.request.url",
+  "requestUrl",
+  "*.requestUrl",
+  "path",
+  "*.path",
+  "request.path",
+  "*.request.path",
+  "requestPath",
+  "*.requestPath",
+  "query",
+  "*.query",
+  "request.query",
+  "*.request.query",
 ];
 
 export function createLogger(
