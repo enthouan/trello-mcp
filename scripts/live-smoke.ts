@@ -936,6 +936,7 @@ function untrackedArtifacts(
 
 function matchingArtifacts(values: unknown[], prefix: string): SmokeArtifact[] {
   const artifacts: SmokeArtifact[] = [];
+  const artifactPrefix = `${prefix} `;
   const seen = new Set<string>();
   for (const value of values) {
     if (
@@ -943,7 +944,7 @@ function matchingArtifacts(values: unknown[], prefix: string): SmokeArtifact[] {
       typeof value.id !== "string" ||
       value.id.length === 0 ||
       typeof value.name !== "string" ||
-      !value.name.startsWith(prefix) ||
+      !value.name.startsWith(artifactPrefix) ||
       seen.has(value.id)
     ) {
       continue;
@@ -1084,7 +1085,7 @@ function boardIdentifier(value: string, source: string): string {
     const parts = url.pathname.split("/").filter(Boolean);
     const hostname = url.hostname.toLowerCase();
     if (
-      (hostname === "trello.com" || hostname.endsWith(".trello.com")) &&
+      (hostname === "trello.com" || hostname === "www.trello.com") &&
       parts[0] === "b" &&
       parts[1]
     ) {

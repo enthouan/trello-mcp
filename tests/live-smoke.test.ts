@@ -513,9 +513,20 @@ describe("live smoke config", () => {
     });
   });
 
+  it("accepts www Trello board URLs", () => {
+    const config = loadLiveSmokeConfig({
+      TRELLO_API_KEY: "key1",
+      TRELLO_LIVE_SMOKE: "1",
+      TRELLO_LIVE_SMOKE_BOARD_URL: "https://www.trello.com/b/GnKmvuHz/board",
+      TRELLO_TOKEN: "token1",
+    });
+
+    expect(config.boardRef).toBe("GnKmvuHz");
+  });
+
   it("rejects non-board URLs without echoing credential query strings", () => {
     const credentialUrl =
-      "https://api.trello.com/1/boards/board1?key=secret-key&token=secret-token";
+      "https://api.trello.com/b/board1?key=secret-key&token=secret-token";
 
     expect(() =>
       loadLiveSmokeConfig({
@@ -712,6 +723,56 @@ describe("live smoke flow", () => {
       Array.from(fake.state.lists.values()).every((list) => list.closed),
     ).toBe(true);
     expect(remaining?.(fake) ?? 0).toBe(0);
+  });
+
+  it("does not clean up artifacts from run ids that only share a prefix", async () => {
+    const fake = createFakeSmokeInvoker({ failAfterCreateOn: "list_create" });
+    fake.state.lists.set("other-list", {
+      closed: false,
+      id: "other-list",
+      idBoard: "board1",
+      name: "trello-mcp live smoke pr-10 primary list",
+    });
+    fake.state.cards.set("other-card", {
+      closed: false,
+      desc: "",
+      due: null,
+      dueComplete: false,
+      id: "other-card",
+      idBoard: "board1",
+      idLabels: [],
+      idList: "other-list",
+      idMembers: [],
+      labels: [],
+      name: "trello-mcp live smoke pr-10 card",
+    });
+    fake.state.labels.set("other-label", {
+      color: "blue",
+      id: "other-label",
+      idBoard: "board1",
+      name: "trello-mcp live smoke pr-10 label",
+    });
+
+    let thrown: unknown;
+    try {
+      await runLiveSmokeFlow({
+        boardRef: "board1",
+        invoke: fake.invoke,
+        runId: "pr-1",
+      });
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(LiveSmokeRunError);
+    expect(fake.state.lists.get("other-list")).toMatchObject({
+      closed: false,
+    });
+    expect(fake.state.cards.has("other-card")).toBe(true);
+    expect(fake.state.labels.has("other-label")).toBe(true);
+    expect(
+      (thrown as LiveSmokeRunError).result.cleanup.remainingOpenArtifacts,
+    ).toEqual([]);
   });
 });
 
