@@ -67,6 +67,7 @@ export type LiveSmokeResult = {
 };
 
 type TrackedState = {
+  boardResolved?: boolean;
   cardId?: string;
   labelApplied?: boolean;
   labelId?: string;
@@ -216,6 +217,7 @@ export async function runLiveSmokeFlow(options: {
       throw new Error("Configured live smoke board is closed.");
     }
     result.board = { id: boardId, name: boardName };
+    state.boardResolved = true;
     verify(result, `authenticated and resolved board ${boardName}`);
 
     const visibleBoards = await arrayResult(
@@ -599,7 +601,7 @@ export async function runLiveSmokeFlow(options: {
     });
   }
 
-  if (hasResolvedBoard(result)) {
+  if (hasResolvedBoard(state)) {
     await verifyNoOpenArtifacts(options.invoke, result, prefix, options.log);
   }
 
@@ -658,8 +660,8 @@ function emptyResult(runId: string, boardRef: string): LiveSmokeResult {
   };
 }
 
-function hasResolvedBoard(result: LiveSmokeResult): boolean {
-  return result.board.name !== "unknown";
+function hasResolvedBoard(state: TrackedState): boolean {
+  return state.boardResolved === true;
 }
 
 async function createSmokeList(
@@ -724,7 +726,7 @@ async function cleanupLiveArtifacts(options: {
     );
   }
 
-  if (hasResolvedBoard(result)) {
+  if (hasResolvedBoard(state)) {
     await cleanupUntrackedOpenArtifacts({
       invoke,
       ...(options.log ? { log: options.log } : {}),

@@ -73,7 +73,11 @@ type FakeCall = {
 };
 
 function createFakeSmokeInvoker(
-  options: { failAfterCreateOn?: string; failOn?: string } = {},
+  options: {
+    boardName?: string;
+    failAfterCreateOn?: string;
+    failOn?: string;
+  } = {},
 ): {
   calls: FakeCall[];
   invoke: SmokeToolInvoker;
@@ -89,7 +93,7 @@ function createFakeSmokeInvoker(
   const board: FakeBoard = {
     closed: false,
     id: "board1",
-    name: "Live Smoke Board",
+    name: options.boardName ?? "Live Smoke Board",
   };
   const member: FakeMember = {
     fullName: "Ada Lovelace",
@@ -773,6 +777,40 @@ describe("live smoke flow", () => {
     expect(
       (thrown as LiveSmokeRunError).result.cleanup.remainingOpenArtifacts,
     ).toEqual([]);
+  });
+
+  it("still performs untracked cleanup when the board is named unknown", async () => {
+    const fake = createFakeSmokeInvoker({
+      boardName: "unknown",
+      failAfterCreateOn: "list_create",
+    });
+
+    let thrown: unknown;
+    try {
+      await runLiveSmokeFlow({
+        boardRef: "board1",
+        invoke: fake.invoke,
+        runId: "unknown-board",
+      });
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(LiveSmokeRunError);
+    const result = (thrown as LiveSmokeRunError).result;
+    expect(result.board.name).toBe("unknown");
+    expect(result.verified).toContain(
+      "cleanup recovered 1 untracked prefix-matched smoke artifacts",
+    );
+    expect(result.cleanup.completed).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("archive untracked smoke list"),
+      ]),
+    );
+    expect(result.cleanup.remainingOpenArtifacts).toEqual([]);
+    expect(
+      Array.from(fake.state.lists.values()).every((list) => list.closed),
+    ).toBe(true);
   });
 });
 
