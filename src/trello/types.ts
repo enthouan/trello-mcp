@@ -450,7 +450,10 @@ export const TrelloAttachmentListSchema = z.array(TrelloAttachmentSchema);
 export const TrelloChecklistListSchema = z.array(TrelloChecklistSchema);
 export const TrelloChecklistItemListSchema = z.array(TrelloChecklistItemSchema);
 export const TrelloActionListSchema = z.array(TrelloActionSchema);
-export const DeleteResponseSchema = z
-  .object({ _value: z.union([z.string(), z.null()]).optional() })
-  .passthrough();
+export const DeleteResponseSchema = z.preprocess(
+  (value) => (Array.isArray(value) ? { _value: null } : value),
+  z
+    .object({ _value: z.union([z.string(), z.null()]).optional() })
+    .passthrough(),
+);
 export const TrelloMutationSuccessSchema = z.unknown();

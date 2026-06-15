@@ -452,7 +452,7 @@ The smoke flow validates representative pre-1.0 coverage:
 
 - Auth and discovery: `auth_whoami`, `auth_token_info`, `list_boards`, board reads, lists, cards, labels, members, memberships, and custom-field discovery.
 - List and card writes: disposable list creation/rename/archive, card create/read/update/due-date/position/archive/restore/move/delete.
-- Checklist and item behavior: checklist creation, item create/list/update/check/delete.
+- Checklist and item behavior: checklist creation/deletion plus item create/list/update/check/delete.
 - Labels and members: disposable label create/read/update/apply/remove/delete, plus authenticated-member assignment/removal when that member is visible on the smoke board.
 - Card activity: comment create/update/list/delete on the disposable card.
 
@@ -685,6 +685,7 @@ Use `card_custom_field_clear` to clear an existing card custom field value. Trel
 | `card_attachment_delete` | Use when removing a specific attachment from a card by attachment id. | cardId, attachmentId |
 | `card_checklists` | Use when viewing all checklists and checklist items currently on a card. | cardId |
 | `card_checklist_create` | Use when adding a new checklist to an existing card, optionally copied from another checklist. | cardId, name, sourceChecklistId |
+| `card_checklist_delete` | Use when deleting an entire checklist from a Trello card. | cardId, checklistId |
 | `card_checklist_item_create` | Use when adding a new item to an existing Trello checklist on a card. | checklistId, name, pos, checked, due, dueReminder, memberId |
 | `card_checklist_items` | Use when listing the items in one Trello checklist, including complete and incomplete items by default. | checklistId, filter, fields |
 | `card_checklist_item_update` | Use when editing a Trello card checklist item text, due date, member assignment, completion state, checklist, or position. | cardId, checkItemId, name, state, checklistId, pos, due, dueReminder, memberId |

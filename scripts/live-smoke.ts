@@ -549,9 +549,22 @@ export async function runLiveSmokeFlow(options: {
       cardId,
       checkItemId,
     });
+    await options.invoke("card_checklist_delete", {
+      cardId,
+      checklistId,
+    });
+    const checklistsAfterDelete = await arrayResult(
+      options.invoke("card_checklists", { cardId }),
+      "card_checklists",
+    );
+    if (containsId(checklistsAfterDelete, checklistId)) {
+      throw new Error(
+        "card_checklist_delete did not remove the deleted checklist from card_checklists.",
+      );
+    }
     verify(
       result,
-      "created, read, updated, checked, and deleted checklist item",
+      "created, read, updated, checked, and deleted checklist item and checklist",
     );
 
     const comment = await objectResult(

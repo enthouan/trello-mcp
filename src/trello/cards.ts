@@ -230,6 +230,8 @@ const ChecklistIdInput = z.object({
   checklistId: TrelloIdSchema.describe("Trello checklist id."),
 });
 
+const CardChecklistDeleteInput = CardIdInput.merge(ChecklistIdInput);
+
 const ChecklistItemIdInput = z.object({
   checkItemId: TrelloIdSchema.describe("Trello checklist item id."),
 });
@@ -744,7 +746,21 @@ export const cardTools = [
         resourceId: cardId,
       }),
   }),
-
+  defineTool({
+    name: "card_checklist_delete",
+    description: "Use when deleting an entire checklist from a Trello card.",
+    inputSchema: CardChecklistDeleteInput,
+    handler: async ({ cardId, checklistId }, { trello }) =>
+      trello.request(
+        `${cardPath(cardId)}/checklists/${encodeURIComponent(checklistId)}`,
+        DeleteResponseSchema,
+        {
+          method: "DELETE",
+          resourceType: "checklist",
+          resourceId: checklistId,
+        },
+      ),
+  }),
   defineTool({
     name: "card_checklist_item_create",
     description:
