@@ -437,14 +437,14 @@ TRELLO_TOKEN=your-token \
 corepack pnpm smoke:live
 ```
 
-You may use `TRELLO_LIVE_SMOKE_BOARD_URL` instead of `TRELLO_LIVE_SMOKE_BOARD_ID`; Trello board URLs are normalized to their short link, then the harness resolves the canonical board id with `board_get` before creating anything. `TRELLO_LIVE_SMOKE_RUN_ID` is optional and is included in temporary artifact names when set.
+You may use `TRELLO_LIVE_SMOKE_BOARD_URL` instead of `TRELLO_LIVE_SMOKE_BOARD_ID`; Trello `trello.com/b/...` board URLs are normalized to their short link, then the harness resolves the canonical board id with `board_get` before creating anything. Non-board URLs are rejected without logging their raw value or query string. `TRELLO_LIVE_SMOKE_RUN_ID` is optional and is included in temporary artifact names when set.
 
 Safety model:
 
 - The command exits before any Trello request unless `TRELLO_LIVE_SMOKE=1`, Trello credentials, and a smoke board id or URL are all present.
 - The configured board should be a disposable board reserved for validation, not an active production board.
 - The harness creates uniquely named temporary lists, one card, one label, one checklist, one checklist item, and one comment. It deletes the card and label, archives the temporary lists, and verifies that no open temporary lists, cards, or labels remain.
-- Cleanup runs even when an intermediate validation step fails. Cleanup failures are reported and cause the command to fail.
+- Cleanup runs even when an intermediate validation step fails. It also searches for uniquely prefixed lists, cards, and labels that Trello created before a response validation failure could track them. Cleanup failures are reported and cause the command to fail.
 - The harness invokes the existing tool handlers with a real `TrelloClient`, so tool input validation, Trello response validation, retry/rate-limit handling, and credential redaction stay on the normal code path.
 - The harness does not log API keys, tokens, credential-bearing URLs, raw environment objects, or raw request data.
 
@@ -461,6 +461,8 @@ If the live env vars are absent during local validation, record the live smoke r
 ### GitHub Actions
 
 The repository includes a `Live Trello Smoke` workflow for PR and release validation. It runs on same-repository pull requests and manual dispatch. Fork pull requests are skipped so Trello credentials are not exposed to untrusted PR code.
+
+The workflow runs the offline gates (`pnpm typecheck`, `pnpm lint`, `pnpm build`, and `pnpm test`) before the secret-backed live smoke step.
 
 Before using it, configure a GitHub Environment named `live-smoke` with these secrets:
 

@@ -9,6 +9,7 @@ description: Use when running, verifying, debugging, or reporting the opt-in liv
 
 - Never run live Trello validation from normal CI, `corepack pnpm test`, or any command path that is not explicitly requested.
 - Never contact Trello unless `TRELLO_LIVE_SMOKE=1`, `TRELLO_API_KEY`, `TRELLO_TOKEN`, and either `TRELLO_LIVE_SMOKE_BOARD_ID` or `TRELLO_LIVE_SMOKE_BOARD_URL` are all set.
+- Treat only Trello board ids, short links, and `trello.com/b/...` board URLs as valid board refs. Non-board URLs must fail before any raw value or query string can be logged.
 - Use a board reserved for disposable validation artifacts. Do not point the harness at a production planning board unless the user explicitly accepts temporary lists, cards, labels, checklists, and comments there.
 - Do not log Trello API keys, tokens, credential-bearing URLs, raw env, or raw request data.
 - Treat a missing live env preflight failure as a valid skipped-live result when local credentials are unavailable.
@@ -35,6 +36,8 @@ corepack pnpm docs:tools
 
 Use the `Live Trello Smoke` workflow for remote PR and release validation. It runs for same-repository pull requests and manual dispatch. Fork PRs are skipped so Trello credentials are not exposed to untrusted PR code.
 
+The workflow must run `pnpm typecheck`, `pnpm lint`, `pnpm build`, and `pnpm test` before the secret-backed `pnpm smoke:live` step.
+
 Before asking GitHub Actions to run live smoke, confirm the repository has a `live-smoke` Environment with:
 
 - `TRELLO_LIVE_SMOKE_API_KEY`
@@ -56,7 +59,7 @@ TRELLO_TOKEN=<trello-token> \
 corepack pnpm smoke:live
 ```
 
-`TRELLO_LIVE_SMOKE_BOARD_URL` may be used instead of `TRELLO_LIVE_SMOKE_BOARD_ID`. `TRELLO_LIVE_SMOKE_RUN_ID` is optional and helps identify temporary artifacts.
+`TRELLO_LIVE_SMOKE_BOARD_URL` may be used instead of `TRELLO_LIVE_SMOKE_BOARD_ID`, but it must be a `trello.com/b/...` board URL. `TRELLO_LIVE_SMOKE_RUN_ID` is optional and helps identify temporary artifacts.
 
 ## Expected Coverage
 
@@ -78,6 +81,8 @@ The command must attempt cleanup even after an intermediate failure. A successfu
 - validation steps completed,
 - cleanup steps completed,
 - no open smoke-test lists, cards, or labels remaining.
+
+Cleanup should also discover and remove prefix-matched lists, cards, and labels that were created by Trello but not recorded because a create response failed validation.
 
 If cleanup fails, report exactly which artifacts may remain and avoid claiming the board is clean.
 
