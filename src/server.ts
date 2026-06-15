@@ -25,7 +25,18 @@ export function createServer(config: Config, logger: Logger): AppServer {
     name: "trello-mcp",
     version: packageJson.version,
   });
-  const trello = new TrelloClient(config);
+  const trello = new TrelloClient(config, {
+    logger,
+    rateLimit: {
+      capacity: config.TRELLO_RATE_LIMIT_CAPACITY,
+      refillIntervalMs: config.TRELLO_RATE_LIMIT_REFILL_INTERVAL_MS,
+    },
+    retry: {
+      maxAttempts: config.TRELLO_RETRY_MAX_ATTEMPTS,
+      baseDelayMs: config.TRELLO_RETRY_BASE_DELAY_MS,
+      maxDelayMs: config.TRELLO_RETRY_MAX_DELAY_MS,
+    },
+  });
   const tools = allTools;
 
   for (const tool of tools) {

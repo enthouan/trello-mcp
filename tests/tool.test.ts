@@ -18,6 +18,11 @@ const logger = {
   warn: vi.fn(),
 };
 
+const trello = {
+  withLogger: async <T>(_logger: unknown, operation: () => Promise<T>) =>
+    operation(),
+};
+
 type RegisteredHandler = (input: unknown) => Promise<unknown>;
 
 function fakeServer(): {
@@ -48,7 +53,7 @@ describe("registerTool", () => {
     });
 
     registerTool(server as never, tool, {
-      trello: {} as never,
+      trello: trello as never,
       logger: logger as never,
     });
 
@@ -68,7 +73,7 @@ describe("registerTool", () => {
     });
 
     registerTool(server as never, tool, {
-      trello: {} as never,
+      trello: trello as never,
       logger: logger as never,
     });
 
@@ -94,7 +99,7 @@ describe("registerTool", () => {
     });
 
     registerTool(server as never, tool, {
-      trello: {} as never,
+      trello: trello as never,
       logger: logger as never,
     });
 

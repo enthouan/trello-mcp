@@ -60,11 +60,14 @@ export function registerTool(
       logger.debug("tool invocation started");
       try {
         const input = tool.inputSchema.parse(rawInput);
-        const result = await tool.handler(input, {
+        const context = {
           ...baseContext,
           logger,
           requestId,
-        });
+        };
+        const result = await baseContext.trello.withLogger(logger, () =>
+          tool.handler(input, context),
+        );
         logger.debug(
           { durationMs: Math.round(performance.now() - startedAt) },
           "tool invocation completed",
