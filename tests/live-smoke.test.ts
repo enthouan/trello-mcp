@@ -72,7 +72,9 @@ type FakeCall = {
   name: string;
 };
 
-function createFakeSmokeInvoker(options: { failOn?: string } = {}): {
+function createFakeSmokeInvoker(
+  options: { failAfterCreateOn?: string; failOn?: string } = {},
+): {
   calls: FakeCall[];
   invoke: SmokeToolInvoker;
   state: {
@@ -158,6 +160,9 @@ function createFakeSmokeInvoker(options: { failOn?: string } = {}): {
           name: requiredInputString(input, "name"),
         };
         state.lists.set(id, list);
+        if (options.failAfterCreateOn === name) {
+          throw new Error(`planned post-create failure in ${name}`);
+        }
         return list;
       }
       case "list_get":
@@ -207,6 +212,9 @@ function createFakeSmokeInvoker(options: { failOn?: string } = {}): {
           name: requiredInputString(input, "name"),
         };
         state.cards.set(id, card);
+        if (options.failAfterCreateOn === name) {
+          throw new Error(`planned post-create failure in ${name}`);
+        }
         return card;
       }
       case "card_get":
@@ -283,6 +291,9 @@ function createFakeSmokeInvoker(options: { failOn?: string } = {}): {
           name: requiredInputString(input, "name"),
         };
         state.labels.set(id, label);
+        if (options.failAfterCreateOn === name) {
+          throw new Error(`planned post-create failure in ${name}`);
+        }
         return label;
       }
       case "label_get":
@@ -501,6 +512,35 @@ describe("live smoke config", () => {
       runId: "local-2026-06-14T10-11-12-123Z",
     });
   });
+
+  it("rejects non-board URLs without echoing credential query strings", () => {
+    const credentialUrl =
+      "https://api.trello.com/1/boards/board1?key=secret-key&token=secret-token";
+
+    expect(() =>
+      loadLiveSmokeConfig({
+        TRELLO_API_KEY: "key1",
+        TRELLO_LIVE_SMOKE: "1",
+        TRELLO_LIVE_SMOKE_BOARD_URL: credentialUrl,
+        TRELLO_TOKEN: "token1",
+      }),
+    ).toThrow(LiveSmokeConfigError);
+
+    try {
+      loadLiveSmokeConfig({
+        TRELLO_API_KEY: "key1",
+        TRELLO_LIVE_SMOKE: "1",
+        TRELLO_LIVE_SMOKE_BOARD_URL: credentialUrl,
+        TRELLO_TOKEN: "token1",
+      });
+    } catch (error) {
+      const message = (error as Error).message;
+      expect(message).toContain("TRELLO_LIVE_SMOKE_BOARD_URL");
+      expect(message).not.toContain("secret-key");
+      expect(message).not.toContain("secret-token");
+      expect(message).not.toContain(credentialUrl);
+    }
+  });
 });
 
 describe("live smoke flow", () => {
@@ -509,7 +549,8 @@ describe("live smoke flow", () => {
     const logs: SmokeLogEvent[] = [];
 
     const result = await runLiveSmokeFlow({
-      boardRef: "board1",
+      boardRef:
+        "https://trello.com/b/board1/live-smoke?key=secret-key&token=secret-token",
       invoke: fake.invoke,
       log: (event) => logs.push(event),
       runId: "unit",
@@ -577,6 +618,11 @@ describe("live smoke flow", () => {
       ]),
     );
     expect(logs.some((event) => event.level === "error")).toBe(false);
+    expect(logs[0]).toMatchObject({
+      details: { boardRef: "board1", runId: "unit" },
+    });
+    expect(JSON.stringify(logs)).not.toContain("secret-key");
+    expect(JSON.stringify(logs)).not.toContain("secret-token");
   });
 
   it("still deletes and archives tracked artifacts after a mid-flow failure", async () => {
@@ -612,6 +658,60 @@ describe("live smoke flow", () => {
     expect(
       Array.from(fake.state.lists.values()).every((list) => list.closed),
     ).toBe(true);
+  });
+
+  it.each([
+    {
+      completedStep: "archive untracked smoke list",
+      failAfterCreateOn: "list_create",
+      remaining: () => undefined,
+    },
+    {
+      completedStep: "delete untracked smoke card",
+      failAfterCreateOn: "card_create",
+      remaining: (fake: ReturnType<typeof createFakeSmokeInvoker>) =>
+        fake.state.cards.size,
+    },
+    {
+      completedStep: "delete untracked smoke label",
+      failAfterCreateOn: "label_create",
+      remaining: (fake: ReturnType<typeof createFakeSmokeInvoker>) =>
+        fake.state.labels.size,
+    },
+  ])("discovers and cleans up untracked artifacts after $failAfterCreateOn post-create failures", async ({
+    completedStep,
+    failAfterCreateOn,
+    remaining,
+  }) => {
+    const fake = createFakeSmokeInvoker({ failAfterCreateOn });
+
+    let thrown: unknown;
+    try {
+      await runLiveSmokeFlow({
+        boardRef: "board1",
+        invoke: fake.invoke,
+        runId: `unit-${failAfterCreateOn}`,
+      });
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(LiveSmokeRunError);
+    const result = (thrown as LiveSmokeRunError).result;
+    expect(result.failures).toEqual([
+      `planned post-create failure in ${failAfterCreateOn}`,
+    ]);
+    expect(result.verified).toContain(
+      "cleanup recovered 1 untracked prefix-matched smoke artifacts",
+    );
+    expect(result.cleanup.completed).toEqual(
+      expect.arrayContaining([expect.stringContaining(completedStep)]),
+    );
+    expect(result.cleanup.remainingOpenArtifacts).toEqual([]);
+    expect(
+      Array.from(fake.state.lists.values()).every((list) => list.closed),
+    ).toBe(true);
+    expect(remaining?.(fake) ?? 0).toBe(0);
   });
 });
 

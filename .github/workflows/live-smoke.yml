@@ -31,6 +31,10 @@ jobs:
         with:
           node-version-file: .nvmrc
       - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm build
+      - run: pnpm test
       - run: pnpm smoke:live
         env:
           TRELLO_LIVE_SMOKE: "1"

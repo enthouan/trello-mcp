@@ -177,15 +177,16 @@ export async function runLiveSmokeFlow(options: {
   log?: (event: SmokeLogEvent) => void;
   runId: string;
 }): Promise<LiveSmokeResult> {
+  const boardRef = boardIdentifier(options.boardRef, "boardRef");
   const prefix = `trello-mcp live smoke ${options.runId}`;
   const state: TrackedState = {};
-  const result = emptyResult(options.runId, options.boardRef);
+  const result = emptyResult(options.runId, boardRef);
   let failure: unknown;
 
   options.log?.({
     level: "info",
     message: "Starting live Trello smoke test",
-    details: { boardRef: options.boardRef, runId: options.runId },
+    details: { boardRef, runId: options.runId },
   });
 
   try {
@@ -204,7 +205,7 @@ export async function runLiveSmokeFlow(options: {
 
     const board = await objectResult(
       options.invoke("board_get", {
-        boardId: options.boardRef,
+        boardId: boardRef,
         fields: "name,closed,url",
       }),
       "board_get",
@@ -591,13 +592,14 @@ export async function runLiveSmokeFlow(options: {
   } finally {
     await cleanupLiveArtifacts({
       invoke: options.invoke,
+      prefix,
       result,
       state,
       ...(options.log ? { log: options.log } : {}),
     });
   }
 
-  if (result.board.id !== options.boardRef || result.board.name !== "unknown") {
+  if (hasResolvedBoard(result)) {
     await verifyNoOpenArtifacts(options.invoke, result, prefix, options.log);
   }
 
@@ -656,6 +658,10 @@ function emptyResult(runId: string, boardRef: string): LiveSmokeResult {
   };
 }
 
+function hasResolvedBoard(result: LiveSmokeResult): boolean {
+  return result.board.name !== "unknown";
+}
+
 async function createSmokeList(
   invoke: SmokeToolInvoker,
   result: LiveSmokeResult,
@@ -677,6 +683,7 @@ async function createSmokeList(
 async function cleanupLiveArtifacts(options: {
   invoke: SmokeToolInvoker;
   log?: (event: SmokeLogEvent) => void;
+  prefix: string;
   result: LiveSmokeResult;
   state: TrackedState;
 }): Promise<void> {
@@ -717,12 +724,115 @@ async function cleanupLiveArtifacts(options: {
     );
   }
 
+  if (hasResolvedBoard(result)) {
+    await cleanupUntrackedOpenArtifacts({
+      invoke,
+      ...(options.log ? { log: options.log } : {}),
+      prefix: options.prefix,
+      result,
+    });
+  }
+
   for (const list of [...result.created.lists].reverse()) {
     await cleanupStep(
       result,
       options.log,
       `archive smoke list ${list.id}`,
       () => invoke("list_archive", { closed: true, listId: list.id }),
+    );
+  }
+}
+
+async function cleanupUntrackedOpenArtifacts(options: {
+  invoke: SmokeToolInvoker;
+  log?: (event: SmokeLogEvent) => void;
+  prefix: string;
+  result: LiveSmokeResult;
+}): Promise<void> {
+  const { invoke, prefix, result } = options;
+  const trackedLabelIds = new Set(result.created.labels.map(({ id }) => id));
+  const trackedCardIds = new Set(result.created.cards.map(({ id }) => id));
+  const trackedListIds = new Set(result.created.lists.map(({ id }) => id));
+
+  let openLists: unknown[];
+  let openCards: unknown[];
+  let labels: unknown[];
+  try {
+    [openLists, openCards, labels] = await Promise.all([
+      arrayResult(
+        invoke("board_lists", {
+          boardId: result.board.id,
+          fields: "name,closed,idBoard",
+          filter: "open",
+        }),
+        "board_lists untracked cleanup",
+      ),
+      arrayResult(
+        invoke("board_cards", {
+          boardId: result.board.id,
+          fields: "name,closed,idList",
+          filter: "open",
+          limit: 1000,
+        }),
+        "board_cards untracked cleanup",
+      ),
+      arrayResult(
+        invoke("board_labels", {
+          boardId: result.board.id,
+          fields: "name,color",
+          limit: 1000,
+        }),
+        "board_labels untracked cleanup",
+      ),
+    ]);
+  } catch (error) {
+    const message = `discover untracked smoke artifacts: ${errorMessage(error)}`;
+    result.cleanup.failures.push(message);
+    options.log?.({
+      level: "warn",
+      message: "Untracked cleanup discovery failed",
+      details: { error: message },
+    });
+    return;
+  }
+
+  const untrackedLabels = untrackedArtifacts(labels, prefix, trackedLabelIds);
+  const untrackedCards = untrackedArtifacts(openCards, prefix, trackedCardIds);
+  const untrackedLists = untrackedArtifacts(openLists, prefix, trackedListIds);
+
+  for (const label of untrackedLabels.reverse()) {
+    await cleanupStep(
+      result,
+      options.log,
+      `delete untracked smoke label ${label.id}`,
+      () => invoke("label_delete", { labelId: label.id }),
+    );
+  }
+
+  for (const card of untrackedCards.reverse()) {
+    await cleanupStep(
+      result,
+      options.log,
+      `delete untracked smoke card ${card.id}`,
+      () => invoke("card_delete", { cardId: card.id }),
+    );
+  }
+
+  for (const list of untrackedLists.reverse()) {
+    await cleanupStep(
+      result,
+      options.log,
+      `archive untracked smoke list ${list.id}`,
+      () => invoke("list_archive", { closed: true, listId: list.id }),
+    );
+  }
+
+  const recovered =
+    untrackedLabels.length + untrackedCards.length + untrackedLists.length;
+  if (recovered > 0) {
+    verify(
+      result,
+      `cleanup recovered ${recovered} untracked prefix-matched smoke artifacts`,
     );
   }
 }
@@ -809,14 +919,39 @@ function matchingNames(
   prefix: string,
   kind: string,
 ): string[] {
-  return values.flatMap((value) => {
-    if (!isRecord(value) || typeof value.name !== "string") {
-      return [];
+  return matchingArtifacts(values, prefix).map(
+    (artifact) => `${kind} ${artifact.id} (${artifact.name})`,
+  );
+}
+
+function untrackedArtifacts(
+  values: unknown[],
+  prefix: string,
+  trackedIds: ReadonlySet<string>,
+): SmokeArtifact[] {
+  return matchingArtifacts(values, prefix).filter(
+    (artifact) => !trackedIds.has(artifact.id),
+  );
+}
+
+function matchingArtifacts(values: unknown[], prefix: string): SmokeArtifact[] {
+  const artifacts: SmokeArtifact[] = [];
+  const seen = new Set<string>();
+  for (const value of values) {
+    if (
+      !isRecord(value) ||
+      typeof value.id !== "string" ||
+      value.id.length === 0 ||
+      typeof value.name !== "string" ||
+      !value.name.startsWith(prefix) ||
+      seen.has(value.id)
+    ) {
+      continue;
     }
-    return value.name.startsWith(prefix)
-      ? [`${kind} ${stringField(value, "id", kind)} (${value.name})`]
-      : [];
-  });
+    artifacts.push({ id: value.id, name: value.name });
+    seen.add(value.id);
+  }
+  return artifacts;
 }
 
 async function objectResult(
@@ -922,26 +1057,49 @@ function nonEmpty(value: string | undefined): string | undefined {
 }
 
 function liveSmokeBoardRef(env: NodeJS.ProcessEnv): string | undefined {
-  const raw =
-    nonEmpty(env.TRELLO_LIVE_SMOKE_BOARD_ID) ??
-    nonEmpty(env.TRELLO_LIVE_SMOKE_BOARD_URL);
-  if (!raw) {
-    return undefined;
+  const boardId = nonEmpty(env.TRELLO_LIVE_SMOKE_BOARD_ID);
+  if (boardId) {
+    return boardIdentifier(boardId, "TRELLO_LIVE_SMOKE_BOARD_ID");
   }
-  return boardIdentifier(raw);
+
+  const boardUrl = nonEmpty(env.TRELLO_LIVE_SMOKE_BOARD_URL);
+  if (boardUrl) {
+    return boardIdentifier(boardUrl, "TRELLO_LIVE_SMOKE_BOARD_URL");
+  }
+
+  return undefined;
 }
 
-function boardIdentifier(value: string): string {
-  try {
-    const url = new URL(value);
+function boardIdentifier(value: string, source: string): string {
+  const raw = value.trim();
+  if (raw.includes("://")) {
+    let url: URL;
+    try {
+      url = new URL(raw);
+    } catch {
+      throw new LiveSmokeConfigError(
+        `${source} must be a Trello board id, short link, or trello.com /b/ board URL.`,
+      );
+    }
     const parts = url.pathname.split("/").filter(Boolean);
-    if (url.hostname.endsWith("trello.com") && parts[0] === "b" && parts[1]) {
+    const hostname = url.hostname.toLowerCase();
+    if (
+      (hostname === "trello.com" || hostname.endsWith(".trello.com")) &&
+      parts[0] === "b" &&
+      parts[1]
+    ) {
       return parts[1];
     }
-  } catch {
-    // Treat non-URL values as Trello board ids or short links.
+    throw new LiveSmokeConfigError(
+      `${source} must be a Trello board id, short link, or trello.com /b/ board URL.`,
+    );
   }
-  return value;
+  if (/^[A-Za-z0-9_-]+$/.test(raw)) {
+    return raw;
+  }
+  throw new LiveSmokeConfigError(
+    `${source} must be a Trello board id, short link, or trello.com /b/ board URL.`,
+  );
 }
 
 function smokeRunId(value: string | undefined, now: Date): string {
