@@ -1,5 +1,28 @@
 # Changelog
 
+## v0.6.0
+
+Reliability and tool ergonomics release, with opt-in live Trello validation,
+checklist deletion, and tunable rate-limit handling.
+
+### Trello Tools
+
+- Add `card_checklist_delete` for deleting an entire checklist from a Trello card.
+- Cover checklist deletion in the generated MCP tool catalog and the opt-in live smoke and regression flows.
+
+### Live Validation
+
+- Add `corepack pnpm smoke:live` for a guarded, disposable-board release smoke test against real Trello.
+- Add `corepack pnpm regression:live` for broader opt-in live regression coverage by domain or individual tool.
+- Add cleanup verification, explicit environment gates, and JSON reporting for live validation runs.
+- Keep secret-backed live regression workflow dispatch isolated from normal pull request and CI runs.
+
+### Runtime And Observability
+
+- Add configurable Trello rate-limit and retry settings for large workflows.
+- Log safe retry and token-bucket wait metadata without exposing Trello credentials, raw URLs, or query strings.
+- Limit build-test push runs to `main` while keeping pull request validation intact.
+
 ## v0.5.1
 
 Patch release for Trello label color compatibility.
