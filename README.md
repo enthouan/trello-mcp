@@ -452,7 +452,7 @@ The smoke flow validates representative pre-1.0 coverage:
 
 - Auth and discovery: `auth_whoami`, `auth_token_info`, `list_boards`, board reads, lists, cards, labels, members, memberships, and custom-field discovery.
 - List and card writes: disposable list creation/rename/archive, card create/read/update/due-date/position/archive/restore/move/delete.
-- Checklist and item behavior: checklist creation, item create/list/update/check/delete.
+- Checklist and item behavior: checklist creation/deletion plus item create/list/update/check/delete.
 - Labels and members: disposable label create/read/update/apply/remove/delete, plus authenticated-member assignment/removal when that member is visible on the smoke board.
 - Card activity: comment create/update/list/delete on the disposable card.
 

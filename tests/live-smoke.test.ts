@@ -440,6 +440,16 @@ function createFakeSmokeInvoker(
       case "card_checklist_item_delete":
         state.checklistItems.delete(requiredInputString(input, "checkItemId"));
         return { _value: null };
+      case "card_checklist_delete": {
+        const checklistId = requiredInputString(input, "checklistId");
+        state.checklists.delete(checklistId);
+        for (const [itemId, item] of state.checklistItems) {
+          if (item.idChecklist === checklistId) {
+            state.checklistItems.delete(itemId);
+          }
+        }
+        return { _value: null };
+      }
       case "card_comment_add": {
         const id = next("action");
         const action = {
@@ -585,7 +595,7 @@ describe("live smoke flow", () => {
         "updated, archived, restored, and moved disposable card",
         "created, updated, applied, and removed disposable label",
         "safely assigned and removed authenticated member",
-        "created, read, updated, checked, and deleted checklist item",
+        "created, read, updated, checked, and deleted checklist item and checklist",
         "created, updated, listed, and deleted a card comment",
         "cleanup verification found no open temp lists, cards, or labels",
       ]),
@@ -625,6 +635,7 @@ describe("live smoke flow", () => {
         "card_checklist_item_create",
         "card_checklist_item_set_checked",
         "card_checklist_item_delete",
+        "card_checklist_delete",
         "card_comment_add",
         "card_comment_update",
         "card_comment_delete",
