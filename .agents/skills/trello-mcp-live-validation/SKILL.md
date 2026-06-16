@@ -1,13 +1,13 @@
 ---
-name: trello-mcp-live-smoke-test
-description: Use when a user asks to live-test the Trello MCP server, smoke-test all MCP tools, verify roadmap-board integration, exercise Trello tools against a real board, or run safe end-to-end Trello MCP validation. Covers env gates, target board confirmation, disposable artifact safety, smoke vs regression commands, tool-surface comparison, cleanup verification, and failure reporting.
+name: trello-mcp-live-validation
+description: Use when a user asks to live-test the Trello MCP server, run live smoke or regression validation, smoke-test all MCP tools, verify roadmap-board integration, exercise Trello tools against a real board, or run safe end-to-end Trello MCP validation. Covers env gates, target board confirmation, disposable artifact safety, smoke vs regression commands, tool-surface comparison, cleanup verification, and failure reporting.
 ---
 
-# Trello MCP Live Smoke Test
+# Trello MCP Live Validation
 
 ## Trigger And Scope
 
-Use this skill when the user asks to run, verify, debug, or report live Trello MCP behavior against a real Trello board, including broad "all tools" smoke passes and roadmap-board integration checks.
+Use this skill when the user asks to run, verify, debug, or report live Trello MCP behavior against a real Trello board, including smoke checks, regression runs, broad "all tools" passes, and roadmap-board integration checks.
 
 Do not use it for ordinary unit tests, static review, generic Trello API design, or offline script changes unless the user specifically asks for live MCP behavior.
 

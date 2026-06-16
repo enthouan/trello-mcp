@@ -1,4 +1,0 @@
-interface:
-  display_name: "Trello MCP Live Smoke Test"
-  short_description: "Run the opt-in live Trello smoke test harness safely."
-  default_prompt: "Run or verify the trello-mcp live smoke test harness."
