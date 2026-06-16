@@ -490,6 +490,8 @@ corepack pnpm regression:live
 
 Use `TRELLO_LIVE_REGRESSION_BOARD_URL` instead of `TRELLO_LIVE_REGRESSION_BOARD_ID` when a `trello.com/b/...` board URL is more convenient. Non-board URLs are rejected before any Trello request and without logging raw query strings.
 
+Set `TRELLO_LIVE_REGRESSION_SECONDARY_BOARD_ID` or `TRELLO_LIVE_REGRESSION_SECONDARY_BOARD_URL` when you want live coverage for cross-board list moves. The secondary board is optional for local runs; when it is absent, `list_move_to_board` is reported as an intentional runtime skip instead of missing coverage. When it is present, the suite resolves it with `board_get`, confirms the token can see it through `list_boards`, verifies it is open and different from the primary board, then moves only disposable lists between the two boards.
+
 Targeted runs are useful when debugging a domain or one tool:
 
 ```bash
@@ -508,13 +510,22 @@ TRELLO_TOKEN=your-token \
 corepack pnpm regression:live --tool card_attachment_upload
 ```
 
+```bash
+TRELLO_LIVE_REGRESSION=1 \
+TRELLO_LIVE_REGRESSION_BOARD_ID=your-primary-disposable-board-id-or-short-link \
+TRELLO_LIVE_REGRESSION_SECONDARY_BOARD_ID=your-secondary-disposable-board-id-or-short-link \
+TRELLO_API_KEY=your-api-key \
+TRELLO_TOKEN=your-token \
+corepack pnpm regression:live --tool list_move_to_board
+```
+
 You may also use `TRELLO_LIVE_REGRESSION_DOMAINS=cards,attachments` and `TRELLO_LIVE_REGRESSION_TOOLS=card_get,card_update`. Supported domains are `auth`, `boards`, `lists`, `cards`, `labels`, `checklists`, `members`, `workspaces`, `search`, `custom-fields`, `comments-actions`, and `attachments`.
 
 Set `TRELLO_LIVE_REGRESSION_REPORT_JSON=reports/live-regression.json` to emit a machine-readable report in addition to the human-readable terminal report. The report groups tools by domain and shows:
 
 - `covered`: tool handlers successfully exercised against Trello.
 - `skipped`: intentional runtime skips, such as no visible workspace, no board custom fields, or upload coverage not configured.
-- `unsupported`: non-goal live cases that are intentionally outside the single-board regression suite, such as `list_move_to_board`.
+- `unsupported`: non-goal live cases that are intentionally outside regression coverage, such as `board_create`.
 - `missing`: selected public tools with no regression coverage classification. Missing coverage fails the command so new public tools do not silently disappear from release validation.
 - cleanup status, including attempted/completed cleanup steps and any remaining prefix-matched open artifacts.
 
@@ -522,8 +533,9 @@ Regression safety model:
 
 - The command exits before any Trello request unless `TRELLO_LIVE_REGRESSION=1`, Trello credentials, and a regression board id or URL are all present.
 - The configured board should be a disposable board reserved for validation, not an active production board.
+- The optional secondary board should also be disposable. It is only mutated for `list_move_to_board`, and only with lists created by the regression run.
 - Temporary artifacts use a unique run id and the `trello-mcp live regression ...` prefix. Set `TRELLO_LIVE_REGRESSION_RUN_ID` when you want a human-readable run marker.
-- Cleanup runs after intermediate failures. It removes tracked temporary cards, labels, attachments, member/label assignments, custom-field values, and archives temporary lists. It also searches for prefix-matched lists, cards, and labels that were created before the response could be tracked.
+- Cleanup runs after intermediate failures. It removes tracked temporary cards, labels, attachments, member/label assignments, custom-field values, and archives temporary lists. It also searches all configured regression boards for prefix-matched lists, cards, and labels that were created before the response could be tracked.
 - The suite invokes registered tool handlers with a real `TrelloClient`; it does not call Trello through a separate ad hoc client.
 - The suite does not log API keys, tokens, credential-bearing URLs, raw environment objects, or raw request data.
 

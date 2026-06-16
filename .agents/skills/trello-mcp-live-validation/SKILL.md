@@ -79,12 +79,24 @@ corepack pnpm smoke:live
 ```bash
 TRELLO_LIVE_REGRESSION=1 \
 TRELLO_LIVE_REGRESSION_BOARD_ID=<disposable-board-id-or-short-link> \
+TRELLO_LIVE_REGRESSION_SECONDARY_BOARD_ID=<optional-secondary-disposable-board-id-or-short-link> \
 TRELLO_API_KEY=<trello-api-key> \
 TRELLO_TOKEN=<trello-token> \
 corepack pnpm regression:live
 ```
 
-Use `TRELLO_LIVE_REGRESSION_BOARD_URL` instead of `TRELLO_LIVE_REGRESSION_BOARD_ID` for a `trello.com/b/...` URL. Use `--domain <domain>`, `--tool <tool>`, `TRELLO_LIVE_REGRESSION_DOMAINS`, or `TRELLO_LIVE_REGRESSION_TOOLS` for focused runs. Use `TRELLO_LIVE_REGRESSION_REPORT_JSON=reports/live-regression.json` when a machine-readable report is useful.
+Use `TRELLO_LIVE_REGRESSION_BOARD_URL` instead of `TRELLO_LIVE_REGRESSION_BOARD_ID` for a `trello.com/b/...` URL. Use `TRELLO_LIVE_REGRESSION_SECONDARY_BOARD_URL` instead of `TRELLO_LIVE_REGRESSION_SECONDARY_BOARD_ID` when configuring the optional secondary board for `list_move_to_board`. Use `--secondary-board <board-id-short-link-or-url>` for a focused local override. Use `--domain <domain>`, `--tool <tool>`, `TRELLO_LIVE_REGRESSION_DOMAINS`, or `TRELLO_LIVE_REGRESSION_TOOLS` for focused runs. Use `TRELLO_LIVE_REGRESSION_REPORT_JSON=reports/live-regression.json` when a machine-readable report is useful.
+
+Focused cross-board list move validation:
+
+```bash
+TRELLO_LIVE_REGRESSION=1 \
+TRELLO_LIVE_REGRESSION_BOARD_ID=<primary-disposable-board-id-or-short-link> \
+TRELLO_LIVE_REGRESSION_SECONDARY_BOARD_ID=<secondary-disposable-board-id-or-short-link> \
+TRELLO_API_KEY=<trello-api-key> \
+TRELLO_TOKEN=<trello-token> \
+corepack pnpm regression:live --tool list_move_to_board
+```
 
 ## Current Tool Surface Discovery
 
@@ -109,7 +121,7 @@ The smoke harness validates these representative workflows through existing tool
 - Member flow: read card members and assign/remove the authenticated member only when that member is visible on the board.
 - Activity flow: create/update/list/delete a disposable comment.
 
-The regression suite classifies the broader registered tool surface as `covered`, `skipped`, `unsupported`, or `missing`.
+The regression suite classifies the broader registered tool surface as `covered`, `skipped`, `unsupported`, or `missing`. `list_move_to_board` is covered when a secondary disposable board is configured and intentionally skipped when it is not configured.
 
 Current `board_create` behavior: `board_create` exists, but live regression intentionally classifies it as `unsupported` because it creates a real Trello board and this repo does not yet have a verified board cleanup path. Do not run `board_create` live against a real account unless the user explicitly provides a disposable target, understands that a new board will be created, and accepts the cleanup expectations.
 
@@ -123,7 +135,7 @@ Commands and manual passes must attempt cleanup even after an intermediate failu
 - cleanup steps completed,
 - no open smoke-test lists, cards, or labels remaining.
 
-Cleanup should also discover and remove prefix-matched lists, cards, and labels that were created by Trello but not recorded because a create response failed validation.
+Cleanup should also discover and remove prefix-matched lists, cards, and labels that were created by Trello but not recorded because a create response failed validation. Regression cleanup must check every configured disposable regression board, including the secondary board used for cross-board list moves.
 
 If cleanup fails, report exactly which artifacts may remain and avoid claiming the board is clean.
 
@@ -175,7 +187,7 @@ If using GitHub Actions, include the workflow run URL and conclusion. If the loc
 
 Use the `Live Trello Smoke` workflow for remote PR, post-merge `main`, and release validation. It runs offline gates before the secret-backed `pnpm smoke:live` step, and fork PRs are skipped so Trello credentials are not exposed to untrusted code. Never convert this workflow to `pull_request_target`.
 
-Use the `Live Trello Regression` workflow for manual release-candidate or focused live debugging. It is intentionally manual-only and should not become a normal PR gate without an explicit project decision.
+Use the `Live Trello Regression` workflow for manual release-candidate or focused live debugging. It is intentionally manual-only and should not become a normal PR gate without an explicit project decision. Its default `secondary_board_ref` input points at the secondary disposable board so full workflow runs can cover `list_move_to_board`; override it only with another disposable board.
 
 Before asking GitHub Actions to run live validation, confirm the repository has the appropriate Environment and secrets:
 
