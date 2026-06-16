@@ -1,5 +1,28 @@
 # Changelog
 
+## v0.7.0
+
+Board creation and cross-resource activity audit release, with a refreshed
+Node 24 baseline and broader release validation.
+
+### Trello Tools
+
+- Add `board_create` for creating private, workspace-visible, or public Trello boards with optional workspace placement.
+- Add `board_actions`, `list_actions`, and `workspace_actions` so activity and comment audits can cover boards, lists, cards, and workspaces with bounded pagination, filters, and member output shaping.
+- Document compact action-audit reads and how to combine `filter`, `limit`, `since`, `before`, and `page` for large activity histories.
+
+### Runtime And Tooling
+
+- Refresh the Node 24 runtime baseline across package metadata, Docker images, Compose files, Codex setup scripts, and GitHub Actions.
+- Update the pnpm, Biome, TypeScript, MCP SDK, Vitest, Pino, and GitHub Actions versions used for local development and CI validation.
+- Keep the release workflow aligned with the current toolchain and published-image metadata.
+
+### Live Validation
+
+- Rename and expand the repo live validation skill guidance for smoke, regression, and release-candidate runs.
+- Improve live regression reporting, artifact handling, and fixture coverage for release validation.
+- Cover `list_move_to_board` in live regression when a secondary disposable board is configured, while keeping `board_create` unsupported until a verified board cleanup path exists.
+
 ## v0.6.0
 
 Reliability and tool ergonomics release, with opt-in live Trello validation,
