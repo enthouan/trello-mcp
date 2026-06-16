@@ -90,6 +90,29 @@ commands and note any skipped checks with reasons. Keep Codex attribution out
 of the PR title, commits, and body. If the release maps to a milestone or
 GitHub Project item, add the PR to the same tracking surfaces.
 
+After opening the PR, run the manual live regression workflow against the PR
+branch before asking the user for release review. Use the full suite by default
+so release validation covers the public tool surface; use `domains` or `tools`
+filters only for a clearly scoped release candidate or focused debugging, and
+state any filters in the PR/review handoff.
+
+```bash
+gh workflow run "Live Trello Regression" --repo enthouan/trello-mcp \
+  --ref <RELEASE_BRANCH> \
+  -f board_ref=<DISPOSABLE_BOARD_ID_OR_SHORT_LINK>
+gh run list --repo enthouan/trello-mcp --workflow "Live Trello Regression" \
+  --branch <RELEASE_BRANCH> --event workflow_dispatch --limit 5 \
+  --json databaseId,status,conclusion,createdAt,url,headBranch,headSha
+gh run watch --repo enthouan/trello-mcp <LIVE_REGRESSION_RUN_ID> --exit-status
+gh run view --repo enthouan/trello-mcp <LIVE_REGRESSION_RUN_ID> --log-failed
+```
+
+If the run passes, include the workflow run URL and mention the
+`live-regression-report` artifact in the release PR handoff. If the run fails,
+inspect the failed logs and uploaded report before proceeding. Treat a failed
+or missing live regression run as a release-prep blocker unless the user
+explicitly accepts a skipped result for that release.
+
 Ask the user once to review the release PR. Include the PR URL, target version,
 and validation summary, and state that after they approve/review that PR you
 will automatically wait for checks, merge, tag, publish, verify, and close the
