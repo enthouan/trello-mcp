@@ -142,6 +142,7 @@ type RegressionState = {
   movableListId?: string;
   primaryListId?: string;
   secondaryListId?: string;
+  secondaryBoardRef?: string;
   secondaryBoardId?: string;
 };
 
@@ -347,12 +348,7 @@ export async function runLiveRegressionSuite(options: {
     : undefined;
   const filters = normalizeFilters(options);
   const prefix = `trello-mcp live regression ${options.runId}`;
-  const result = emptyResult(
-    options.runId,
-    boardRef,
-    filters,
-    secondaryBoardRef,
-  );
+  const result = emptyResult(options.runId, boardRef, filters);
   const state: RegressionState = {
     boardMembers: [],
     customFields: [],
@@ -360,6 +356,9 @@ export async function runLiveRegressionSuite(options: {
     memberAssignments: [],
     setCustomFields: [],
   };
+  if (secondaryBoardRef) {
+    state.secondaryBoardRef = secondaryBoardRef;
+  }
   const context: RegressionContext = {
     filters,
     invoke: options.invoke,
@@ -652,7 +651,9 @@ async function resolveRegressionBoard(
     "list_boards",
   );
   assertContainsId(visibleBoards, boardId, "list_boards");
-  await resolveSecondaryRegressionBoard(context, visibleBoards);
+  if (shouldRunTool(context, "list_move_to_board")) {
+    await resolveSecondaryRegressionBoard(context, visibleBoards);
+  }
   verify(context.result, `authenticated and resolved board ${boardName}`);
 }
 
@@ -660,7 +661,7 @@ async function resolveSecondaryRegressionBoard(
   context: RegressionContext,
   visibleBoards: unknown[],
 ): Promise<void> {
-  const secondaryBoardRef = context.result.secondaryBoard?.id;
+  const secondaryBoardRef = context.state.secondaryBoardRef;
   if (!secondaryBoardRef) {
     return;
   }
@@ -2599,9 +2600,8 @@ function emptyResult(
   runId: string,
   boardRef: string,
   filters: NormalizedFilters,
-  secondaryBoardRef?: string,
 ): LiveRegressionResult {
-  const result: LiveRegressionResult = {
+  return {
     board: { id: boardRef, name: "unknown" },
     cleanup: {
       attempted: [],
@@ -2626,10 +2626,6 @@ function emptyResult(
     },
     verified: [],
   };
-  if (secondaryBoardRef) {
-    result.secondaryBoard = { id: secondaryBoardRef, name: "unknown" };
-  }
-  return result;
 }
 
 function cleanupBoards(context: RegressionContext): RegressionArtifact[] {

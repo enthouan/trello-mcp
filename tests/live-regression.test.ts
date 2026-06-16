@@ -445,6 +445,33 @@ describe("live regression suite", () => {
     ).toEqual([]);
   });
 
+  it("does not resolve secondary boards for unrelated focused runs", async () => {
+    const fake = createFakeRegressionInvoker();
+
+    const result = await runLiveRegressionSuite({
+      boardRef: "board1",
+      invoke: fake.invoke,
+      runId: "card-only-with-secondary",
+      secondaryBoardRef: "missing-board",
+      tools: ["card_get"],
+    });
+
+    expect(result.secondaryBoard).toBeUndefined();
+    expect(result.coverage).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ status: "covered", tool: "card_get" }),
+      ]),
+    );
+    expect(fake.calls).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          input: expect.objectContaining({ boardId: "missing-board" }),
+          name: "board_get",
+        }),
+      ]),
+    );
+  });
+
   it("rejects domain and tool filter combinations with no overlap before invoking tools", async () => {
     expect(() =>
       loadLiveRegressionConfig(
