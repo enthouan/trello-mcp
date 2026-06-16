@@ -1,0 +1,4 @@
+interface:
+  display_name: "Trello MCP Live Validation"
+  short_description: "Run live Trello smoke and regression checks safely."
+  default_prompt: "Use $trello-mcp-live-validation to run or verify live Trello smoke and regression validation."
