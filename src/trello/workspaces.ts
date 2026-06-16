@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { defineTool } from "../utils/tool.js";
+import { ActionAuditInput, buildActionAuditQuery } from "./actions.js";
 import {
   DEFAULT_BOARD_FIELDS,
   DEFAULT_MEMBER_FIELDS,
@@ -8,6 +9,7 @@ import {
   includeRequiredFields,
 } from "./fields.js";
 import {
+  TrelloActionListSchema,
   TrelloBoardListSchema,
   TrelloIdSchema,
   TrelloMemberListSchema,
@@ -50,6 +52,8 @@ const WorkspaceMembersInput = WorkspaceIdInput.extend({
     .describe("Which workspace members to include."),
   fields: fieldsSchema(DEFAULT_MEMBER_FIELDS, "workspace member", true),
 });
+
+const WorkspaceActionsInput = WorkspaceIdInput.merge(ActionAuditInput);
 
 function workspacePath(workspaceId: string): string {
   return `/organizations/${encodeURIComponent(workspaceId)}`;
@@ -121,6 +125,22 @@ export const workspaceTools = [
             fields: includeRequiredFields(fields, ["username", "fullName"]),
           },
           resourceType: "workspace members",
+          resourceId: workspaceId,
+        },
+      ),
+  }),
+  defineTool({
+    name: "workspace_actions",
+    description:
+      "Use when auditing recent activity or comments across a Trello workspace; use filter, limit, page, since, before, and fields to keep large histories bounded.",
+    inputSchema: WorkspaceActionsInput,
+    handler: async ({ workspaceId, ...input }, { trello }) =>
+      trello.request(
+        `${workspacePath(workspaceId)}/actions`,
+        TrelloActionListSchema,
+        {
+          query: buildActionAuditQuery(input),
+          resourceType: "workspace",
           resourceId: workspaceId,
         },
       ),

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { LimitSchema, PagingInput, pagingQuery } from "../utils/pagination.js";
 import { defineTool } from "../utils/tool.js";
+import { ActionAuditInput, buildActionAuditQuery } from "./actions.js";
 import {
   DEFAULT_BOARD_FIELDS,
   DEFAULT_CARD_COLLECTION_FIELDS,
@@ -10,6 +11,7 @@ import {
   includeRequiredFields,
 } from "./fields.js";
 import {
+  TrelloActionListSchema,
   TrelloBoardListSchema,
   TrelloBoardMembershipListSchema,
   TrelloBoardSchema,
@@ -78,6 +80,8 @@ const BoardFieldInput = BoardIdInput.extend({
       "Single board field to read. Use prefs for common board preferences and labelNames for board label names.",
     ),
 });
+
+const BoardActionsInput = BoardIdInput.merge(ActionAuditInput);
 
 const BoardListsInput = BoardIdInput.extend({
   filter: z
@@ -179,6 +183,22 @@ export const boardTools = [
         `/boards/${encodeURIComponent(boardId)}/${encodeURIComponent(field)}`,
         z.unknown(),
         {
+          resourceType: "board",
+          resourceId: boardId,
+        },
+      ),
+  }),
+  defineTool({
+    name: "board_actions",
+    description:
+      "Use when auditing recent activity or comments across a board; use filter, limit, page, since, before, and fields to keep large histories bounded.",
+    inputSchema: BoardActionsInput,
+    handler: async ({ boardId, ...input }, { trello }) =>
+      trello.request(
+        `/boards/${encodeURIComponent(boardId)}/actions`,
+        TrelloActionListSchema,
+        {
+          query: buildActionAuditQuery(input),
           resourceType: "board",
           resourceId: boardId,
         },

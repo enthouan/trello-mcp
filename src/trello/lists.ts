@@ -1,11 +1,16 @@
 import { z } from "zod";
 import { defineTool } from "../utils/tool.js";
+import { ActionAuditInput, buildActionAuditQuery } from "./actions.js";
 import {
   DEFAULT_LIST_FIELDS,
   fieldsSchema,
   includeRequiredFields,
 } from "./fields.js";
-import { TrelloIdSchema, TrelloListSchema } from "./types.js";
+import {
+  TrelloActionListSchema,
+  TrelloIdSchema,
+  TrelloListSchema,
+} from "./types.js";
 
 const ListIdInput = z.object({
   listId: TrelloIdSchema.describe("Trello list id to read or update."),
@@ -36,6 +41,8 @@ const UpdateListInput = ListIdInput.extend({
     .describe("Set true to archive the list; false to unarchive it."),
   pos: ListPositionInput,
 });
+
+const ListActionsInput = ListIdInput.merge(ActionAuditInput);
 
 export const listTools = [
   defineTool({
@@ -103,6 +110,18 @@ export const listTools = [
       trello.request(`${listPath(listId)}/idBoard`, TrelloListSchema, {
         method: "PUT",
         query: { value: boardId },
+        resourceType: "list",
+        resourceId: listId,
+      }),
+  }),
+  defineTool({
+    name: "list_actions",
+    description:
+      "Use when auditing recent activity or comments for a list; use filter, limit, page, since, before, and fields to keep large histories bounded.",
+    inputSchema: ListActionsInput,
+    handler: async ({ listId, ...input }, { trello }) =>
+      trello.request(`${listPath(listId)}/actions`, TrelloActionListSchema, {
+        query: buildActionAuditQuery(input),
         resourceType: "list",
         resourceId: listId,
       }),
