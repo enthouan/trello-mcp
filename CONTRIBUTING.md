@@ -2,12 +2,16 @@
 
 ## Local checks
 
+Use Node.js 24 or newer with the pinned pnpm version from `package.json`.
+
 ```bash
-pnpm install
-pnpm typecheck
-pnpm lint
-pnpm test:coverage
-pnpm build
+corepack enable
+corepack prepare pnpm@10.34.1 --activate
+corepack pnpm install --frozen-lockfile
+corepack pnpm typecheck
+corepack pnpm lint
+corepack pnpm test:coverage
+corepack pnpm build
 ```
 
 

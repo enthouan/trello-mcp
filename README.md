@@ -166,6 +166,8 @@ docker run --rm -p 3000:3000 \
 
 Use this path if you want to develop the project, test local changes, or build the Docker image yourself.
 
+Local development uses Node.js 24 or newer and the pinned `pnpm@10.34.1` package manager through Corepack.
+
 ```bash
 git clone https://github.com/enthouan/trello-mcp.git
 cd trello-mcp
@@ -183,7 +185,9 @@ This uses `docker-compose.local.yml`, which builds from the local `Dockerfile` a
 For a non-Docker local build:
 
 ```bash
-corepack pnpm install
+corepack enable
+corepack prepare pnpm@10.34.1 --activate
+corepack pnpm install --frozen-lockfile
 corepack pnpm build:clean
 ```
 
@@ -380,7 +384,7 @@ Use this mode when an MCP client launches the server process directly.
 Build the project:
 
 ```bash
-corepack pnpm install
+corepack pnpm install --frozen-lockfile
 corepack pnpm build
 ```
 
@@ -564,6 +568,8 @@ The broader `Live Trello Regression` workflow is manual-only and should be used 
 | `TRELLO_LIVE_REGRESSION_TOKEN` | Trello token for that same member, with write access to the disposable regression board. |
 
 The manual workflow accepts optional `domains` and `tools` inputs and uploads `reports/live-regression.json` when the command produces it. It also sets `environment.deployment: false` because live regression is secret-backed validation, not an app deployment. Fork pull requests must not receive Trello credentials; keep live regression on `workflow_dispatch` or another explicitly secret-backed workflow.
+
+The `Release` workflow builds the published multi-architecture Docker image for `linux/amd64` and `linux/arm64` on pushes to `main` and `v*.*.*` tags. It can also be run manually from a branch with `push=false` to perform a no-push multi-platform validation before release-image changes merge. Leave `push=false` for dry runs; only use `push=true` when intentionally publishing to GHCR.
 
 ## Usage Examples
 
@@ -782,7 +788,9 @@ MCP client
 Install dependencies:
 
 ```bash
-corepack pnpm install
+corepack enable
+corepack prepare pnpm@10.34.1 --activate
+corepack pnpm install --frozen-lockfile
 ```
 
 Rebuild the project from scratch:
