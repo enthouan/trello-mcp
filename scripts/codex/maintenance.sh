@@ -16,9 +16,9 @@ fi
 corepack enable
 corepack prepare pnpm@10.34.1 --activate
 if [[ -f pnpm-lock.yaml ]]; then
-  pnpm install --frozen-lockfile
+  corepack pnpm install --frozen-lockfile
 else
-  pnpm install
+  corepack pnpm install
 fi
 
-pnpm typecheck
+corepack pnpm typecheck

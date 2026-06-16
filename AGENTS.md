@@ -26,7 +26,7 @@ This project is still early, but it has a meaningful public tool surface. Keep c
 
 ## Runtime And Package Manager
 
-- Node.js: `>=22.0.0`.
+- Node.js: `>=24.0.0`.
 - Package manager: `pnpm@10.34.1` through Corepack.
 - Module system: ESM (`"type": "module"`).
 - TypeScript is strict, with `exactOptionalPropertyTypes` and `noUncheckedIndexedAccess` enabled.
@@ -36,7 +36,7 @@ Use:
 ```bash
 corepack enable
 corepack prepare pnpm@10.34.1 --activate
-corepack pnpm install
+corepack pnpm install --frozen-lockfile
 ```
 
 When `pnpm-lock.yaml` exists, CI/Codex setup should use frozen installs.
@@ -46,7 +46,7 @@ When `pnpm-lock.yaml` exists, CI/Codex setup should use frozen installs.
 Run these from the repository root:
 
 ```bash
-corepack pnpm install
+corepack pnpm install --frozen-lockfile
 corepack pnpm typecheck
 corepack pnpm lint
 corepack pnpm build
