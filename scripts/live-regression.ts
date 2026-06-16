@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { appendFile, mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Config } from "../src/config.js";
@@ -89,6 +89,13 @@ type CleanupReport = {
 };
 
 export type CoverageStatus = "covered" | "missing" | "skipped" | "unsupported";
+
+const COVERAGE_STATUSES = [
+  "covered",
+  "skipped",
+  "unsupported",
+  "missing",
+] as const satisfies readonly CoverageStatus[];
 
 export type ToolCoverageEntry = {
   domain: LiveRegressionDomain;
@@ -481,6 +488,92 @@ export async function writeLiveRegressionJsonReport(
   const absolutePath = resolve(path);
   await mkdir(dirname(absolutePath), { recursive: true });
   await writeFile(absolutePath, `${JSON.stringify(result, null, 2)}\n`);
+}
+
+export function formatLiveRegressionMarkdownSummary(
+  result: LiveRegressionResult,
+  options: { secrets?: readonly string[] } = {},
+): string {
+  const secrets = options.secrets ?? [];
+  const missingCoverage = result.coverage.filter(
+    (entry) => entry.status === "missing",
+  );
+  const failed =
+    result.failures.length > 0 ||
+    result.cleanup.failures.length > 0 ||
+    result.cleanup.remainingOpenArtifacts.length > 0 ||
+    missingCoverage.length > 0;
+  const lines = [
+    "## Live Trello Regression",
+    "",
+    `**Result:** ${failed ? "Failed" : "Passed"}`,
+    `**Run:** \`${markdownInline(result.runId)}\``,
+    `**Board:** ${markdownText(result.board.name)} (\`${markdownInline(result.board.id)}\`)`,
+    `**Selection:** \`${markdownInline(formatSelection(result.selection))}\``,
+    `**Created:** ${result.created.lists.length} lists, ${result.created.cards.length} cards, ${result.created.labels.length} labels, ${result.created.checklists.length} checklists, ${result.created.checklistItems.length} checklist items, ${result.created.attachments.length} attachments`,
+    `**Cleanup:** ${result.cleanup.completed.length}/${result.cleanup.attempted.length} steps completed`,
+    result.cleanup.remainingOpenArtifacts.length === 0
+      ? "**Cleanup verification:** no open regression artifacts found"
+      : `**Cleanup verification:** remaining artifacts: ${markdownText(result.cleanup.remainingOpenArtifacts.join(", "))}`,
+    "",
+    "### Coverage",
+    "",
+    "| Status | Count |",
+    "| --- | ---: |",
+  ];
+
+  for (const status of COVERAGE_STATUSES) {
+    const count = result.coverage.filter(
+      (entry) => entry.status === status,
+    ).length;
+    lines.push(`| ${status} | ${count} |`);
+  }
+
+  appendMarkdownList(
+    lines,
+    "Failures",
+    result.failures.map((failure) => redactedMessage(failure, secrets)),
+  );
+  appendMarkdownList(
+    lines,
+    "Cleanup Failures",
+    result.cleanup.failures.map((failure) => redactedMessage(failure, secrets)),
+  );
+  appendMarkdownList(
+    lines,
+    "Remaining Open Artifacts",
+    result.cleanup.remainingOpenArtifacts,
+  );
+  appendCoverageSection(lines, "Missing Live Coverage", missingCoverage);
+  appendCoverageSection(
+    lines,
+    "Skipped Live Coverage",
+    result.coverage.filter((entry) => entry.status === "skipped"),
+  );
+  appendCoverageSection(
+    lines,
+    "Unsupported Live Coverage",
+    result.coverage.filter((entry) => entry.status === "unsupported"),
+  );
+
+  if (result.verified.length > 0) {
+    appendMarkdownList(lines, "Verified", result.verified);
+  }
+
+  return `${lines.join("\n")}\n`;
+}
+
+export async function appendLiveRegressionMarkdownSummary(
+  result: LiveRegressionResult,
+  path: string,
+  options: { secrets?: readonly string[] } = {},
+): Promise<void> {
+  const absolutePath = resolve(path);
+  await mkdir(dirname(absolutePath), { recursive: true });
+  await appendFile(
+    absolutePath,
+    formatLiveRegressionMarkdownSummary(result, options),
+  );
 }
 
 async function resolveRegressionBoard(
@@ -1395,7 +1488,7 @@ async function runAttachmentRegression(
         cardId: card.id,
         name: `${context.prefix} URL attachment`,
         setCover: false,
-        url: "https://example.com/",
+        url: "https://dummyimage.com/600x400/0052cc/ffffff.png",
       }),
       "card_attachment_add_url",
     );
@@ -2761,6 +2854,47 @@ function formatCoverageEntries(entries: ToolCoverageEntry[]): string {
     .join(", ");
 }
 
+function appendCoverageSection(
+  lines: string[],
+  title: string,
+  entries: ToolCoverageEntry[],
+): void {
+  if (entries.length === 0) {
+    return;
+  }
+
+  lines.push("", `### ${title}`, "");
+  for (const entry of entries) {
+    const reason = entry.reason ? ` - ${markdownText(entry.reason)}` : "";
+    lines.push(
+      `- \`${markdownInline(entry.tool)}\` (${entry.domain})${reason}`,
+    );
+  }
+}
+
+function appendMarkdownList(
+  lines: string[],
+  title: string,
+  items: readonly string[],
+): void {
+  if (items.length === 0) {
+    return;
+  }
+
+  lines.push("", `### ${title}`, "");
+  for (const item of items) {
+    lines.push(`- ${markdownText(item)}`);
+  }
+}
+
+function markdownInline(value: string): string {
+  return value.replaceAll("`", "\\`").replaceAll(/\s+/g, " ").trim();
+}
+
+function markdownText(value: string): string {
+  return value.replaceAll(/\s+/g, " ").trim();
+}
+
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
@@ -2782,6 +2916,24 @@ function printEvent(event: SmokeLogEvent): void {
     console.error(line);
   } else {
     console.log(line);
+  }
+}
+
+async function appendGitHubSummaryIfConfigured(
+  result: LiveRegressionResult,
+  secrets: readonly string[],
+): Promise<void> {
+  const summaryPath = nonEmpty(process.env.GITHUB_STEP_SUMMARY);
+  if (!summaryPath) {
+    return;
+  }
+
+  try {
+    await appendLiveRegressionMarkdownSummary(result, summaryPath, { secrets });
+  } catch (error) {
+    console.error(
+      `Failed to write GitHub step summary: ${redactedMessage(error, secrets)}`,
+    );
   }
 }
 
@@ -2835,6 +2987,7 @@ async function main(): Promise<void> {
     if (config.jsonReportPath) {
       await writeLiveRegressionJsonReport(result, config.jsonReportPath);
     }
+    await appendGitHubSummaryIfConfigured(result, secrets);
     console.log(formatLiveRegressionReport(result));
   } catch (error) {
     if (error instanceof LiveRegressionRunError) {
@@ -2844,6 +2997,7 @@ async function main(): Promise<void> {
           config.jsonReportPath,
         );
       }
+      await appendGitHubSummaryIfConfigured(error.result, secrets);
       console.error(formatLiveRegressionReport(error.result));
       for (const failure of error.result.failures) {
         console.error(`Failure: ${redactedMessage(failure, secrets)}`);
