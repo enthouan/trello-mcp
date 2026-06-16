@@ -1488,7 +1488,7 @@ async function runAttachmentRegression(
         cardId: card.id,
         name: `${context.prefix} URL attachment`,
         setCover: false,
-        url: "https://example.com/",
+        url: "https://www.trello.com/",
       }),
       "card_attachment_add_url",
     );
