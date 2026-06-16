@@ -602,6 +602,8 @@ Use `fields` to request only the properties needed for a workflow. Tools that va
 
 Use `since` and `before` on card collection and action tools to page through older or newer Trello objects. These cursors accept an ISO-8601 timestamp, a Trello/Mongo id, or `null` where Trello supports it. Action reads also expose zero-based `page` for Trello's action pagination.
 
+Use `card_actions`, `board_actions`, `list_actions`, and `workspace_actions` for bounded activity audits. Set `filter: "commentCard"` to focus on comments, `filter: "all"` for broader activity, and combine `limit`, `since`, `before`, and `page` so board, list, card, or workspace histories stay small enough for MCP clients.
+
 Member-returning tools default to compact member fields (`username,fullName,initials,avatarUrl`). Use member field inputs such as `fields`, `memberFields`, or `memberCreatorFields` when a workflow needs additional member profile properties.
 
 ## Search
@@ -670,6 +672,7 @@ Use `card_custom_field_clear` to clear an existing card custom field value. Trel
 | `board_create` | Use when creating a new Trello board. Creates boards as private by default, can place them in a workspace with workspaceId, and only supports explicit private, workspace, or public visibility. | name, desc, workspaceId, permissionLevel |
 | `board_get` | Use when you need board details, common board preferences, or label names for a known Trello board before listing or summarizing it. | boardId, fields |
 | `board_field_get` | Use when you need one specific board field, such as prefs, labelNames, subscribed, name, description, or URL. | boardId, field |
+| `board_actions` | Use when auditing recent activity or comments across a board; use filter, limit, page, since, before, and fields to keep large histories bounded. | boardId, filter, fields, limit, since, before, page, member, memberFields, memberCreator, memberCreatorFields |
 | `board_lists` | Use when you need the lists on a known Trello board so you can find the right list id before listing or creating cards. | boardId, filter, fields |
 | `board_cards` | Use when you need cards across all lists on a known Trello board for personal planning, review, or summarization. | boardId, filter, fields, limit, since, before |
 | `board_custom_fields` | Use when inspecting custom field definitions on a known Trello board, including dropdown/list options when Trello returns them. | boardId |
@@ -680,6 +683,7 @@ Use `card_custom_field_clear` to clear an existing card custom field value. Trel
 | `workspace_get` | Use when you need basic Trello workspace metadata, such as display name, description, URL, website, board ids, or preferences. | workspaceId, fields |
 | `workspace_boards` | Use when you need boards in a known Trello workspace so the user can drill into a workspace board. | workspaceId, filter, fields |
 | `workspace_members` | Use when you need members in a known Trello workspace before assignment, auditing, or permission review. | workspaceId, filter, fields |
+| `workspace_actions` | Use when auditing recent activity or comments across a Trello workspace; use filter, limit, page, since, before, and fields to keep large histories bounded. | workspaceId, filter, fields, limit, since, before, page, member, memberFields, memberCreator, memberCreatorFields |
 | `member_get` | Use after member search or board member listing to inspect a Trello member profile by id, username, or me before assignment or auditing. | memberId, fields |
 | `member_boards` | Use when you need boards associated with a known Trello member by id, username, or me; results are limited to boards visible to the configured token. | memberId, filter, fields |
 | `member_cards` | Use when you need cards assigned to a known Trello member by id, username, or me; private board cards require token access to those boards. | memberId, filter, fields, limit, since, before |
@@ -689,6 +693,7 @@ Use `card_custom_field_clear` to clear an existing card custom field value. Trel
 | `list_update` | Use when renaming a Trello list, changing its position, or setting its archive state. | listId, name, closed, pos |
 | `list_archive` | Use when archiving or unarchiving a Trello list while keeping its cards recoverable. | listId, closed |
 | `list_move_to_board` | Use when moving an existing Trello list to another board. | listId, boardId |
+| `list_actions` | Use when auditing recent activity or comments for a list; use filter, limit, page, since, before, and fields to keep large histories bounded. | listId, filter, fields, limit, since, before, page, member, memberFields, memberCreator, memberCreatorFields |
 | `card_get` | Use when you need the current details of one Trello card by id, short id, or URL before editing or summarizing it. | cardId, fields |
 | `card_board` | Use when you need the board relationship for a known Trello card before moving, labeling, or summarizing its context. | cardId, fields |
 | `card_list` | Use when you need the current list relationship for a known Trello card before moving or reporting its status. | cardId, fields |

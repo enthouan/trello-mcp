@@ -1270,6 +1270,9 @@ async function runCommentRegression(context: RegressionContext): Promise<void> {
     "card_comment_add",
     "card_comment_update",
     "card_actions",
+    "board_actions",
+    "list_actions",
+    "workspace_actions",
     "card_comment_delete",
   ]);
   const comment = needsComment
@@ -1305,6 +1308,55 @@ async function runCommentRegression(context: RegressionContext): Promise<void> {
       }),
       "card_actions",
     );
+  }
+  if (shouldRunTool(context, "board_actions")) {
+    await arrayResult(
+      invokeTool(context, "board_actions", {
+        boardId: requireBoardId(context),
+        fields: "id,type,date",
+        filter: "commentCard",
+        limit: 20,
+        member: false,
+        memberCreator: false,
+      }),
+      "board_actions",
+    );
+  }
+  if (shouldRunTool(context, "list_actions")) {
+    const { primaryList } = await ensureRegressionLists(context);
+    await arrayResult(
+      invokeTool(context, "list_actions", {
+        listId: primaryList.id,
+        fields: "id,type,date",
+        filter: "commentCard",
+        limit: 20,
+        member: false,
+        memberCreator: false,
+      }),
+      "list_actions",
+    );
+  }
+  if (shouldRunTool(context, "workspace_actions")) {
+    const workspaceId = context.state.boardOrganizationId;
+    if (!workspaceId) {
+      skipTool(
+        context,
+        "workspace_actions",
+        "The disposable board does not belong to a workspace.",
+      );
+    } else {
+      await arrayResult(
+        invokeTool(context, "workspace_actions", {
+          workspaceId,
+          fields: "id,type,date",
+          filter: "commentCard",
+          limit: 20,
+          member: false,
+          memberCreator: false,
+        }),
+        "workspace_actions",
+      );
+    }
   }
   if (actionId && shouldRunTool(context, "card_comment_delete")) {
     await invokeTool(context, "card_comment_delete", { actionId });
@@ -2179,6 +2231,15 @@ function toolDomain(tool: string): LiveRegressionDomain {
     return "auth";
   }
   if (
+    tool.startsWith("card_comment") ||
+    tool === "card_actions" ||
+    tool === "board_actions" ||
+    tool === "list_actions" ||
+    tool === "workspace_actions"
+  ) {
+    return "comments-actions";
+  }
+  if (
     tool === "board_create" ||
     tool === "list_boards" ||
     tool === "board_get" ||
@@ -2223,9 +2284,6 @@ function toolDomain(tool: string): LiveRegressionDomain {
     tool.startsWith("card_custom_field")
   ) {
     return "custom-fields";
-  }
-  if (tool.startsWith("card_comment") || tool === "card_actions") {
-    return "comments-actions";
   }
   if (tool.startsWith("card_attachment") || tool === "card_cover_set") {
     return "attachments";

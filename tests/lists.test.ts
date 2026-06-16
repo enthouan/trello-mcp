@@ -182,9 +182,78 @@ describe("list tools", () => {
     );
   });
 
-  it("rejects empty list ids before requesting Trello", () => {
-    const tool = getListTool("list_get");
+  it("lists list actions with bounded filters and parses action payloads", async () => {
+    const tool = getListTool("list_actions");
+    const trello = {
+      request: vi.fn(
+        async (_path: string, schema: { parse: (value: unknown) => unknown }) =>
+          schema.parse([
+            {
+              id: "action1",
+              type: "commentCard",
+              date: "2026-06-01T00:00:00.000Z",
+              data: {
+                list: { id: "list1", name: "Today" },
+                text: "Ready",
+              },
+              display: { translationKey: "action_comment_on_card" },
+            },
+          ]),
+      ),
+    };
 
-    expect(() => tool.inputSchema.parse({ listId: "" })).toThrow();
+    await expect(
+      tool.handler(
+        tool.inputSchema.parse({
+          listId: "list1",
+          filter: "commentCard",
+          fields: "date,data,display",
+          limit: 10,
+          memberCreator: false,
+        }),
+        {
+          trello: trello as never,
+          logger: {} as never,
+          requestId: "req1",
+        },
+      ),
+    ).resolves.toEqual([
+      {
+        id: "action1",
+        type: "commentCard",
+        date: "2026-06-01T00:00:00.000Z",
+        data: {
+          list: { id: "list1", name: "Today" },
+          text: "Ready",
+        },
+        display: { translationKey: "action_comment_on_card" },
+      },
+    ]);
+    expect(trello.request).toHaveBeenCalledWith(
+      "/lists/list1/actions",
+      expect.anything(),
+      expect.objectContaining({
+        query: {
+          filter: "commentCard",
+          fields: "date,data,display,id,type",
+          limit: 10,
+          page: 0,
+          member: false,
+          memberCreator: false,
+        },
+        resourceType: "list",
+        resourceId: "list1",
+      }),
+    );
+  });
+
+  it("rejects empty list ids before requesting Trello", () => {
+    const listGet = getListTool("list_get");
+    const listActions = getListTool("list_actions");
+    const trello = { request: vi.fn() };
+
+    expect(() => listGet.inputSchema.parse({ listId: "" })).toThrow();
+    expect(() => listActions.inputSchema.parse({ listId: "" })).toThrow();
+    expect(trello.request).not.toHaveBeenCalled();
   });
 });

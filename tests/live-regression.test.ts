@@ -370,6 +370,32 @@ describe("live regression suite", () => {
     }
   });
 
+  it("covers cross-resource action audit tools under the comments-actions domain", async () => {
+    for (const tool of ["board_actions", "list_actions", "workspace_actions"]) {
+      const fake = createFakeRegressionInvoker();
+      const result = await runLiveRegressionSuite({
+        boardRef: "board1",
+        invoke: fake.invoke,
+        runId: `focused-${tool}`,
+        tools: [tool],
+      });
+
+      expect(fake.calls.map((call) => call.name)).toContain(tool);
+      expect(result.coverage).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            domain: "comments-actions",
+            status: "covered",
+            tool,
+          }),
+        ]),
+      );
+      expect(
+        result.coverage.filter((entry) => entry.status === "missing"),
+      ).toEqual([]);
+    }
+  });
+
   it("marks board_create unsupported until live board cleanup is available", async () => {
     const fake = createFakeRegressionInvoker();
 
@@ -995,6 +1021,12 @@ function createFakeRegressionInvoker(
         return action;
       }
       case "card_actions":
+        return Array.from(state.actions.values());
+      case "board_actions":
+        return Array.from(state.actions.values());
+      case "list_actions":
+        return Array.from(state.actions.values());
+      case "workspace_actions":
         return Array.from(state.actions.values());
       case "card_comment_delete":
         state.actions.delete(requiredInputString(input, "actionId"));

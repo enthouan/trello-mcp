@@ -1,13 +1,9 @@
 import { z } from "zod";
 import { ValidationError } from "../utils/errors.js";
-import {
-  ActionPagingInput,
-  PagingInput,
-  pagingQuery,
-} from "../utils/pagination.js";
+import { PagingInput, pagingQuery } from "../utils/pagination.js";
 import { defineTool } from "../utils/tool.js";
+import { ActionAuditInput, buildActionAuditQuery } from "./actions.js";
 import {
-  DEFAULT_ACTION_FIELDS,
   DEFAULT_CARD_COLLECTION_FIELDS,
   DEFAULT_MEMBER_FIELDS,
   fieldsSchema,
@@ -369,35 +365,7 @@ const CardCommentDeleteInput = z.object({
   actionId: TrelloIdSchema.describe("Trello comment action id to delete."),
 });
 
-const CardActionsInput = CardIdInput.extend({
-  filter: z
-    .string()
-    .default("all")
-    .describe("Trello action filter such as all or commentCard."),
-  fields: fieldsSchema(DEFAULT_ACTION_FIELDS, "action", true),
-  limit: ActionPagingInput.shape.limit,
-  since: ActionPagingInput.shape.since,
-  before: ActionPagingInput.shape.before,
-  page: ActionPagingInput.shape.page,
-  member: z
-    .boolean()
-    .default(false)
-    .describe("Whether to include member objects on actions."),
-  memberFields: z
-    .string()
-    .default(DEFAULT_MEMBER_FIELDS)
-    .describe("Comma-separated Trello member fields when member is true."),
-  memberCreator: z
-    .boolean()
-    .default(true)
-    .describe("Whether to include the memberCreator object on actions."),
-  memberCreatorFields: z
-    .string()
-    .default(DEFAULT_MEMBER_FIELDS)
-    .describe(
-      "Comma-separated Trello memberCreator fields when memberCreator is true.",
-    ),
-});
+const CardActionsInput = CardIdInput.merge(ActionAuditInput);
 
 export const cardTools = [
   defineTool({
@@ -1035,37 +1003,9 @@ export const cardTools = [
     description:
       "Use when auditing recent activity or comments for a card; use filter, limit, page, since, before, and fields to page large histories.",
     inputSchema: CardActionsInput,
-    handler: async (
-      {
-        cardId,
-        filter,
-        fields,
-        limit,
-        since,
-        before,
-        page,
-        member,
-        memberFields,
-        memberCreator,
-        memberCreatorFields,
-      },
-      { trello },
-    ) =>
+    handler: async ({ cardId, ...input }, { trello }) =>
       trello.request(`${cardPath(cardId)}/actions`, TrelloActionListSchema, {
-        query: {
-          filter,
-          fields: includeRequiredFields(
-            fields,
-            memberCreator ? ["id", "type", "idMemberCreator"] : ["id", "type"],
-          ),
-          ...pagingQuery({ limit, since, before, page }),
-          member,
-          ...(member ? { member_fields: memberFields } : {}),
-          memberCreator,
-          ...(memberCreator
-            ? { memberCreator_fields: memberCreatorFields }
-            : {}),
-        },
+        query: buildActionAuditQuery(input),
         resourceType: "card",
         resourceId: cardId,
       }),

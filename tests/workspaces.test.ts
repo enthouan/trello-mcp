@@ -177,9 +177,79 @@ describe("workspace tools", () => {
     );
   });
 
+  it("lists workspace actions by id or short name with bounded filters", async () => {
+    const tool = getWorkspaceTool("workspace_actions");
+    const trello = {
+      request: vi.fn(
+        async (_path: string, schema: { parse: (value: unknown) => unknown }) =>
+          schema.parse([
+            {
+              id: "action1",
+              type: "commentCard",
+              date: "2026-06-01T00:00:00.000Z",
+              data: {
+                board: { id: "board1", name: "Roadmap" },
+                text: "Ready",
+              },
+              display: { translationKey: "action_comment_on_card" },
+            },
+          ]),
+      ),
+    };
+
+    await expect(
+      tool.handler(
+        tool.inputSchema.parse({
+          workspaceId: "team space",
+          filter: "commentCard",
+          fields: "date,data,display",
+          limit: 10,
+          memberCreator: false,
+        }),
+        {
+          trello: trello as never,
+          logger: {} as never,
+          requestId: "req1",
+        },
+      ),
+    ).resolves.toEqual([
+      {
+        id: "action1",
+        type: "commentCard",
+        date: "2026-06-01T00:00:00.000Z",
+        data: {
+          board: { id: "board1", name: "Roadmap" },
+          text: "Ready",
+        },
+        display: { translationKey: "action_comment_on_card" },
+      },
+    ]);
+    expect(trello.request).toHaveBeenCalledWith(
+      "/organizations/team%20space/actions",
+      expect.anything(),
+      expect.objectContaining({
+        query: {
+          filter: "commentCard",
+          fields: "date,data,display,id,type",
+          limit: 10,
+          page: 0,
+          member: false,
+          memberCreator: false,
+        },
+        resourceType: "workspace",
+        resourceId: "team space",
+      }),
+    );
+  });
+
   it("validates workspace ids and collection filters before requesting Trello", () => {
     expect(() =>
       getWorkspaceTool("workspace_get").inputSchema.parse({ workspaceId: "" }),
+    ).toThrow();
+    expect(() =>
+      getWorkspaceTool("workspace_actions").inputSchema.parse({
+        workspaceId: "",
+      }),
     ).toThrow();
     expect(() =>
       getWorkspaceTool("list_workspaces").inputSchema.parse({

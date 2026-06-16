@@ -266,6 +266,116 @@ describe("board tools", () => {
     );
   });
 
+  it("parses board action audit defaults", () => {
+    const tool = getBoardTool("board_actions");
+
+    expect(tool.inputSchema.parse({ boardId: "board1" })).toMatchObject({
+      boardId: "board1",
+      fields: "id,type,date,data,idMemberCreator",
+      filter: "all",
+      limit: 50,
+      page: 0,
+      member: false,
+      memberCreator: true,
+      memberCreatorFields: "username,fullName,initials,avatarUrl",
+    });
+  });
+
+  it("lists board actions with bounded paging and member output shaping", async () => {
+    const tool = getBoardTool("board_actions");
+    const trello = {
+      request: vi.fn(
+        async (_path: string, schema: { parse: (value: unknown) => unknown }) =>
+          schema.parse([
+            {
+              id: "action1",
+              type: "commentCard",
+              date: "2026-06-01T00:00:00.000Z",
+              data: {
+                text: "Ready",
+                board: { id: "board1", name: "Roadmap" },
+              },
+              display: { translationKey: "action_comment_on_card" },
+              member: {
+                id: "member1",
+                fullName: "Ada Lovelace",
+                username: "ada",
+              },
+              memberCreator: {
+                id: "member2",
+                fullName: "Grace Hopper",
+                username: "grace",
+              },
+            },
+          ]),
+      ),
+    };
+
+    await expect(
+      tool.handler(
+        tool.inputSchema.parse({
+          boardId: "board1",
+          filter: "commentCard",
+          fields: "date,display,data",
+          limit: 25,
+          since: "2026-06-01T00:00:00.000Z",
+          before: null,
+          page: 2,
+          member: true,
+          memberFields: "fullName,username",
+          memberCreator: true,
+          memberCreatorFields: "fullName,username",
+        }),
+        {
+          trello: trello as never,
+          logger: {} as never,
+          requestId: "req1",
+        },
+      ),
+    ).resolves.toEqual([
+      {
+        id: "action1",
+        type: "commentCard",
+        date: "2026-06-01T00:00:00.000Z",
+        data: {
+          text: "Ready",
+          board: { id: "board1", name: "Roadmap" },
+        },
+        display: { translationKey: "action_comment_on_card" },
+        member: {
+          id: "member1",
+          fullName: "Ada Lovelace",
+          username: "ada",
+        },
+        memberCreator: {
+          id: "member2",
+          fullName: "Grace Hopper",
+          username: "grace",
+        },
+      },
+    ]);
+    expect(trello.request).toHaveBeenCalledWith(
+      "/boards/board1/actions",
+      expect.anything(),
+      expect.objectContaining({
+        query: {
+          filter: "commentCard",
+          fields: "date,display,data,id,type,idMemberCreator",
+          limit: 25,
+          since: "2026-06-01T00:00:00.000Z",
+          before: null,
+          page: 2,
+          member: true,
+          member_fields: "fullName,username",
+          memberCreator: true,
+          memberCreator_fields: "fullName,username",
+        },
+        resourceType: "board",
+        resourceId: "board1",
+      }),
+    );
+  });
+
   it("lists open board lists by default", async () => {
     const tool = getBoardTool("board_lists");
     const trello = {
@@ -551,8 +661,12 @@ describe("board tools", () => {
   });
 
   it("rejects empty board ids before requesting Trello", async () => {
-    const tool = getBoardTool("board_get");
+    const boardGet = getBoardTool("board_get");
+    const boardActions = getBoardTool("board_actions");
+    const trello = { request: vi.fn() };
 
-    expect(() => tool.inputSchema.parse({ boardId: "" })).toThrow();
+    expect(() => boardGet.inputSchema.parse({ boardId: "" })).toThrow();
+    expect(() => boardActions.inputSchema.parse({ boardId: "" })).toThrow();
+    expect(trello.request).not.toHaveBeenCalled();
   });
 });
