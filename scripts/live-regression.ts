@@ -50,6 +50,7 @@ export type LiveRegressionConfig = LiveRegressionClientConfig & {
   runId: string;
   domains?: LiveRegressionDomain[];
   jsonReportPath?: string;
+  secondaryBoardRef?: string;
   tools?: string[];
   uploadFile?: string;
 };
@@ -58,6 +59,7 @@ export type LiveRegressionCliOptions = {
   domains?: string[];
   jsonReportPath?: string;
   runId?: string;
+  secondaryBoard?: string;
   tools?: string[];
   uploadFile?: string;
 };
@@ -118,6 +120,7 @@ export type LiveRegressionResult = {
   };
   failures: string[];
   runId: string;
+  secondaryBoard?: RegressionArtifact;
   selection: {
     domains: LiveRegressionDomain[];
     tools: string[];
@@ -136,8 +139,10 @@ type RegressionState = {
   boardId?: string;
   boardOrganizationId?: string;
   cardId?: string;
+  movableListId?: string;
   primaryListId?: string;
   secondaryListId?: string;
+  secondaryBoardId?: string;
 };
 
 type RegressionContext = {
@@ -157,10 +162,6 @@ const UNSUPPORTED_TOOL_REASONS = new Map<string, string>([
   [
     "board_create",
     "Creates a real Trello board; live regression defers coverage until a verified board cleanup path exists.",
-  ],
-  [
-    "list_move_to_board",
-    "Requires a second disposable board and is intentionally outside the default single-board live regression suite.",
   ],
 ]);
 
@@ -224,6 +225,9 @@ export function parseLiveRegressionArgs(
       case "--run-id":
         options.runId = readValue();
         break;
+      case "--secondary-board":
+        options.secondaryBoard = readValue();
+        break;
       case "--upload-file":
         options.uploadFile = readValue();
         break;
@@ -283,6 +287,10 @@ export function loadLiveRegressionConfig(
     cli.tools ?? splitFilterValue(env.TRELLO_LIVE_REGRESSION_TOOLS),
   );
   assertNonEmptyFilterIntersection(domains, tools);
+  const secondaryBoardRef = liveRegressionSecondaryBoardRef(
+    env,
+    cli.secondaryBoard,
+  );
 
   const config: LiveRegressionConfig = {
     TRELLO_API_KEY: apiKey as string,
@@ -297,6 +305,9 @@ export function loadLiveRegressionConfig(
   }
   if (tools) {
     config.tools = tools;
+  }
+  if (secondaryBoardRef) {
+    config.secondaryBoardRef = secondaryBoardRef;
   }
 
   const uploadRoot = nonEmpty(env.TRELLO_ATTACHMENT_UPLOAD_ROOT);
@@ -326,13 +337,22 @@ export async function runLiveRegressionSuite(options: {
   invoke: SmokeToolInvoker;
   log?: (event: SmokeLogEvent) => void;
   runId: string;
+  secondaryBoardRef?: string;
   tools?: string[];
   uploadFile?: string;
 }): Promise<LiveRegressionResult> {
   const boardRef = boardIdentifier(options.boardRef, "boardRef");
+  const secondaryBoardRef = options.secondaryBoardRef
+    ? boardIdentifier(options.secondaryBoardRef, "secondaryBoardRef")
+    : undefined;
   const filters = normalizeFilters(options);
   const prefix = `trello-mcp live regression ${options.runId}`;
-  const result = emptyResult(options.runId, boardRef, filters);
+  const result = emptyResult(
+    options.runId,
+    boardRef,
+    filters,
+    secondaryBoardRef,
+  );
   const state: RegressionState = {
     boardMembers: [],
     customFields: [],
@@ -447,6 +467,11 @@ export function formatLiveRegressionReport(
   const lines = [
     `Live Trello regression run ${result.runId}`,
     `Board: ${result.board.name} (${result.board.id})`,
+    ...(result.secondaryBoard
+      ? [
+          `Secondary board: ${result.secondaryBoard.name} (${result.secondaryBoard.id})`,
+        ]
+      : []),
     `Selection: ${formatSelection(result.selection)}`,
     `Created: ${result.created.lists.length} lists, ${result.created.cards.length} cards, ${result.created.labels.length} labels, ${result.created.checklists.length} checklists, ${result.created.checklistItems.length} checklist items, ${result.created.attachments.length} attachments`,
     `Verified: ${result.verified.length > 0 ? result.verified.join("; ") : "none"}`,
@@ -509,6 +534,11 @@ export function formatLiveRegressionMarkdownSummary(
     `**Result:** ${failed ? "Failed" : "Passed"}`,
     `**Run:** \`${markdownInline(result.runId)}\``,
     `**Board:** ${markdownText(result.board.name)} (\`${markdownInline(result.board.id)}\`)`,
+    ...(result.secondaryBoard
+      ? [
+          `**Secondary board:** ${markdownText(result.secondaryBoard.name)} (\`${markdownInline(result.secondaryBoard.id)}\`)`,
+        ]
+      : []),
     `**Selection:** \`${markdownInline(formatSelection(result.selection))}\``,
     `**Created:** ${result.created.lists.length} lists, ${result.created.cards.length} cards, ${result.created.labels.length} labels, ${result.created.checklists.length} checklists, ${result.created.checklistItems.length} checklist items, ${result.created.attachments.length} attachments`,
     `**Cleanup:** ${result.cleanup.completed.length}/${result.cleanup.attempted.length} steps completed`,
@@ -622,7 +652,58 @@ async function resolveRegressionBoard(
     "list_boards",
   );
   assertContainsId(visibleBoards, boardId, "list_boards");
+  await resolveSecondaryRegressionBoard(context, visibleBoards);
   verify(context.result, `authenticated and resolved board ${boardName}`);
+}
+
+async function resolveSecondaryRegressionBoard(
+  context: RegressionContext,
+  visibleBoards: unknown[],
+): Promise<void> {
+  const secondaryBoardRef = context.result.secondaryBoard?.id;
+  if (!secondaryBoardRef) {
+    return;
+  }
+
+  const secondaryBoard = await objectResult(
+    invokeTool(context, "board_get", {
+      boardId: secondaryBoardRef,
+      fields: "name,closed,url,idOrganization",
+    }),
+    "secondary board_get",
+  );
+  const secondaryBoardId = stringField(
+    secondaryBoard,
+    "id",
+    "secondary board_get",
+  );
+  const secondaryBoardName = stringField(
+    secondaryBoard,
+    "name",
+    "secondary board_get",
+  );
+  if (secondaryBoard.closed === true) {
+    throw new Error("Configured secondary live regression board is closed.");
+  }
+  if (secondaryBoardId === requireBoardId(context)) {
+    throw new Error(
+      "Secondary live regression board must be different from the primary board.",
+    );
+  }
+  assertContainsId(
+    visibleBoards,
+    secondaryBoardId,
+    "list_boards for secondary board",
+  );
+  context.result.secondaryBoard = {
+    id: secondaryBoardId,
+    name: secondaryBoardName,
+  };
+  context.state.secondaryBoardId = secondaryBoardId;
+  verify(
+    context.result,
+    `authenticated and resolved secondary board ${secondaryBoardName}`,
+  );
 }
 
 async function runBoardRegression(context: RegressionContext): Promise<void> {
@@ -748,22 +829,29 @@ async function runWorkspaceRegression(
 }
 
 async function runListRegression(context: RegressionContext): Promise<void> {
-  const { primaryList, secondaryList } = await ensureRegressionLists(context);
-  if (shouldRunTool(context, "list_get")) {
+  const shouldUseStandardLists = shouldRunAnyTool(context, [
+    "list_get",
+    "list_update",
+    "list_archive",
+  ]);
+  const lists = shouldUseStandardLists
+    ? await ensureRegressionLists(context)
+    : undefined;
+  if (lists && shouldRunTool(context, "list_get")) {
     await objectResult(
       invokeTool(context, "list_get", {
         fields: "name,closed,idBoard,pos",
-        listId: primaryList.id,
+        listId: lists.primaryList.id,
       }),
       "list_get",
     );
   }
 
   const renamedListName = `${context.prefix} primary list renamed`;
-  if (shouldRunTool(context, "list_update")) {
+  if (lists && shouldRunTool(context, "list_update")) {
     await objectResult(
       invokeTool(context, "list_update", {
-        listId: primaryList.id,
+        listId: lists.primaryList.id,
         name: renamedListName,
         pos: "top",
       }),
@@ -771,28 +859,64 @@ async function runListRegression(context: RegressionContext): Promise<void> {
     );
     updateArtifactName(
       context.result.created.lists,
-      primaryList.id,
+      lists.primaryList.id,
       renamedListName,
     );
   }
 
-  if (shouldRunTool(context, "list_archive")) {
+  if (lists && shouldRunTool(context, "list_archive")) {
     await objectResult(
       invokeTool(context, "list_archive", {
         closed: true,
-        listId: secondaryList.id,
+        listId: lists.secondaryList.id,
       }),
       "list_archive",
     );
     await objectResult(
       invokeTool(context, "list_archive", {
         closed: false,
-        listId: secondaryList.id,
+        listId: lists.secondaryList.id,
       }),
       "list_archive",
     );
   }
+  if (shouldRunTool(context, "list_move_to_board")) {
+    await runListMoveToBoardRegression(context);
+  }
   verify(context.result, "exercised selected list regression scenarios");
+}
+
+async function runListMoveToBoardRegression(
+  context: RegressionContext,
+): Promise<void> {
+  const secondaryBoardId = context.state.secondaryBoardId;
+  if (!secondaryBoardId) {
+    skipTool(
+      context,
+      "list_move_to_board",
+      "Set TRELLO_LIVE_REGRESSION_SECONDARY_BOARD_ID, TRELLO_LIVE_REGRESSION_SECONDARY_BOARD_URL, or --secondary-board to cover cross-board list moves.",
+    );
+    return;
+  }
+
+  const movableList = await ensureMovableRegressionList(context);
+  const movedList = await objectResult(
+    invokeTool(context, "list_move_to_board", {
+      boardId: secondaryBoardId,
+      listId: movableList.id,
+    }),
+    "list_move_to_board",
+  );
+  const returnedBoardId = optionalStringField(movedList, "idBoard");
+  if (returnedBoardId && returnedBoardId !== secondaryBoardId) {
+    throw new Error(
+      `list_move_to_board returned idBoard=${returnedBoardId}; expected ${secondaryBoardId}.`,
+    );
+  }
+  verify(
+    context.result,
+    `moved disposable list ${movableList.name} to secondary board`,
+  );
 }
 
 async function runCardRegression(context: RegressionContext): Promise<void> {
@@ -1776,6 +1900,26 @@ async function ensureRegressionLists(context: RegressionContext): Promise<{
   return { primaryList, secondaryList };
 }
 
+async function ensureMovableRegressionList(
+  context: RegressionContext,
+): Promise<RegressionArtifact> {
+  const existing = artifactById(
+    context.result.created.lists,
+    context.state.movableListId,
+  );
+  if (existing) {
+    return existing;
+  }
+
+  const list = await createRegressionList(
+    context,
+    requireBoardId(context),
+    `${context.prefix} movable list`,
+  );
+  context.state.movableListId = list.id;
+  return list;
+}
+
 async function ensureRegressionCard(
   context: RegressionContext,
 ): Promise<RegressionArtifact> {
@@ -1959,8 +2103,8 @@ async function cleanupRegressionArtifacts(
     );
   }
 
-  if (context.state.boardId) {
-    await cleanupUntrackedOpenArtifacts(context);
+  for (const board of cleanupBoards(context)) {
+    await cleanupUntrackedOpenArtifacts(context, board);
   }
 
   for (const list of [...context.result.created.lists].reverse()) {
@@ -1972,6 +2116,7 @@ async function cleanupRegressionArtifacts(
 
 async function cleanupUntrackedOpenArtifacts(
   context: RegressionContext,
+  board: RegressionArtifact,
 ): Promise<void> {
   const trackedLabelIds = new Set(
     context.result.created.labels.map(({ id }) => id),
@@ -1990,32 +2135,32 @@ async function cleanupUntrackedOpenArtifacts(
     [openLists, openCards, labels] = await Promise.all([
       arrayResult(
         invokeTool(context, "board_lists", {
-          boardId: context.result.board.id,
+          boardId: board.id,
           fields: "name,closed,idBoard",
           filter: "open",
         }),
-        "board_lists untracked cleanup",
+        `board_lists untracked cleanup for ${board.id}`,
       ),
       arrayResult(
         invokeTool(context, "board_cards", {
-          boardId: context.result.board.id,
+          boardId: board.id,
           fields: "name,closed,idList",
           filter: "open",
           limit: 1000,
         }),
-        "board_cards untracked cleanup",
+        `board_cards untracked cleanup for ${board.id}`,
       ),
       arrayResult(
         invokeTool(context, "board_labels", {
-          boardId: context.result.board.id,
+          boardId: board.id,
           fields: "name,color",
           limit: 1000,
         }),
-        "board_labels untracked cleanup",
+        `board_labels untracked cleanup for ${board.id}`,
       ),
     ]);
   } catch (error) {
-    const message = `discover untracked regression artifacts: ${errorMessage(error)}`;
+    const message = `discover untracked regression artifacts on board ${board.id}: ${errorMessage(error)}`;
     context.result.cleanup.failures.push(message);
     context.log?.({
       level: "warn",
@@ -2100,38 +2245,40 @@ async function verifyNoOpenArtifacts(
   context: RegressionContext,
 ): Promise<void> {
   try {
-    const [openLists, openCards, labels] = await Promise.all([
-      arrayResult(
-        invokeTool(context, "board_lists", {
-          boardId: context.result.board.id,
-          fields: "name,closed,idBoard",
-          filter: "open",
-        }),
-        "board_lists cleanup verification",
-      ),
-      arrayResult(
-        invokeTool(context, "board_cards", {
-          boardId: context.result.board.id,
-          fields: "name,closed,idList",
-          filter: "open",
-          limit: 1000,
-        }),
-        "board_cards cleanup verification",
-      ),
-      arrayResult(
-        invokeTool(context, "board_labels", {
-          boardId: context.result.board.id,
-          fields: "name,color",
-          limit: 1000,
-        }),
-        "board_labels cleanup verification",
-      ),
-    ]);
-    context.result.cleanup.remainingOpenArtifacts.push(
-      ...matchingNames(openLists, context.prefix, "open list"),
-      ...matchingNames(openCards, context.prefix, "open card"),
-      ...matchingNames(labels, context.prefix, "label"),
-    );
+    for (const board of cleanupBoards(context)) {
+      const [openLists, openCards, labels] = await Promise.all([
+        arrayResult(
+          invokeTool(context, "board_lists", {
+            boardId: board.id,
+            fields: "name,closed,idBoard",
+            filter: "open",
+          }),
+          `board_lists cleanup verification for ${board.id}`,
+        ),
+        arrayResult(
+          invokeTool(context, "board_cards", {
+            boardId: board.id,
+            fields: "name,closed,idList",
+            filter: "open",
+            limit: 1000,
+          }),
+          `board_cards cleanup verification for ${board.id}`,
+        ),
+        arrayResult(
+          invokeTool(context, "board_labels", {
+            boardId: board.id,
+            fields: "name,color",
+            limit: 1000,
+          }),
+          `board_labels cleanup verification for ${board.id}`,
+        ),
+      ]);
+      context.result.cleanup.remainingOpenArtifacts.push(
+        ...matchingNames(openLists, context.prefix, `open list on ${board.id}`),
+        ...matchingNames(openCards, context.prefix, `open card on ${board.id}`),
+        ...matchingNames(labels, context.prefix, `label on ${board.id}`),
+      );
+    }
     if (context.result.cleanup.remainingOpenArtifacts.length === 0) {
       verify(
         context.result,
@@ -2451,8 +2598,9 @@ function emptyResult(
   runId: string,
   boardRef: string,
   filters: NormalizedFilters,
+  secondaryBoardRef?: string,
 ): LiveRegressionResult {
-  return {
+  const result: LiveRegressionResult = {
     board: { id: boardRef, name: "unknown" },
     cleanup: {
       attempted: [],
@@ -2477,6 +2625,28 @@ function emptyResult(
     },
     verified: [],
   };
+  if (secondaryBoardRef) {
+    result.secondaryBoard = { id: secondaryBoardRef, name: "unknown" };
+  }
+  return result;
+}
+
+function cleanupBoards(context: RegressionContext): RegressionArtifact[] {
+  const boards: RegressionArtifact[] = [];
+  if (context.state.boardId) {
+    boards.push(context.result.board);
+  }
+  if (context.state.secondaryBoardId && context.result.secondaryBoard) {
+    boards.push(context.result.secondaryBoard);
+  }
+  const seen = new Set<string>();
+  return boards.filter((board) => {
+    if (seen.has(board.id)) {
+      return false;
+    }
+    seen.add(board.id);
+    return true;
+  });
 }
 
 function requireBoardId(context: RegressionContext): string {
@@ -2734,6 +2904,34 @@ function liveRegressionBoardRef(env: NodeJS.ProcessEnv): string | undefined {
   return undefined;
 }
 
+function liveRegressionSecondaryBoardRef(
+  env: NodeJS.ProcessEnv,
+  cliValue: string | undefined,
+): string | undefined {
+  const cliBoard = nonEmpty(cliValue);
+  if (cliBoard) {
+    return boardIdentifier(cliBoard, "--secondary-board");
+  }
+
+  const boardId = nonEmpty(env.TRELLO_LIVE_REGRESSION_SECONDARY_BOARD_ID);
+  if (boardId) {
+    return boardIdentifier(
+      boardId,
+      "TRELLO_LIVE_REGRESSION_SECONDARY_BOARD_ID",
+    );
+  }
+
+  const boardUrl = nonEmpty(env.TRELLO_LIVE_REGRESSION_SECONDARY_BOARD_URL);
+  if (boardUrl) {
+    return boardIdentifier(
+      boardUrl,
+      "TRELLO_LIVE_REGRESSION_SECONDARY_BOARD_URL",
+    );
+  }
+
+  return undefined;
+}
+
 function boardIdentifier(value: string, source: string): string {
   const raw = value.trim();
   if (raw.includes("://")) {
@@ -2939,7 +3137,7 @@ async function appendGitHubSummaryIfConfigured(
 
 function liveRegressionUsage(): string {
   return [
-    "Usage: corepack pnpm regression:live [--domain <domain>] [--tool <tool>] [--json <path>]",
+    "Usage: corepack pnpm regression:live [--domain <domain>] [--tool <tool>] [--secondary-board <board>] [--json <path>]",
     `Domains: ${LIVE_REGRESSION_DOMAINS.join(", ")}`,
   ].join("\n");
 }
@@ -2981,6 +3179,9 @@ async function main(): Promise<void> {
       log: printEvent,
       runId: config.runId,
       ...(config.domains ? { domains: config.domains } : {}),
+      ...(config.secondaryBoardRef
+        ? { secondaryBoardRef: config.secondaryBoardRef }
+        : {}),
       ...(config.tools ? { tools: config.tools } : {}),
       ...(config.uploadFile ? { uploadFile: config.uploadFile } : {}),
     });

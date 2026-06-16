@@ -135,6 +135,8 @@ describe("live regression config", () => {
           "https://www.trello.com/b/GnKmvuHz/board",
         TRELLO_LIVE_REGRESSION_DOMAINS: "cards,attachments",
         TRELLO_LIVE_REGRESSION_REPORT_JSON: "reports/live.json",
+        TRELLO_LIVE_REGRESSION_SECONDARY_BOARD_URL:
+          "https://trello.com/b/r9BpowfZ/secondary",
         TRELLO_LIVE_REGRESSION_TOOLS: "card_get,card_attachment_upload",
         TRELLO_LIVE_REGRESSION_UPLOAD_FILE: "sample.txt",
         TRELLO_TOKEN: "token1",
@@ -151,9 +153,20 @@ describe("live regression config", () => {
       jsonReportPath: "reports/live.json",
       logLevel: "debug",
       runId: "local-2026-06-14T10-11-12-123Z",
+      secondaryBoardRef: "r9BpowfZ",
       tools: ["card_get", "card_attachment_upload"],
       uploadFile: "sample.txt",
     });
+
+    expect(
+      loadLiveRegressionConfig(
+        {
+          ...regressionEnv(),
+          TRELLO_LIVE_REGRESSION_SECONDARY_BOARD_ID: "board2",
+        },
+        new Date("2026-06-14T10:11:12.123Z"),
+      ).secondaryBoardRef,
+    ).toBe("board2");
   });
 
   it("accepts CLI filters and rejects unknown domains or tools", () => {
@@ -165,14 +178,24 @@ describe("live regression config", () => {
       "live.json",
       "--run-id",
       "pr-127",
+      "--secondary-board",
+      "https://trello.com/b/r9BpowfZ/secondary",
     ]);
 
     expect(cli).toEqual({
       domains: ["cards"],
       jsonReportPath: "live.json",
       runId: "pr-127",
+      secondaryBoard: "https://trello.com/b/r9BpowfZ/secondary",
       tools: ["card_get,card_update"],
     });
+    expect(
+      loadLiveRegressionConfig(
+        regressionEnv(),
+        new Date("2026-06-14T10:11:12.123Z"),
+        cli,
+      ).secondaryBoardRef,
+    ).toBe("r9BpowfZ");
 
     expect(() =>
       loadLiveRegressionConfig(
@@ -214,6 +237,39 @@ describe("live regression config", () => {
     } catch (error) {
       const message = (error as Error).message;
       expect(message).toContain("TRELLO_LIVE_REGRESSION_BOARD_URL");
+      expect(message).not.toContain("secret-key");
+      expect(message).not.toContain("secret-token");
+      expect(message).not.toContain(credentialUrl);
+    }
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("rejects invalid secondary board URLs without echoing query-string secrets", () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    const credentialUrl =
+      "https://api.trello.com/b/board2?key=secret-key&token=secret-token";
+
+    expect(() =>
+      loadLiveRegressionConfig({
+        TRELLO_API_KEY: "key1",
+        TRELLO_LIVE_REGRESSION: "1",
+        TRELLO_LIVE_REGRESSION_BOARD_ID: "board1",
+        TRELLO_LIVE_REGRESSION_SECONDARY_BOARD_URL: credentialUrl,
+        TRELLO_TOKEN: "token1",
+      }),
+    ).toThrow(LiveRegressionConfigError);
+
+    try {
+      loadLiveRegressionConfig({
+        TRELLO_API_KEY: "key1",
+        TRELLO_LIVE_REGRESSION: "1",
+        TRELLO_LIVE_REGRESSION_BOARD_ID: "board1",
+        TRELLO_LIVE_REGRESSION_SECONDARY_BOARD_URL: credentialUrl,
+        TRELLO_TOKEN: "token1",
+      });
+    } catch (error) {
+      const message = (error as Error).message;
+      expect(message).toContain("TRELLO_LIVE_REGRESSION_SECONDARY_BOARD_URL");
       expect(message).not.toContain("secret-key");
       expect(message).not.toContain("secret-token");
       expect(message).not.toContain(credentialUrl);
@@ -264,7 +320,9 @@ describe("live regression suite", () => {
           tool: "custom_field_get",
         }),
         expect.objectContaining({
-          status: "unsupported",
+          reason:
+            "Set TRELLO_LIVE_REGRESSION_SECONDARY_BOARD_ID, TRELLO_LIVE_REGRESSION_SECONDARY_BOARD_URL, or --secondary-board to cover cross-board list moves.",
+          status: "skipped",
           tool: "list_move_to_board",
         }),
       ]),
@@ -284,6 +342,63 @@ describe("live regression suite", () => {
     ).toBe(true);
     expect(JSON.stringify(result)).not.toContain("secret-key");
     expect(JSON.stringify(result)).not.toContain("secret-token");
+  });
+
+  it("covers list_move_to_board when a secondary board is configured", async () => {
+    const fake = createFakeRegressionInvoker();
+
+    const result = await runLiveRegressionSuite({
+      boardRef: "board1",
+      invoke: fake.invoke,
+      runId: "unit-secondary",
+      secondaryBoardRef: "https://trello.com/b/board2/secondary",
+    });
+
+    expect(result.secondaryBoard).toEqual({
+      id: "board2",
+      name: "Live Regression Board 2",
+    });
+    expect(result.coverage).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          status: "covered",
+          tool: "list_move_to_board",
+        }),
+      ]),
+    );
+    expect(fake.calls).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          input: expect.objectContaining({ boardId: "board2" }),
+          name: "list_move_to_board",
+        }),
+      ]),
+    );
+    expect(
+      [...fake.state.lists.values()].filter(
+        (list) => list.idBoard === "board2",
+      ),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          closed: true,
+          name: expect.stringContaining("movable list"),
+        }),
+      ]),
+    );
+    expect(fake.calls).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          input: expect.objectContaining({ boardId: "board1" }),
+          name: "board_lists",
+        }),
+        expect.objectContaining({
+          input: expect.objectContaining({ boardId: "board2" }),
+          name: "board_lists",
+        }),
+      ]),
+    );
+    expect(result.cleanup.remainingOpenArtifacts).toEqual([]);
   });
 
   it("supports targeted domain and tool filters without running unrelated write domains", async () => {
@@ -377,6 +492,100 @@ describe("live regression suite", () => {
         result.coverage.filter((entry) => entry.status === "missing"),
       ).toEqual([]);
     }
+  });
+
+  it("skips focused list_move_to_board runs when no secondary board is configured", async () => {
+    const fake = createFakeRegressionInvoker();
+
+    const result = await runLiveRegressionSuite({
+      boardRef: "board1",
+      invoke: fake.invoke,
+      runId: "focused-list-move-no-secondary",
+      tools: ["list_move_to_board"],
+    });
+
+    expect(result.coverage).toEqual([
+      expect.objectContaining({
+        reason:
+          "Set TRELLO_LIVE_REGRESSION_SECONDARY_BOARD_ID, TRELLO_LIVE_REGRESSION_SECONDARY_BOARD_URL, or --secondary-board to cover cross-board list moves.",
+        status: "skipped",
+        tool: "list_move_to_board",
+      }),
+    ]);
+    expect(fake.calls.map((call) => call.name)).not.toContain("list_create");
+    expect(fake.calls.map((call) => call.name)).not.toContain(
+      "list_move_to_board",
+    );
+  });
+
+  it("runs focused list_move_to_board only after primary and secondary board setup", async () => {
+    const fake = createFakeRegressionInvoker();
+
+    const result = await runLiveRegressionSuite({
+      boardRef: "board1",
+      invoke: fake.invoke,
+      runId: "focused-list-move",
+      secondaryBoardRef: "board2",
+      tools: ["list_move_to_board"],
+    });
+
+    const callNames = fake.calls.map((call) => call.name);
+    expect(callNames).toEqual(
+      expect.arrayContaining([
+        "auth_whoami",
+        "auth_token_info",
+        "board_get",
+        "list_boards",
+        "list_create",
+        "list_move_to_board",
+        "list_archive",
+      ]),
+    );
+    expect(callNames.indexOf("list_boards")).toBeLessThan(
+      callNames.indexOf("list_create"),
+    );
+    expect(callNames.indexOf("list_create")).toBeLessThan(
+      callNames.indexOf("list_move_to_board"),
+    );
+    expect(callNames).not.toContain("list_get");
+    expect(callNames).not.toContain("list_update");
+    expect(result.coverage).toEqual([
+      expect.objectContaining({
+        status: "covered",
+        tool: "list_move_to_board",
+      }),
+    ]);
+  });
+
+  it("fake regression invoker filters lists and cards by board id", async () => {
+    const fake = createFakeRegressionInvoker();
+    const primaryList = (await fake.invoke("list_create", {
+      boardId: "board1",
+      name: "primary",
+    })) as FakeList;
+    const secondaryList = (await fake.invoke("list_create", {
+      boardId: "board2",
+      name: "secondary",
+    })) as FakeList;
+    const secondaryCard = (await fake.invoke("card_create", {
+      listId: secondaryList.id,
+      name: "secondary card",
+    })) as FakeCard;
+
+    await fake.invoke("card_create", {
+      listId: primaryList.id,
+      name: "primary card",
+    });
+
+    expect(await fake.invoke("board_lists", { boardId: "board1" })).toEqual([
+      expect.objectContaining({ id: primaryList.id }),
+    ]);
+    expect(await fake.invoke("board_lists", { boardId: "board2" })).toEqual([
+      expect.objectContaining({ id: secondaryList.id }),
+    ]);
+    expect(await fake.invoke("board_cards", { boardId: "board2" })).toEqual([
+      expect.objectContaining({ id: secondaryCard.id }),
+    ]);
   });
 
   it("covers cross-resource action audit tools under the comments-actions domain", async () => {
@@ -512,6 +721,49 @@ describe("live regression suite", () => {
     ).toBe(true);
   });
 
+  it("archives a moved list and checks the secondary board after a post-move failure", async () => {
+    const fake = createFakeRegressionInvoker({
+      failAfterMoveOn: "list_move_to_board",
+    });
+
+    let thrown: unknown;
+    try {
+      await runLiveRegressionSuite({
+        boardRef: "board1",
+        invoke: fake.invoke,
+        runId: "post-move",
+        secondaryBoardRef: "board2",
+        tools: ["list_move_to_board"],
+      });
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(LiveRegressionRunError);
+    const result = (thrown as LiveRegressionRunError).result;
+    expect(result.failures).toEqual([
+      "planned post-move failure in list_move_to_board",
+    ]);
+    expect(result.cleanup.completed).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("archive regression list"),
+      ]),
+    );
+    expect(
+      [...fake.state.lists.values()].filter((list) =>
+        list.name.includes("movable list"),
+      ),
+    ).toEqual([expect.objectContaining({ closed: true, idBoard: "board2" })]);
+    expect(fake.calls).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          input: expect.objectContaining({ boardId: "board2" }),
+          name: "board_lists",
+        }),
+      ]),
+    );
+  });
+
   it("discovers and cleans up untracked prefix-matched artifacts after post-create failures", async () => {
     const fake = createFakeRegressionInvoker({
       failAfterCreateOn: "card_create",
@@ -610,6 +862,7 @@ function createFakeRegressionInvoker(
     customFields?: unknown[];
     domains?: LiveRegressionDomain[];
     failAfterCreateOn?: string;
+    failAfterMoveOn?: string;
     failOn?: string;
     workspaceVisible?: boolean;
   } = {},
@@ -619,6 +872,7 @@ function createFakeRegressionInvoker(
   state: {
     actions: Map<string, FakeAction>;
     attachments: Map<string, FakeAttachment>;
+    boards: Map<string, FakeBoard>;
     cards: Map<string, FakeCard>;
     checklistItems: Map<string, FakeChecklistItem>;
     checklists: Map<string, FakeChecklist>;
@@ -633,6 +887,16 @@ function createFakeRegressionInvoker(
     idOrganization: options.workspaceVisible === false ? null : "workspace1",
     name: "Live Regression Board",
   };
+  const secondaryBoard: FakeBoard = {
+    closed: false,
+    id: "board2",
+    idOrganization: options.workspaceVisible === false ? null : "workspace1",
+    name: "Live Regression Board 2",
+  };
+  const boards = new Map<string, FakeBoard>([
+    [board.id, board],
+    [secondaryBoard.id, secondaryBoard],
+  ]);
   const member: FakeMember = {
     fullName: "Ada Lovelace",
     id: "member1",
@@ -641,7 +905,7 @@ function createFakeRegressionInvoker(
   const workspace = {
     displayName: "Regression Workspace",
     id: "workspace1",
-    idBoards: [board.id],
+    idBoards: [...boards.keys()],
     name: "regression-workspace",
     url: "https://trello.com/w/regression",
     website: null,
@@ -649,6 +913,7 @@ function createFakeRegressionInvoker(
   const state = {
     actions: new Map<string, FakeAction>(),
     attachments: new Map<string, FakeAttachment>(),
+    boards,
     cards: new Map<string, FakeCard>(),
     checklistItems: new Map<string, FakeChecklistItem>(),
     checklists: new Map<string, FakeChecklist>(),
@@ -674,16 +939,20 @@ function createFakeRegressionInvoker(
           id: "token1",
           idMember: member.id,
           identifier: "trello-mcp-test",
-          permissions: [
-            { idModel: board.id, modelType: "board", read: true, write: true },
-          ],
+          permissions: [...boards.values()].map((visibleBoard) => ({
+            idModel: visibleBoard.id,
+            modelType: "board",
+            read: true,
+            write: true,
+          })),
         };
       case "list_boards":
-        return [board];
+        return openBoards(boards);
       case "board_get":
-        return board;
+        return requiredMapValue(boards, requiredInputString(input, "boardId"));
       case "board_field_get":
-        return board.name;
+        return requiredMapValue(boards, requiredInputString(input, "boardId"))
+          .name;
       case "board_custom_fields":
         return options.customFields ?? [];
       case "board_lists":
@@ -691,7 +960,7 @@ function createFakeRegressionInvoker(
       case "board_cards":
         return cardsForFilter(state.cards, input);
       case "board_labels":
-        return Array.from(state.labels.values());
+        return labelsForFilter(state.labels, input);
       case "board_members":
         return [member];
       case "board_memberships":
@@ -708,10 +977,11 @@ function createFakeRegressionInvoker(
       case "workspace_get":
         return workspace;
       case "workspace_boards":
-        return [board];
+        return openBoards(boards);
       case "workspace_members":
         return [member];
       case "list_create": {
+        requiredMapValue(boards, requiredInputString(input, "boardId"));
         const id = next("list");
         const list = {
           closed: false,
@@ -750,6 +1020,22 @@ function createFakeRegressionInvoker(
         list.closed = input.closed !== false;
         return list;
       }
+      case "list_move_to_board": {
+        const list = requiredMapValue(
+          state.lists,
+          requiredInputString(input, "listId"),
+        );
+        const boardId = requiredInputString(input, "boardId");
+        requiredMapValue(boards, boardId);
+        list.idBoard = boardId;
+        for (const card of state.cards.values()) {
+          if (card.idList === list.id) {
+            card.idBoard = boardId;
+          }
+        }
+        failAfterMove(options, name);
+        return list;
+      }
       case "card_create": {
         const list = requiredMapValue(
           state.lists,
@@ -779,8 +1065,13 @@ function createFakeRegressionInvoker(
           state.cards,
           requiredInputString(input, "cardId"),
         );
-      case "card_board":
-        return board;
+      case "card_board": {
+        const card = requiredMapValue(
+          state.cards,
+          requiredInputString(input, "cardId"),
+        );
+        return requiredMapValue(boards, card.idBoard);
+      }
       case "card_list": {
         const card = requiredMapValue(
           state.cards,
@@ -934,7 +1225,7 @@ function createFakeRegressionInvoker(
       case "member_get":
         return member;
       case "member_boards":
-        return [board];
+        return openBoards(boards);
       case "member_cards":
         return Array.from(state.cards.values()).filter((card) =>
           card.idMembers.includes(member.id),
@@ -1147,7 +1438,7 @@ function createFakeRegressionInvoker(
       }
       case "search":
         return {
-          boards: [board],
+          boards: openBoards(boards),
           cards: Array.from(state.cards.values()),
           members: [member],
           organizations: options.workspaceVisible === false ? [] : [workspace],
@@ -1187,14 +1478,31 @@ function failAfterCreate(
   }
 }
 
+function failAfterMove(
+  options: { failAfterMoveOn?: string },
+  name: string,
+): void {
+  if (options.failAfterMoveOn === name) {
+    throw new Error(`planned post-move failure in ${name}`);
+  }
+}
+
+function openBoards(boards: Map<string, FakeBoard>): FakeBoard[] {
+  return [...boards.values()].filter((board) => !board.closed);
+}
+
 function listsForFilter(
   lists: Map<string, FakeList>,
   input: Record<string, unknown>,
 ): FakeList[] {
   const filter = optionalInputString(input, "filter") ?? "open";
-  return Array.from(lists.values()).filter((list) =>
-    filter === "closed" ? list.closed : filter === "all" || !list.closed,
-  );
+  const boardId = optionalInputString(input, "boardId");
+  return Array.from(lists.values()).filter((list) => {
+    if (boardId && list.idBoard !== boardId) {
+      return false;
+    }
+    return filter === "closed" ? list.closed : filter === "all" || !list.closed;
+  });
 }
 
 function cardsForFilter(
@@ -1202,8 +1510,22 @@ function cardsForFilter(
   input: Record<string, unknown>,
 ): FakeCard[] {
   const filter = optionalInputString(input, "filter") ?? "open";
-  return Array.from(cards.values()).filter((card) =>
-    filter === "closed" ? card.closed : filter === "all" || !card.closed,
+  const boardId = optionalInputString(input, "boardId");
+  return Array.from(cards.values()).filter((card) => {
+    if (boardId && card.idBoard !== boardId) {
+      return false;
+    }
+    return filter === "closed" ? card.closed : filter === "all" || !card.closed;
+  });
+}
+
+function labelsForFilter(
+  labels: Map<string, FakeLabel>,
+  input: Record<string, unknown>,
+): FakeLabel[] {
+  const boardId = optionalInputString(input, "boardId");
+  return Array.from(labels.values()).filter(
+    (label) => !boardId || label.idBoard === boardId,
   );
 }
 
