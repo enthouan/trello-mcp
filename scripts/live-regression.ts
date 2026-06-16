@@ -830,6 +830,7 @@ async function runWorkspaceRegression(
 
 async function runListRegression(context: RegressionContext): Promise<void> {
   const shouldUseStandardLists = shouldRunAnyTool(context, [
+    "list_create",
     "list_get",
     "list_update",
     "list_archive",

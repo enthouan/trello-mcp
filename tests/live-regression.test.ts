@@ -469,6 +469,7 @@ describe("live regression suite", () => {
 
   it("covers create and list tools when they are the focused tool filter", async () => {
     for (const { domain, tool } of [
+      { domain: "lists", tool: "list_create" },
       { domain: "labels", tool: "label_create" },
       { domain: "checklists", tool: "card_checklist_create" },
       { domain: "members", tool: "board_members" },
