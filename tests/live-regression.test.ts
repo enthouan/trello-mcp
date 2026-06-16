@@ -269,6 +269,13 @@ describe("live regression suite", () => {
         }),
       ]),
     );
+    expect(
+      fake.calls.find((call) => call.name === "card_attachment_add_url")?.input,
+    ).toEqual(
+      expect.objectContaining({
+        url: "https://dummyimage.com/600x400/0052cc/ffffff.png",
+      }),
+    );
     expect(fake.state.cards.size).toBe(0);
     expect(fake.state.labels.size).toBe(0);
     expect(fake.state.attachments.size).toBe(0);
