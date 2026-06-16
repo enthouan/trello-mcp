@@ -3,6 +3,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  appendLiveRegressionMarkdownSummary,
+  formatLiveRegressionMarkdownSummary,
   formatLiveRegressionReport,
   LiveRegressionConfigError,
   type LiveRegressionDomain,
@@ -552,14 +554,47 @@ describe("live regression suite", () => {
       "Cleanup verification: no open regression artifacts found",
     );
 
+    const summary = formatLiveRegressionMarkdownSummary(result);
+    expect(summary).toContain("## Live Trello Regression");
+    expect(summary).toContain("**Result:** Passed");
+    expect(summary).toContain("| skipped | 1 |");
+    expect(summary).toContain("### Skipped Live Coverage");
+
+    const failedSummary = formatLiveRegressionMarkdownSummary(
+      {
+        ...result,
+        coverage: [
+          ...result.coverage,
+          {
+            domain: "search",
+            reason: "No live regression scenario covers this tool.",
+            status: "missing",
+            tool: "search",
+          },
+        ],
+        failures: ["secret-key failure"],
+      },
+      { secrets: ["secret-key"] },
+    );
+    expect(failedSummary).toContain("**Result:** Failed");
+    expect(failedSummary).toContain("### Failures");
+    expect(failedSummary).toContain("[redacted] failure");
+    expect(failedSummary).toContain("### Missing Live Coverage");
+
     const dir = await mkdtemp(join(tmpdir(), "trello-mcp-live-regression-"));
     tempDirs.push(dir);
-    const path = join(dir, "report.json");
-    await writeLiveRegressionJsonReport(result, path);
-    const parsed = JSON.parse(await readFile(path, "utf8")) as {
+    const jsonPath = join(dir, "report.json");
+    await writeLiveRegressionJsonReport(result, jsonPath);
+    const parsed = JSON.parse(await readFile(jsonPath, "utf8")) as {
       runId: string;
     };
     expect(parsed.runId).toBe("report");
+
+    const summaryPath = join(dir, "summary.md");
+    await appendLiveRegressionMarkdownSummary(result, summaryPath);
+    expect(await readFile(summaryPath, "utf8")).toContain(
+      "## Live Trello Regression",
+    );
   });
 });
 
