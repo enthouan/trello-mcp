@@ -6,6 +6,8 @@ This project exposes focused MCP tools for personal and self-hosted Trello workf
 
 Trello's REST API uses the term Organizations for what the Trello product commonly presents as workspaces. The MCP tools use user-facing workspace wording, but rows below explicitly call out the underlying Organizations API group where relevant.
 
+For API groups marked partially supported, the detailed coverage section breaks the group down by endpoint family so contributors can see which subset is currently covered without treating this project as a complete Trello REST proxy.
+
 ## Status Legend
 
 | Status | Meaning |
@@ -37,6 +39,87 @@ Trello's REST API uses the term Organizations for what the Trello product common
 | [Search](https://developer.atlassian.com/cloud/trello/rest/api-group-search/) | Supported | `search` covers cards, boards, members, and organizations/workspaces with scoped fields and limits. `search_members` covers member lookup with optional board or workspace scope. | None currently planned. | The Trello search endpoint family is represented by focused search tools with bounded output defaults. |
 | [Tokens](https://developer.atlassian.com/cloud/trello/rest/api-group-tokens/) | Partially supported | `auth_token_info` reads safe metadata about the configured token. `auth_whoami` identifies the authenticated member. | Token creation, revocation, OAuth lifecycle, token-owned webhooks, and broad token/member/admin mutation endpoints are not exposed. | The server intentionally consumes one user-provided API key and token. Diagnostics are useful; token lifecycle management is not part of the current scope. |
 | [Webhooks](https://developer.atlassian.com/cloud/trello/rest/api-group-webhooks/) | Deferred | None. | Webhook creation, listing, update, deletion, event receiver behavior, and validation helpers are not exposed or documented yet. | Webhooks are useful for future event-driven workflows but require explicit receiver, validation, and cleanup design. Follow-ups: [#42](https://github.com/enthouan/trello-mcp/issues/42), [#43](https://github.com/enthouan/trello-mcp/issues/43). |
+
+## Detailed Coverage By Group
+
+The tables below use the same status legend as the top-level matrix. They are intentionally grouped by useful endpoint families rather than listing every Trello REST route.
+
+### Actions
+
+| Endpoint family | Status | MCP tools | Unsupported or deferred details | Notes |
+| --- | --- | --- | --- | --- |
+| Resource activity history | Partially supported | `card_actions`, `board_actions`, `list_actions`, `workspace_actions` | Direct action lookup by id and generic action field reads are not exposed. | Current tools are scoped to the resources users normally audit from MCP clients. |
+| Card comments | Supported | `card_comment_add`, `card_comment_update`, `card_comment_delete` | Generic action mutation/deletion is not exposed. | Comment tools are intentionally card-scoped. |
+| Action reactions and related-resource reads | Deferred | None. | Reactions and action-related board/card/list/member reads are not exposed. | Add only when a concrete review or collaboration workflow needs them. |
+
+### Boards
+
+| Endpoint family | Status | MCP tools | Unsupported or deferred details | Notes |
+| --- | --- | --- | --- | --- |
+| Board discovery and metadata reads | Supported | `list_boards`, `board_get`, `board_field_get` | Exhaustive field alias tools are not exposed. | Focused field selection covers normal discovery and inspection. |
+| Board creation | Partially supported | `board_create` | Template-copy helpers, rich preference setup, and follow-up admin mutation are not exposed. | Creation defaults to private boards and supports optional workspace placement. |
+| Board related resources | Partially supported | `board_lists`, `board_cards`, `board_custom_fields`, `board_labels`, `board_members`, `board_memberships`, `board_actions` | Invitations, member/admin mutation, stars, board plugins, tags, email/calendar keys, exports, and preference mutation are not exposed. | The covered surface supports planning, lookup, and audit workflows without broad board administration. |
+| Board closure and deletion | Deferred | None. | Board close, reopen, and delete helpers are not exposed. | These operations have high impact and need explicit safety design before adding tools. |
+
+### Cards
+
+| Endpoint family | Status | MCP tools | Unsupported or deferred details | Notes |
+| --- | --- | --- | --- | --- |
+| Card CRUD and metadata | Supported | `card_get`, `card_create`, `card_update`, `card_delete` | Exhaustive field-specific aliases are not exposed. | Core card creation, reading, updating, and explicit deletion are covered. |
+| Movement, archive state, position, due date, and cover | Supported | `card_move`, `card_archive`, `card_position_set`, `card_due_date_set`, `card_cover_set` | Lower-level Trello aliases are not exposed. | Focused mutation tools keep common edits explicit. |
+| Card relationships | Supported | `card_board`, `card_list`, `card_labels`, `card_members` | Broad relationship aliases are not exposed. | These tools support context gathering before edits or summaries. |
+| Attachments | Partially supported | `card_attachments`, `card_attachment_get`, `card_attachment_add_url`, `card_attachment_upload`, `card_attachment_delete` | Attachment cover edge aliases and every Trello attachment field route are not exposed. | URL attachments and guarded server-local uploads are supported. |
+| Checklists and checklist items | Partially supported | `card_checklists`, `card_checklist_create`, `card_checklist_delete`, `card_checklist_item_create`, `card_checklist_items`, `card_checklist_item_update`, `card_checklist_item_set_checked`, `card_checklist_item_move`, `card_checklist_item_delete` | Standalone checklist aliases and bulk checklist operations are not exposed. | Checklist workflows are intentionally card-scoped. |
+| Comments and activity | Partially supported | `card_comment_add`, `card_comment_update`, `card_comment_delete`, `card_actions` | Generic action lookup, reactions, and broad action mutation are not exposed. | Covers the common card review and audit path. |
+| Labels, members, and custom field items | Partially supported | `card_label_add`, `card_label_remove`, `card_label_create_and_add`, `card_member_add`, `card_member_remove`, `card_custom_field_items`, `card_custom_field_set`, `card_custom_field_clear` | Full label/admin, member/admin, and custom field definition management are handled outside the card tool family or not exposed. | Card-scoped assignment and value workflows are covered. |
+| Votes, stickers, pluginData, and notification state | Deferred | None. | Votes, stickers, custom sticker images, pluginData, and card notification marking are not exposed. | These lower-frequency social, Power-Up, and notification surfaces need concrete MCP use cases first. |
+
+### Checklists
+
+| Endpoint family | Status | MCP tools | Unsupported or deferred details | Notes |
+| --- | --- | --- | --- | --- |
+| Card checklist list/create/delete | Supported | `card_checklists`, `card_checklist_create`, `card_checklist_delete` | Standalone checklist route aliases are not exposed. | Current model treats checklists as card subresources. |
+| Checklist item create/read/update/move/delete | Supported | `card_checklist_item_create`, `card_checklist_items`, `card_checklist_item_update`, `card_checklist_item_set_checked`, `card_checklist_item_move`, `card_checklist_item_delete` | Bulk item operations are not exposed. | Covers normal checklist item management. |
+| Checklist metadata and relationships | Deferred | None. | Direct checklist field reads and checklist board/card relationship reads are not exposed. | Add only if card-scoped reads are insufficient for real workflows. |
+
+### CustomFields
+
+| Endpoint family | Status | MCP tools | Unsupported or deferred details | Notes |
+| --- | --- | --- | --- | --- |
+| Definition and option reads | Supported | `board_custom_fields`, `custom_field_get`, `custom_field_options` | Exhaustive custom field admin reads are not exposed. | Users can discover definitions and dropdown options before writing card values. |
+| Card custom field values | Supported | `card_custom_field_items`, `card_custom_field_set`, `card_custom_field_clear` | Bulk custom field item mutation is not exposed. | Supports setting and clearing one card field value at a time with type-specific validation. |
+| Definition and option management | Deferred | None. | Custom field definition creation/update/deletion and option creation/update/deletion are not exposed. | Needs narrower requirements because schema and option mutation can affect whole boards. |
+
+### Lists
+
+| Endpoint family | Status | MCP tools | Unsupported or deferred details | Notes |
+| --- | --- | --- | --- | --- |
+| List reads and card listing | Supported | `board_lists`, `list_get`, `list_cards`, `list_actions` | Exhaustive field alias endpoints are not exposed. | Covers common list lookup, summarization, and audit workflows. |
+| List create/update/archive/move | Supported | `list_create`, `list_update`, `list_archive`, `list_move_to_board` | Subscription helpers are not exposed. | Normal list management is covered with focused tools. |
+| Native mass-card operations | Deferred | None. | Archive-all-cards and move-all-cards are not exposed. | These broad mutations need explicit safety behavior. Follow-up: [#140](https://github.com/enthouan/trello-mcp/issues/140). |
+
+### Members
+
+| Endpoint family | Status | MCP tools | Unsupported or deferred details | Notes |
+| --- | --- | --- | --- | --- |
+| Member discovery and profile reads | Supported | `auth_whoami`, `member_get`, `search_members` | Account-management endpoints are not exposed. | Covers identifying the configured user and resolving collaborators. |
+| Visible member resources | Supported | `member_boards`, `member_cards`, `member_workspaces`, `board_members`, `board_memberships` | Broad admin/account reads are not exposed. | Results are constrained by the configured token's Trello visibility. |
+| Card membership assignment | Supported | `card_members`, `card_member_add`, `card_member_remove` | Workspace or board member/admin mutation is not exposed. | Assignment is card-scoped rather than account-administrative. |
+| Account assets and settings | Not planned | None. | Avatars, custom board backgrounds, custom stickers, saved searches, notification state, and token lifecycle endpoints are not exposed. | These are outside the current personal Trello workflow server scope. |
+
+### Organizations
+
+| Endpoint family | Status | MCP tools | Unsupported or deferred details | Notes |
+| --- | --- | --- | --- | --- |
+| Workspace discovery and metadata | Supported | `list_workspaces`, `workspace_get` | Organization creation/update/deletion is not exposed. | User-facing tools call these workspaces while Trello's API calls them Organizations. |
+| Workspace boards, members, and activity | Partially supported | `workspace_boards`, `workspace_members`, `workspace_actions`, `search` | Admin/member mutation, invitations, exports, preferences, tags, paid-account/admin endpoints, and plugin-related organization endpoints are not exposed. | Current coverage is for discovery, lookup, and audit, not workspace administration. |
+
+### Tokens
+
+| Endpoint family | Status | MCP tools | Unsupported or deferred details | Notes |
+| --- | --- | --- | --- | --- |
+| Credential diagnostics | Supported | `auth_whoami`, `auth_token_info` | None for read-only diagnostics. | Helps verify which user and token metadata the server is using without exposing secrets. |
+| Token lifecycle and OAuth | Not planned | None. | Token creation, revocation, OAuth grant flows, and token-owned webhook management are not exposed. | The server consumes one configured API key and token rather than managing credentials. |
 
 ## Non-goals
 
