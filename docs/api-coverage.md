@@ -1,6 +1,10 @@
 # Trello API Coverage
 
-Last checked against the official [Trello REST API reference](https://developer.atlassian.com/cloud/trello/rest/) on 2026-06-20.
+## Source Snapshot
+
+- Official source: [Trello REST API reference](https://developer.atlassian.com/cloud/trello/rest/).
+- Checked on: 2026-06-20.
+- REST route prefix: `https://api.trello.com/1`. Atlassian's Trello REST reference is organized by API group rather than a named semver-style API version, so this matrix tracks the checked date and route prefix instead of a separate API version.
 
 This project exposes focused MCP tools for personal and self-hosted Trello workflows. It does not try to mirror every Trello REST endpoint one-for-one. The matrix below tracks the current public API group coverage, known gaps, and non-goals so contributors can see where broad endpoint families are intentionally outside the current tool surface.
 
@@ -131,5 +135,6 @@ The tables below use the same status legend as the top-level matrix. They are in
 ## Maintenance Notes
 
 - When public MCP tools are added, removed, renamed, or their key inputs change, run `corepack pnpm docs:tools` and update this matrix when the API group coverage changes.
+- When rechecking the official Trello REST reference, update the source snapshot date and route prefix if Atlassian changes the published route shape or introduces a new named REST API version.
 - Keep workspace terminology user-facing, but reference Trello's Organizations API group where a link or endpoint family uses that official name.
 - Prefer "partially supported" when a group has useful workflow coverage but the project does not cover the full Trello endpoint family.
