@@ -56,6 +56,13 @@ Make the smallest release metadata change:
 - Set `package.json` `version` to `X.Y.Z`.
 - Add the new `CHANGELOG.md` section at the top with user-facing changes grouped like existing releases.
 - Update docs only when release behavior or supported commands changed.
+- If the release adds, removes, renames, or materially changes public MCP tools
+  or Trello endpoint coverage, check `docs/api-coverage.md` and update the
+  matrix if status, tool coverage, unsupported endpoint families, rationale, or
+  follow-up links changed. If the matrix was checked but unchanged, note that
+  in the release PR validation or handoff.
+- If public MCP tool names, descriptions, or key inputs changed, run
+  `corepack pnpm docs:tools`.
 - If package-manager metadata changes, include the resulting lockfile update.
 
 Validate before opening or marking the PR ready:
@@ -82,7 +89,7 @@ Review the release diff like an external reviewer before publishing the PR:
 ```bash
 git diff --check
 git diff --stat origin/main...HEAD
-git diff origin/main...HEAD -- package.json CHANGELOG.md README.md CONTRIBUTING.md .github/workflows/release.yml
+git diff origin/main...HEAD -- package.json CHANGELOG.md README.md CONTRIBUTING.md docs/api-coverage.md .github/workflows/release.yml
 ```
 
 Open the PR with a direct title such as `vX.Y.Z`. Include validation
