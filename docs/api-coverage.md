@@ -3,7 +3,7 @@
 ## Source Snapshot
 
 - Official source: [Trello REST API reference](https://developer.atlassian.com/cloud/trello/rest/).
-- Checked on: 2026-06-20.
+- Checked on: 2026-06-21.
 - REST route prefix: `https://api.trello.com/1`. Atlassian's Trello REST reference is organized by API group rather than a named semver-style API version, so this matrix tracks the checked date and route prefix instead of a separate API version.
 
 This project exposes focused MCP tools for personal and self-hosted Trello workflows. It does not try to mirror every Trello REST endpoint one-for-one. The matrix below tracks the current public API group coverage, known gaps, and non-goals so contributors can see where broad endpoint families are intentionally outside the current tool surface.
