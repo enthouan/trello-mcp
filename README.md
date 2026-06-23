@@ -346,6 +346,8 @@ Use the read-only `auth_whoami` and `auth_token_info` tools to verify which Trel
 
 ## MCP Client Setup
 
+For client-by-client validation status, transport support, and caveats, see [MCP Client Compatibility](docs/mcp-client-compatibility.md).
+
 ### Streamable HTTP
 
 Use this mode when the server runs as a service or container. For Docker Compose, set `TRELLO_MCP_HOST_BIND_IP` to choose the host interface Docker binds to and `TRELLO_MCP_HOST_PORT` to choose the published host port; the container listens internally on the fixed port `3000`.
