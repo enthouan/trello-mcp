@@ -229,7 +229,7 @@ export const TrelloChecklistSchema = z.object({
   name: z.string(),
   idBoard: TrelloIdSchema.optional(),
   idCard: TrelloIdSchema.optional(),
-  pos: z.number().optional(),
+  pos: z.union([z.number(), z.string()]).optional(),
   checkItems: z.array(TrelloChecklistItemSchema).optional(),
 });
 

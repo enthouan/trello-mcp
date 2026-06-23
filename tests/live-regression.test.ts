@@ -62,6 +62,7 @@ type FakeChecklist = {
   id: string;
   idCard: string;
   name: string;
+  pos?: string | number;
 };
 
 type FakeChecklistItem = {
@@ -305,6 +306,10 @@ describe("live regression suite", () => {
         }),
         expect.objectContaining({
           status: "covered",
+          tool: "card_checklist_update",
+        }),
+        expect.objectContaining({
+          status: "covered",
           tool: "card_checklist_item_move",
         }),
         expect.objectContaining({
@@ -520,6 +525,54 @@ describe("live regression suite", () => {
         result.coverage.filter((entry) => entry.status === "missing"),
       ).toEqual([]);
     }
+  });
+
+  it("covers focused card_checklist_update runs with temporary checklist cleanup", async () => {
+    const fake = createFakeRegressionInvoker();
+
+    const result = await runLiveRegressionSuite({
+      boardRef: "board1",
+      invoke: fake.invoke,
+      runId: "focused-card-checklist-update",
+      tools: ["card_checklist_update"],
+    });
+
+    expect(fake.calls.map((call) => call.name)).toEqual(
+      expect.arrayContaining([
+        "card_create",
+        "card_checklist_create",
+        "card_checklist_update",
+        "card_delete",
+      ]),
+    );
+    expect(fake.calls).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          input: expect.objectContaining({
+            name: expect.stringContaining("checklist renamed"),
+            pos: "top",
+          }),
+          name: "card_checklist_update",
+        }),
+      ]),
+    );
+    expect(result.created.checklists).toEqual([
+      expect.objectContaining({
+        name: expect.stringContaining("checklist renamed"),
+      }),
+    ]);
+    expect(result.coverage).toEqual([
+      expect.objectContaining({
+        domain: "checklists",
+        status: "covered",
+        tool: "card_checklist_update",
+      }),
+    ]);
+    expect(
+      result.coverage.filter((entry) => entry.status === "missing"),
+    ).toEqual([]);
+    expect(fake.state.cards.size).toBe(0);
+    expect(fake.state.checklists.size).toBe(0);
   });
 
   it("skips focused list_move_to_board runs when no secondary board is configured", async () => {
@@ -1174,9 +1227,21 @@ function createFakeRegressionInvoker(
         card.idList = requiredInputString(input, "listId");
         return card;
       }
-      case "card_delete":
-        state.cards.delete(requiredInputString(input, "cardId"));
+      case "card_delete": {
+        const cardId = requiredInputString(input, "cardId");
+        state.cards.delete(cardId);
+        for (const [checklistId, checklist] of state.checklists) {
+          if (checklist.idCard === cardId) {
+            state.checklists.delete(checklistId);
+            for (const [itemId, item] of state.checklistItems) {
+              if (item.idChecklist === checklistId) {
+                state.checklistItems.delete(itemId);
+              }
+            }
+          }
+        }
         return { _value: null };
+      }
       case "label_create": {
         const id = next("label");
         const label = {
@@ -1295,6 +1360,20 @@ function createFakeRegressionInvoker(
           name: requiredInputString(input, "name"),
         };
         state.checklists.set(id, checklist);
+        return checklist;
+      }
+      case "card_checklist_update": {
+        const checklist = requiredMapValue(
+          state.checklists,
+          requiredInputString(input, "checklistId"),
+        );
+        const nameValue = optionalInputString(input, "name");
+        if (nameValue) {
+          checklist.name = nameValue;
+        }
+        if (typeof input.pos === "string" || typeof input.pos === "number") {
+          checklist.pos = input.pos;
+        }
         return checklist;
       }
       case "card_checklists": {

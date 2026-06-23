@@ -495,6 +495,19 @@ export async function runLiveSmokeFlow(options: {
       checklistId,
       "card_checklists",
     );
+    const renamedChecklist = `${prefix} checklist renamed`;
+    await objectResult(
+      options.invoke("card_checklist_update", {
+        checklistId,
+        name: renamedChecklist,
+      }),
+      "card_checklist_update",
+    );
+    updateArtifactName(
+      result.created.checklists,
+      checklistId,
+      renamedChecklist,
+    );
 
     const item = await objectResult(
       options.invoke("card_checklist_item_create", {
@@ -564,7 +577,7 @@ export async function runLiveSmokeFlow(options: {
     }
     verify(
       result,
-      "created, read, updated, checked, and deleted checklist item and checklist",
+      "created, read, renamed, updated, checked, and deleted checklist item and checklist",
     );
 
     const comment = await objectResult(
