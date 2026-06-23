@@ -25,7 +25,7 @@ This record has three concrete validation sources:
 
 - Manual MCP SDK clients initialized the built server over `stdio` and Streamable HTTP and confirmed `tools/list` returned the registered 77-tool surface.
 - The HTTP bearer-token path was checked with both an unauthenticated request, which returned `401`, and an authenticated Streamable HTTP MCP discovery request, which succeeded.
-- The PR's GitHub Actions `Live Trello Smoke` workflow passed on commit `0d942fdb383d6e593ebfc5a088767e148130c6c5`, including the `Run live Trello smoke` step. That harness exercises authentication, board discovery, list discovery, card reads, safe disposable card mutation, and cleanup through the registered tool handlers and `TrelloClient`.
+- The PR's GitHub Actions `Live Trello Smoke` workflow passed during the 2026-06-23 compatibility pass, including the `Run live Trello smoke` step. That harness exercises authentication, board discovery, list discovery, card reads, safe disposable card mutation, and cleanup through the registered tool handlers and `TrelloClient`.
 
 This is useful server and workflow evidence, but it is not the same as proving that every named MCP client below loaded the config and completed an end-to-end Trello workflow. The matrix calls that out explicitly.
 
@@ -52,7 +52,7 @@ This evidence validates server startup and tool discovery for the two supported 
 
 ## Live Trello Workflow Evidence
 
-The PR `Live Trello Smoke` workflow passed on 2026-06-23 for commit `0d942fdb383d6e593ebfc5a088767e148130c6c5`: [workflow run](https://github.com/enthouan/trello-mcp/actions/runs/28049015935).
+The PR `Live Trello Smoke` workflow passed during the 2026-06-23 compatibility pass, including the `Run live Trello smoke` step.
 
 That secret-backed CI run executed the repository's live smoke harness against a disposable Trello validation board. The harness exercises:
 
