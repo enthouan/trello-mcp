@@ -673,6 +673,10 @@ Use `card_custom_field_clear` to clear an existing card custom field value. Trel
 
 `board_create` creates a new Trello board with `prefs_permissionLevel` defaulting to `private`. Pass `workspaceId` to place the board in a Trello workspace/organization and set `permissionLevel` explicitly only when you intend workspace-visible (`org`) or public (`public`) board visibility.
 
+## API Coverage
+
+See [docs/api-coverage.md](docs/api-coverage.md) for the Trello REST API group coverage matrix, deferred endpoint families, and current non-goals.
+
 ## Tool Catalog
 
 <!-- tools:start -->
