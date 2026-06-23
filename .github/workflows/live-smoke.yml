@@ -40,7 +40,18 @@ jobs:
       - run: pnpm lint
       - run: pnpm build
       - run: pnpm test
-      - run: pnpm smoke:live
+      - name: Skip live Trello smoke for Dependabot PRs
+        if: github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]'
+        run: |
+          {
+            echo "### Live Trello Smoke"
+            echo
+            echo "Skipped pnpm smoke:live for this Dependabot PR."
+            echo "Dependabot pull_request workflows do not receive GitHub Actions secrets, so the offline setup, typecheck, lint, build, and test steps satisfy this required smoke check without exposing Trello credentials."
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Run live Trello smoke
+        if: github.event_name != 'pull_request' || github.event.pull_request.user.login != 'dependabot[bot]'
+        run: pnpm smoke:live
         env:
           TRELLO_LIVE_SMOKE: "1"
           TRELLO_LIVE_SMOKE_BOARD_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.board_ref || vars.TRELLO_LIVE_SMOKE_BOARD_ID || 'hUaItfNq' }}

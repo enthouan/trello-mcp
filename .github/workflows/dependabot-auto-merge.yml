@@ -1,0 +1,67 @@
+name: Dependabot Auto-Merge
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: dependabot-auto-merge-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  dependabot:
+    # This privileged pull_request_target workflow is intentionally limited to
+    # same-repository Dependabot PRs and never checks out or runs PR code.
+    if: >-
+      github.event.pull_request.user.login == 'dependabot[bot]' &&
+      github.actor == 'dependabot[bot]' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Fetch Dependabot metadata
+        id: dependabot-metadata
+        uses: dependabot/fetch-metadata@v3
+        with:
+          github-token: ${{ github.token }}
+
+      # Patch and minor updates may opt into auto-merge, but branch protection
+      # remains the merge gate for required checks and conversations.
+      - name: Enable squash auto-merge for patch and minor updates
+        if: >-
+          steps.dependabot-metadata.outputs.update-type == 'version-update:semver-patch' ||
+          steps.dependabot-metadata.outputs.update-type == 'version-update:semver-minor'
+        run: |
+          gh pr merge --auto --squash "$PR_URL"
+
+          {
+            echo "### Dependabot auto-merge"
+            echo
+            echo "Enabled squash auto-merge for ${UPDATE_TYPE}."
+            echo "Branch protection remains the merge gate."
+          } >> "$GITHUB_STEP_SUMMARY"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          UPDATE_TYPE: ${{ steps.dependabot-metadata.outputs.update-type }}
+
+      # Major or unknown updates stay manual so dependency risk remains explicit.
+      - name: Leave major and unknown updates manual
+        if: >-
+          steps.dependabot-metadata.outputs.update-type != 'version-update:semver-patch' &&
+          steps.dependabot-metadata.outputs.update-type != 'version-update:semver-minor'
+        run: |
+          {
+            echo "### Dependabot auto-merge"
+            echo
+            echo "No auto-merge was enabled for ${UPDATE_TYPE:-unknown update type}."
+            echo "Major and unknown updates require manual review."
+          } >> "$GITHUB_STEP_SUMMARY"
+        env:
+          UPDATE_TYPE: ${{ steps.dependabot-metadata.outputs.update-type }}
