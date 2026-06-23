@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.8.0
+
+Public readiness groundwork release, with API coverage documentation, client
+compatibility evidence, support policies, and checklist metadata updates.
+
+### Documentation And Policy
+
+- Add the Trello API coverage matrix with supported, partial, unsupported, and non-goal endpoint families for public launch planning.
+- Add security, privacy, and support policy docs covering vulnerability reporting, credential handling, telemetry posture, and support boundaries.
+- Add the MCP client compatibility matrix with validated client/runtime combinations and documented limitations.
+
+### Trello Tools
+
+- Add `card_checklist_update` for renaming a card checklist and changing its position.
+
+### Runtime And Tooling
+
+- Set up Dependabot dependency updates and the repository auto-merge policy for eligible patch and minor updates.
+- Pin the Node runtime in version-manager files, including `.tool-versions`, so local development and automation use the same Node 24 baseline.
+- Update GitHub Actions workflow checkout steps to the current major version.
+
 ## v0.7.0
 
 Board creation and cross-resource activity audit release, with a refreshed
