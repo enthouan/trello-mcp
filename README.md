@@ -805,6 +805,12 @@ MCP client
 - Tests use mocks and injected fetchers instead of live Trello calls.
 - Do not publish `.env` files or paste tokens into issues and PRs.
 
+## Security, Privacy, And Support
+
+- See [SECURITY.md](SECURITY.md) for supported versions, vulnerability reporting, credential-handling expectations, and threat-model notes.
+- See [PRIVACY.md](PRIVACY.md) for self-hosted data handling, external services, and public issue privacy guidance.
+- See [SUPPORT.md](SUPPORT.md) for support channels, boundaries, and useful bug report context.
+
 ## Development
 
 Install dependencies:

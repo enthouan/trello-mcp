@@ -30,7 +30,11 @@ Each Trello domain module exports an array of `defineTool(...)` definitions. Kee
 
 ## Pull requests
 
-Keep changes small, include deterministic tests for error paths, and do not include secrets in logs, fixtures, commits, or PR descriptions.
+Keep changes small, include deterministic tests for error paths, and do not include secrets in issues, pull requests, logs, fixtures, commits, screenshots, or generated docs.
+
+## Security-sensitive reports
+
+Follow [SECURITY.md](SECURITY.md) for vulnerabilities or reports that need private details. Do not post Trello API keys, Trello tokens, `MCP_AUTH_TOKEN` values, authorization headers, private board or card data, credential-bearing URLs, raw environment dumps, unredacted logs, or sensitive local file paths in public issues or pull requests.
 
 ## Releases
 
