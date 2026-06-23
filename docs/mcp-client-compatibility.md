@@ -65,6 +65,6 @@ The live smoke harness exercises authentication, board discovery, list discovery
 
 ## Client Setup References
 
-The README keeps concise setup examples for Claude Code, Codex, OpenCode, Cursor, and generic/manual clients. For details, see [MCP Client Setup](../README.md#mcp-client-setup).
+The README keeps concise setup examples for Claude Code, Codex, OpenCode, Cursor, and generic/manual clients. For named-client examples, see [Connect Your MCP Client](../README.md#3-connect-your-mcp-client). For generic transport details, see [MCP Client Setup](../README.md#mcp-client-setup).
 
 OpenCode's public documentation also describes local and remote MCP server entries in `opencode.json`, including remote request headers for bearer-token style authentication: [OpenCode MCP servers](https://opencode.ai/docs/mcp-servers).
