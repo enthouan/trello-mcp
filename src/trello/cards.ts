@@ -226,6 +226,22 @@ const ChecklistIdInput = z.object({
   checklistId: TrelloIdSchema.describe("Trello checklist id."),
 });
 
+const CardChecklistUpdateInput = ChecklistIdInput.extend({
+  name: z.string().min(1).optional().describe("Updated checklist name."),
+  pos: z
+    .union([z.literal("top"), z.literal("bottom"), z.number()])
+    .optional()
+    .describe("New position for the checklist on its card."),
+}).superRefine((input, ctx) => {
+  if (input.name === undefined && input.pos === undefined) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Provide at least one of name or pos.",
+      path: ["name"],
+    });
+  }
+});
+
 const CardChecklistDeleteInput = CardIdInput.merge(ChecklistIdInput);
 
 const ChecklistItemIdInput = z.object({
@@ -713,6 +729,31 @@ export const cardTools = [
         resourceType: "card",
         resourceId: cardId,
       }),
+  }),
+  defineTool({
+    name: "card_checklist_update",
+    description:
+      "Use when renaming a Trello card checklist or changing the checklist's position on its card.",
+    inputSchema: CardChecklistUpdateInput,
+    handler: async ({ checklistId, name, pos }, { trello }) => {
+      if (name === undefined && pos === undefined) {
+        throw new ValidationError("Provide at least one of name or pos.");
+      }
+
+      return trello.request(
+        `/checklists/${encodeURIComponent(checklistId)}`,
+        TrelloChecklistSchema,
+        {
+          method: "PUT",
+          query: {
+            ...(name !== undefined ? { name } : {}),
+            ...(pos !== undefined ? { pos } : {}),
+          },
+          resourceType: "checklist",
+          resourceId: checklistId,
+        },
+      );
+    },
   }),
   defineTool({
     name: "card_checklist_delete",

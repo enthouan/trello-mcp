@@ -1318,6 +1318,7 @@ async function runChecklistRegression(
   const card = await ensureRegressionCard(context);
   const needsPrimaryChecklist = shouldRunAnyTool(context, [
     "card_checklist_create",
+    "card_checklist_update",
     "card_checklists",
     "card_checklist_item_create",
     "card_checklist_items",
@@ -1350,6 +1351,22 @@ async function runChecklistRegression(
       ),
       primaryChecklist.id,
       "card_checklists",
+    );
+  }
+  if (primaryChecklist && shouldRunTool(context, "card_checklist_update")) {
+    const renamedChecklist = `${context.prefix} checklist renamed`;
+    await objectResult(
+      invokeTool(context, "card_checklist_update", {
+        checklistId: primaryChecklist.id,
+        name: renamedChecklist,
+        pos: "top",
+      }),
+      "card_checklist_update",
+    );
+    updateArtifactName(
+      context.result.created.checklists,
+      primaryChecklist.id,
+      renamedChecklist,
     );
   }
   const needsItem =

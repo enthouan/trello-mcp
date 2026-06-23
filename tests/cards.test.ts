@@ -441,6 +441,135 @@ describe("card tools", () => {
     ).toThrow();
   });
 
+  it("updates checklist names through the checklist endpoint", async () => {
+    const tool = getCardTool("card_checklist_update");
+    const trello = {
+      request: vi.fn(
+        async (_path: string, schema: { parse: (value: unknown) => unknown }) =>
+          schema.parse({
+            id: "checklist1",
+            idCard: "card1",
+            name: "Renamed checklist",
+            pos: 16384,
+          }),
+      ),
+    };
+
+    await expect(
+      tool.handler(
+        { checklistId: "checklist1", name: "Renamed checklist" },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual({
+      id: "checklist1",
+      idCard: "card1",
+      name: "Renamed checklist",
+      pos: 16384,
+    });
+    expect(trello.request).toHaveBeenCalledWith(
+      "/checklists/checklist1",
+      expect.anything(),
+      expect.objectContaining({
+        method: "PUT",
+        query: { name: "Renamed checklist" },
+        resourceType: "checklist",
+        resourceId: "checklist1",
+      }),
+    );
+  });
+
+  it("updates checklist position with a string position", async () => {
+    const tool = getCardTool("card_checklist_update");
+    const trello = {
+      request: vi.fn(
+        async (_path: string, schema: { parse: (value: unknown) => unknown }) =>
+          schema.parse({
+            id: "checklist1",
+            name: "Checklist",
+            pos: "top",
+          }),
+      ),
+    };
+
+    await expect(
+      tool.handler(
+        { checklistId: "checklist1", pos: "top" },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual({
+      id: "checklist1",
+      name: "Checklist",
+      pos: "top",
+    });
+    expect(trello.request).toHaveBeenCalledWith(
+      "/checklists/checklist1",
+      expect.anything(),
+      expect.objectContaining({
+        method: "PUT",
+        query: { pos: "top" },
+        resourceType: "checklist",
+        resourceId: "checklist1",
+      }),
+    );
+  });
+
+  it("updates checklist position with a numeric position", async () => {
+    const tool = getCardTool("card_checklist_update");
+    const trello = {
+      request: vi.fn(async () => ({
+        id: "checklist1",
+        name: "Checklist",
+        pos: 32768,
+      })),
+    };
+
+    await expect(
+      tool.handler(
+        { checklistId: "checklist1", pos: 32768 },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).resolves.toEqual({
+      id: "checklist1",
+      name: "Checklist",
+      pos: 32768,
+    });
+    expect(trello.request).toHaveBeenCalledWith(
+      "/checklists/checklist1",
+      expect.anything(),
+      expect.objectContaining({
+        method: "PUT",
+        query: { pos: 32768 },
+        resourceType: "checklist",
+        resourceId: "checklist1",
+      }),
+    );
+  });
+
+  it.each([
+    { checklistId: "", name: "Renamed checklist" },
+    { checklistId: "checklist1", name: "" },
+    { checklistId: "checklist1" },
+  ])("rejects invalid checklist update input %# before requesting Trello", (input) => {
+    const tool = getCardTool("card_checklist_update");
+    const trello = { request: vi.fn() };
+
+    expect(() => tool.inputSchema.parse(input)).toThrow();
+    expect(trello.request).not.toHaveBeenCalled();
+  });
+
+  it("rejects no-op checklist updates in the handler before requesting Trello", async () => {
+    const tool = getCardTool("card_checklist_update");
+    const trello = { request: vi.fn() };
+
+    await expect(
+      tool.handler(
+        { checklistId: "checklist1" },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).rejects.toThrow("Provide at least one of name or pos.");
+    expect(trello.request).not.toHaveBeenCalled();
+  });
+
   it("deletes checklists from cards", async () => {
     const tool = getCardTool("card_checklist_delete");
     const trello = {

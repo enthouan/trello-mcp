@@ -52,6 +52,7 @@ type FakeChecklist = {
   id: string;
   idCard: string;
   name: string;
+  pos?: string | number;
 };
 
 type FakeChecklistItem = {
@@ -392,6 +393,20 @@ function createFakeSmokeInvoker(
         state.checklists.set(id, checklist);
         return checklist;
       }
+      case "card_checklist_update": {
+        const checklist = requiredMapValue(
+          state.checklists,
+          requiredInputString(input, "checklistId"),
+        );
+        const nameValue = optionalInputString(input, "name");
+        if (nameValue) {
+          checklist.name = nameValue;
+        }
+        if (typeof input.pos === "string" || typeof input.pos === "number") {
+          checklist.pos = input.pos;
+        }
+        return checklist;
+      }
       case "card_checklists": {
         const cardId = requiredInputString(input, "cardId");
         return Array.from(state.checklists.values()).filter(
@@ -473,9 +488,21 @@ function createFakeSmokeInvoker(
       case "card_comment_delete":
         state.actions.delete(requiredInputString(input, "actionId"));
         return { _value: null };
-      case "card_delete":
-        state.cards.delete(requiredInputString(input, "cardId"));
+      case "card_delete": {
+        const cardId = requiredInputString(input, "cardId");
+        state.cards.delete(cardId);
+        for (const [checklistId, checklist] of state.checklists) {
+          if (checklist.idCard === cardId) {
+            state.checklists.delete(checklistId);
+            for (const [itemId, item] of state.checklistItems) {
+              if (item.idChecklist === checklistId) {
+                state.checklistItems.delete(itemId);
+              }
+            }
+          }
+        }
         return { _value: null };
+      }
       default:
         throw new Error(`Unhandled fake tool: ${name}`);
     }
@@ -595,7 +622,7 @@ describe("live smoke flow", () => {
         "updated, archived, restored, and moved disposable card",
         "created, updated, applied, and removed disposable label",
         "safely assigned and removed authenticated member",
-        "created, read, updated, checked, and deleted checklist item and checklist",
+        "created, read, renamed, updated, checked, and deleted checklist item and checklist",
         "created, updated, listed, and deleted a card comment",
         "cleanup verification found no open temp lists, cards, or labels",
       ]),
@@ -632,6 +659,7 @@ describe("live smoke flow", () => {
         "card_member_add",
         "card_member_remove",
         "card_checklist_create",
+        "card_checklist_update",
         "card_checklist_item_create",
         "card_checklist_item_set_checked",
         "card_checklist_item_delete",
