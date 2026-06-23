@@ -19,6 +19,16 @@ The compatibility target is:
 
 Do not treat a client as live-validated unless the row says those Trello workflows were exercised in that client. Client setup can be reviewed without live Trello validation, but the matrix keeps those states separate.
 
+## What Has Actually Been Checked
+
+This record has three concrete validation sources:
+
+- Manual MCP SDK clients initialized the built server over `stdio` and Streamable HTTP and confirmed `tools/list` returned the registered 77-tool surface.
+- The HTTP bearer-token path was checked with both an unauthenticated request, which returned `401`, and an authenticated Streamable HTTP MCP discovery request, which succeeded.
+- The PR's GitHub Actions `Live Trello Smoke` workflow passed on commit `0d942fdb383d6e593ebfc5a088767e148130c6c5`, including the `Run live Trello smoke` step. That harness exercises authentication, board discovery, list discovery, card reads, safe disposable card mutation, and cleanup through the registered tool handlers and `TrelloClient`.
+
+This is useful server and workflow evidence, but it is not the same as proving that every named MCP client below loaded the config and completed an end-to-end Trello workflow. The matrix calls that out explicitly.
+
 ## Current Validation Record
 
 | Client | Date | Client/version | Transport path | Setup/config entry point | Tool discovery | Trello workflow validation | HTTP bearer-token support | Restart/reload caveats | Evidence or skipped/blocker note |
@@ -42,7 +52,18 @@ This evidence validates server startup and tool discovery for the two supported 
 
 ## Live Trello Workflow Evidence
 
-No live Trello workflow was run during the 2026-06-23 compatibility pass because the required local opt-in variables were unavailable:
+The PR `Live Trello Smoke` workflow passed on 2026-06-23 for commit `0d942fdb383d6e593ebfc5a088767e148130c6c5`: [workflow run](https://github.com/enthouan/trello-mcp/actions/runs/28049015935).
+
+That secret-backed CI run executed the repository's live smoke harness against a disposable Trello validation board. The harness exercises:
+
+- `auth_whoami` and `auth_token_info`.
+- Board discovery, including board fields, lists, cards, labels, members, memberships, and custom fields.
+- Disposable list creation, read, rename/update, archive, restore, and cleanup.
+- Disposable card creation, read, update, due date, position, archive, restore, move, and delete.
+- Safe label, checklist, member, and comment workflows.
+- Cleanup verification that no open smoke-test lists, cards, or labels remain.
+
+Local live smoke was not run during the 2026-06-23 compatibility pass because the required local opt-in variables were unavailable:
 
 - `TRELLO_LIVE_SMOKE=1`
 - `TRELLO_API_KEY`
