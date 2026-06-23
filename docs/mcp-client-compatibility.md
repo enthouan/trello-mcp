@@ -58,7 +58,7 @@ That secret-backed CI run executed the repository's live smoke harness against a
 
 - `auth_whoami` and `auth_token_info`.
 - Board discovery, including board fields, lists, cards, labels, members, memberships, and custom fields.
-- Disposable list creation, read, rename/update, archive, restore, and cleanup.
+- Disposable list creation, read, rename/update, archive, and cleanup.
 - Disposable card creation, read, update, due date, position, archive, restore, move, and delete.
 - Safe label, checklist, member, and comment workflows.
 - Cleanup verification that no open smoke-test lists, cards, or labels remain.
