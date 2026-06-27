@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 # Production dependencies are pure JS today, so install on BUILDPLATFORM to
 # avoid running pnpm under QEMU during arm64 release builds.
-FROM --platform=$BUILDPLATFORM node:24-bookworm-slim AS builder
+FROM --platform=$BUILDPLATFORM node:25-bookworm-slim AS builder
 WORKDIR /app
 RUN corepack enable
 COPY package.json pnpm-lock.yaml* ./
@@ -10,7 +10,7 @@ COPY . .
 RUN pnpm build
 RUN pnpm prune --prod
 
-FROM node:24-bookworm-slim AS runtime
+FROM node:25-bookworm-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production \
     TRANSPORT=http \
