@@ -166,7 +166,7 @@ docker run --rm -p 3000:3000 \
 
 Use this path if you want to develop the project, test local changes, or build the Docker image yourself.
 
-Local development uses Node.js 24 or newer and the pinned `pnpm@10.34.1` package manager through Corepack.
+Local development uses Node.js 24.x and the pinned `pnpm@10.34.1` package manager through Corepack.
 
 ```bash
 git clone https://github.com/enthouan/trello-mcp.git

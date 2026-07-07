@@ -2,7 +2,7 @@
 
 ## Local checks
 
-Use Node.js 24 or newer with the pinned pnpm version from `package.json`.
+Use Node.js 24.x with the pinned pnpm version from `package.json`.
 
 ```bash
 corepack enable
