@@ -26,7 +26,7 @@ This project is still early, but it has a meaningful public tool surface. Keep c
 
 ## Runtime And Package Manager
 
-- Node.js: `>=24.0.0`.
+- Node.js: `>=24.0.0 <25.0.0`.
 - Package manager: `pnpm@10.34.1` through Corepack.
 - Module system: ESM (`"type": "module"`).
 - TypeScript is strict, with `exactOptionalPropertyTypes` and `noUncheckedIndexedAccess` enabled.
