@@ -10,7 +10,9 @@ updates:
       time: "09:00"
       timezone: "America/Los_Angeles"
     cooldown:
-      default-days: 1
+      semver-patch-days: 1
+      semver-minor-days: 1
+      semver-major-days: 30
     open-pull-requests-limit: 4
     ignore:
       - dependency-name: "@types/node"
