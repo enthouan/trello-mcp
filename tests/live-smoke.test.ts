@@ -732,41 +732,40 @@ describe("live smoke flow", () => {
       remaining: (fake: ReturnType<typeof createFakeSmokeInvoker>) =>
         fake.state.labels.size,
     },
-  ])("discovers and cleans up untracked artifacts after $failAfterCreateOn post-create failures", async ({
-    completedStep,
-    failAfterCreateOn,
-    remaining,
-  }) => {
-    const fake = createFakeSmokeInvoker({ failAfterCreateOn });
+  ])(
+    "discovers and cleans up untracked artifacts after $failAfterCreateOn post-create failures",
+    async ({ completedStep, failAfterCreateOn, remaining }) => {
+      const fake = createFakeSmokeInvoker({ failAfterCreateOn });
 
-    let thrown: unknown;
-    try {
-      await runLiveSmokeFlow({
-        boardRef: "board1",
-        invoke: fake.invoke,
-        runId: `unit-${failAfterCreateOn}`,
-      });
-    } catch (error) {
-      thrown = error;
-    }
+      let thrown: unknown;
+      try {
+        await runLiveSmokeFlow({
+          boardRef: "board1",
+          invoke: fake.invoke,
+          runId: `unit-${failAfterCreateOn}`,
+        });
+      } catch (error) {
+        thrown = error;
+      }
 
-    expect(thrown).toBeInstanceOf(LiveSmokeRunError);
-    const result = (thrown as LiveSmokeRunError).result;
-    expect(result.failures).toEqual([
-      `planned post-create failure in ${failAfterCreateOn}`,
-    ]);
-    expect(result.verified).toContain(
-      "cleanup recovered 1 untracked prefix-matched smoke artifacts",
-    );
-    expect(result.cleanup.completed).toEqual(
-      expect.arrayContaining([expect.stringContaining(completedStep)]),
-    );
-    expect(result.cleanup.remainingOpenArtifacts).toEqual([]);
-    expect(
-      Array.from(fake.state.lists.values()).every((list) => list.closed),
-    ).toBe(true);
-    expect(remaining?.(fake) ?? 0).toBe(0);
-  });
+      expect(thrown).toBeInstanceOf(LiveSmokeRunError);
+      const result = (thrown as LiveSmokeRunError).result;
+      expect(result.failures).toEqual([
+        `planned post-create failure in ${failAfterCreateOn}`,
+      ]);
+      expect(result.verified).toContain(
+        "cleanup recovered 1 untracked prefix-matched smoke artifacts",
+      );
+      expect(result.cleanup.completed).toEqual(
+        expect.arrayContaining([expect.stringContaining(completedStep)]),
+      );
+      expect(result.cleanup.remainingOpenArtifacts).toEqual([]);
+      expect(
+        Array.from(fake.state.lists.values()).every((list) => list.closed),
+      ).toBe(true);
+      expect(remaining?.(fake) ?? 0).toBe(0);
+    },
+  );
 
   it("does not clean up artifacts from run ids that only share a prefix", async () => {
     const fake = createFakeSmokeInvoker({ failAfterCreateOn: "list_create" });
