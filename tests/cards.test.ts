@@ -239,45 +239,44 @@ describe("card tools", () => {
       responseValue: { checked: "true" },
       expectedBody: { value: { checked: "true" } },
     },
-  ] as const)("sets $input.type custom field values with Trello's type-specific body shape", async ({
-    input,
-    responseValue,
-    expectedBody,
-  }) => {
-    const tool = getCardTool("card_custom_field_set");
-    const trello = {
-      request: vi.fn(async () => ({
+  ] as const)(
+    "sets $input.type custom field values with Trello's type-specific body shape",
+    async ({ input, responseValue, expectedBody }) => {
+      const tool = getCardTool("card_custom_field_set");
+      const trello = {
+        request: vi.fn(async () => ({
+          id: "item1",
+          idCustomField: "field1",
+          value: responseValue,
+        })),
+      };
+
+      await expect(
+        tool.handler(
+          {
+            cardId: "card1",
+            customFieldId: "field1",
+            ...input,
+          },
+          { trello: trello as never, logger: {} as never, requestId: "req1" },
+        ),
+      ).resolves.toEqual({
         id: "item1",
         idCustomField: "field1",
         value: responseValue,
-      })),
-    };
-
-    await expect(
-      tool.handler(
-        {
-          cardId: "card1",
-          customFieldId: "field1",
-          ...input,
-        },
-        { trello: trello as never, logger: {} as never, requestId: "req1" },
-      ),
-    ).resolves.toEqual({
-      id: "item1",
-      idCustomField: "field1",
-      value: responseValue,
-    });
-    expect(trello.request).toHaveBeenCalledWith(
-      "/cards/card1/customField/field1/item",
-      expect.anything(),
-      expect.objectContaining({
-        method: "PUT",
-        body: expectedBody,
-        resourceType: "card custom field item",
-        resourceId: "field1",
-      }),
-    );
-  });
+      });
+      expect(trello.request).toHaveBeenCalledWith(
+        "/cards/card1/customField/field1/item",
+        expect.anything(),
+        expect.objectContaining({
+          method: "PUT",
+          body: expectedBody,
+          resourceType: "card custom field item",
+          resourceId: "field1",
+        }),
+      );
+    },
+  );
 
   it("sets list custom fields by option id", async () => {
     const tool = getCardTool("card_custom_field_set");
@@ -549,13 +548,16 @@ describe("card tools", () => {
     { checklistId: "", name: "Renamed checklist" },
     { checklistId: "checklist1", name: "" },
     { checklistId: "checklist1" },
-  ])("rejects invalid checklist update input %# before requesting Trello", (input) => {
-    const tool = getCardTool("card_checklist_update");
-    const trello = { request: vi.fn() };
+  ])(
+    "rejects invalid checklist update input %# before requesting Trello",
+    (input) => {
+      const tool = getCardTool("card_checklist_update");
+      const trello = { request: vi.fn() };
 
-    expect(() => tool.inputSchema.parse(input)).toThrow();
-    expect(trello.request).not.toHaveBeenCalled();
-  });
+      expect(() => tool.inputSchema.parse(input)).toThrow();
+      expect(trello.request).not.toHaveBeenCalled();
+    },
+  );
 
   it("rejects no-op checklist updates in the handler before requesting Trello", async () => {
     const tool = getCardTool("card_checklist_update");

@@ -558,43 +558,39 @@ describe("TrelloClient", () => {
     ).rejects.toBeInstanceOf(ErrorClass);
   });
 
-  it.each(
-    collaborationErrorCases,
-  )("surfaces actionable HTTP $status errors for board collaboration workflows", async ({
-    status,
-    ErrorClass,
-    messageFragment,
-    trelloMessage,
-  }) => {
-    const fetcher = vi.fn(
-      async () =>
-        new Response(JSON.stringify({ message: trelloMessage }), { status }),
-    );
-    const client = new TrelloClient(config, { fetcher });
+  it.each(collaborationErrorCases)(
+    "surfaces actionable HTTP $status errors for board collaboration workflows",
+    async ({ status, ErrorClass, messageFragment, trelloMessage }) => {
+      const fetcher = vi.fn(
+        async () =>
+          new Response(JSON.stringify({ message: trelloMessage }), { status }),
+      );
+      const client = new TrelloClient(config, { fetcher });
 
-    let thrown: unknown;
-    try {
-      await client.request(
-        "/boards/private-board/memberships",
-        z.array(z.unknown()),
-        {
+      let thrown: unknown;
+      try {
+        await client.request(
+          "/boards/private-board/memberships",
+          z.array(z.unknown()),
+          {
+            resourceType: "board",
+            resourceId: "private-board",
+          },
+        );
+      } catch (error) {
+        thrown = error;
+      }
+
+      expect(thrown).toBeInstanceOf(ErrorClass);
+      expect(thrown).toBeInstanceOf(Error);
+      expect((thrown as Error).message).toContain(messageFragment);
+      expect(thrown).toMatchObject({
+        details: {
+          status,
           resourceType: "board",
           resourceId: "private-board",
         },
-      );
-    } catch (error) {
-      thrown = error;
-    }
-
-    expect(thrown).toBeInstanceOf(ErrorClass);
-    expect(thrown).toBeInstanceOf(Error);
-    expect((thrown as Error).message).toContain(messageFragment);
-    expect(thrown).toMatchObject({
-      details: {
-        status,
-        resourceType: "board",
-        resourceId: "private-board",
-      },
-    });
-  });
+      });
+    },
+  );
 });
