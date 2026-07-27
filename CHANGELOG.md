@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.8.1
+
+Dependency maintenance release with refreshed development tooling and CI setup.
+
+### Runtime And Tooling
+
+- Update Biome, tsx, Vitest, and Node type definitions to their current compatible releases.
+- Update GitHub Actions setup-node to v7 for CI and live-validation workflows.
+- Keep Dependabot updates aligned with the supported Node 24 runtime policy.
+
 ## v0.8.0
 
 Public readiness groundwork release, with API coverage documentation, client
