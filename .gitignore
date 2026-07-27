@@ -14,6 +14,11 @@ coverage/
 .env.*
 !.env.example
 
+# Local AI-agent configuration may include credentials or per-user permissions
+.codex/config.toml
+.claude/settings.local.json
+.cursor/mcp.json
+
 # Logs
 logs/
 *.log
