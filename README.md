@@ -201,142 +201,37 @@ Treat the token like a password. Do not commit it, paste it in logs, or share it
 
 ### 3. Connect Your MCP Client
 
-Choose your client below. For stdio examples, replace `/absolute/path/to/trello-mcp` with the path to your local clone and run `corepack pnpm build` first.
+Choose the transport by where the server runs:
 
-#### Claude Code
+| Your setup | Choose | Client receives |
+| --- | --- | --- |
+| A built clone and the MCP client are on the same machine | `stdio` | A local command plus Trello credentials in the child-process environment |
+| The server runs in Docker, behind a reverse proxy, or on another host | Streamable HTTP | An `/mcp` URL plus an optional bearer token; Trello credentials stay on the server |
 
-```bash
-claude mcp add-json trello '{"type":"stdio","command":"node","args":["/absolute/path/to/trello-mcp/dist/index.js"],"env":{"TRANSPORT":"stdio","TRELLO_API_KEY":"your-api-key","TRELLO_TOKEN":"your-token"}}'
-```
+![Transport chooser showing local stdio and service-oriented Streamable HTTP paths](docs/assets/client-setup/transport-chooser.svg)
 
-If you are running the Docker/HTTP server:
+The [MCP Client Setup guide](docs/client-setup.md) has current, sanitized
+examples for Claude Desktop, Claude Code, Codex and ChatGPT desktop, OpenCode V2,
+Cursor, MCP Inspector, and other manual clients. It also covers restart
+requirements, HTTP bearer support, secret handling, and tested limitations.
 
-```bash
-claude mcp add --transport http trello http://localhost:3000/mcp
-```
-
-If the server sets `MCP_AUTH_TOKEN`, include the bearer header:
-
-```bash
-claude mcp add --transport http trello http://localhost:3000/mcp \
-  --header "Authorization: Bearer your-shared-secret"
-```
-
-#### Codex
-
-If you are running the Docker/HTTP server:
-
-```bash
-codex mcp add trello --url http://localhost:3000/mcp
-```
-
-If the server sets `MCP_AUTH_TOKEN`, put the same token in your shell and tell
-Codex which environment variable to read:
-
-```bash
-export TRELLO_MCP_BEARER_TOKEN=your-shared-secret
-codex mcp add trello \
-  --url http://localhost:3000/mcp \
-  --bearer-token-env-var TRELLO_MCP_BEARER_TOKEN
-```
-
-If you want Codex to launch the local stdio server:
-
-```bash
-codex mcp add trello \
-  --env TRANSPORT=stdio \
-  --env TRELLO_API_KEY=your-api-key \
-  --env TRELLO_TOKEN=your-token \
-  -- node /absolute/path/to/trello-mcp/dist/index.js
-```
-
-#### OpenCode
-
-Add this to `opencode.json` or your OpenCode config:
-
-```json
-{
-  "$schema": "https://opencode.ai/config.json",
-  "mcp": {
-    "trello": {
-      "type": "local",
-      "command": ["node", "/absolute/path/to/trello-mcp/dist/index.js"],
-      "enabled": true,
-      "environment": {
-        "TRANSPORT": "stdio",
-        "TRELLO_API_KEY": "your-api-key",
-        "TRELLO_TOKEN": "your-token"
-      }
-    }
-  }
-}
-```
-
-#### Cursor
-
-Add this to `.cursor/mcp.json` in a project or to `~/.cursor/mcp.json` globally:
-
-```json
-{
-  "mcpServers": {
-    "trello": {
-      "type": "stdio",
-      "command": "node",
-      "args": ["/absolute/path/to/trello-mcp/dist/index.js"],
-      "env": {
-        "TRANSPORT": "stdio",
-        "TRELLO_API_KEY": "your-api-key",
-        "TRELLO_TOKEN": "your-token"
-      }
-    }
-  }
-}
-```
-
-#### Other / Manual
-
-For any MCP client that supports Streamable HTTP, point it to:
-
-```text
-http://localhost:3000/mcp
-```
-
-If the server sets `MCP_AUTH_TOKEN`, the client must send `Authorization: Bearer <token>` on every MCP request; requests without it receive `401 unauthorized`.
-
-For any MCP client that supports stdio, use this command:
-
-```bash
-node /absolute/path/to/trello-mcp/dist/index.js
-```
-
-with this environment:
-
-```bash
-TRANSPORT=stdio
-TRELLO_API_KEY=your-api-key
-TRELLO_TOKEN=your-token
-```
-
-Add the `TRELLO_RATE_LIMIT_*` and `TRELLO_RETRY_*` environment variables to the same MCP client environment only when you need to tune large workflows that are waiting or retrying against Trello rate limits. The defaults are appropriate for ordinary local use.
+For dated client versions and evidence, see
+[MCP Client Compatibility](docs/mcp-client-compatibility.md).
 
 ### 4. Verify
 
-Check the HTTP server:
+If you chose Streamable HTTP, check the server:
 
 ```bash
-curl http://localhost:3000/healthz
-curl http://localhost:3000/readyz
+curl http://127.0.0.1:3000/healthz
+curl http://127.0.0.1:3000/readyz
 ```
 
 If you changed `TRELLO_MCP_HOST_PORT`, replace `3000` with that host port. If you changed `TRELLO_MCP_HOST_BIND_IP` from `127.0.0.1`, use a hostname or IP address that can reach the bound host interface.
 
-Check your Trello credentials:
-
-```bash
-curl "https://api.trello.com/1/members/me?key=$TRELLO_API_KEY&token=$TRELLO_TOKEN"
-```
-
-If everything is configured correctly, the health endpoints return JSON status responses and Trello returns your member JSON.
+Then confirm the MCP client discovers the current 77-tool surface. With an
+intentional read-only credential check, call `auth_whoami` or `auth_token_info`
+from the client. Do not make a write-side Trello call just to prove setup.
 
 ## Trello Credentials
 
@@ -346,81 +241,15 @@ Use the read-only `auth_whoami` and `auth_token_info` tools to verify which Trel
 
 ## MCP Client Setup
 
-For client-by-client validation status, transport support, and caveats, see [MCP Client Compatibility](docs/mcp-client-compatibility.md).
+Use the canonical [MCP Client Setup guide](docs/client-setup.md) for transport
+selection and client-specific configuration. Keep Trello credentials in the
+`stdio` child environment or on the HTTP server; an HTTP client needs only the
+`/mcp` endpoint and, when `MCP_AUTH_TOKEN` is enabled, a supported bearer-header
+configuration.
 
-### Streamable HTTP
-
-Use this mode when the server runs as a service or container. For Docker Compose, set `TRELLO_MCP_HOST_BIND_IP` to choose the host interface Docker binds to and `TRELLO_MCP_HOST_PORT` to choose the published host port; the container listens internally on the fixed port `3000`.
-
-```bash
-TRANSPORT=http
-TRELLO_MCP_HOST_BIND_IP=127.0.0.1
-TRELLO_MCP_HOST_PORT=3000
-```
-
-Start the Compose service, then point an MCP client with Streamable HTTP support to:
-
-```text
-http://localhost:3000/mcp
-```
-
-If `MCP_AUTH_TOKEN` is set, configure the client to send this header on every MCP request:
-
-```http
-Authorization: Bearer your-shared-secret
-```
-
-The bearer token is a simple shared-secret guardrail. Use HTTPS and, for public exposure, a reverse proxy authentication layer or equivalent access control; tokens sent over plain HTTP can be observed on the network.
-
-Health endpoints:
-
-```text
-http://localhost:3000/healthz
-http://localhost:3000/readyz
-```
-
-### stdio
-
-Use this mode when an MCP client launches the server process directly.
-
-Build the project:
-
-```bash
-corepack pnpm install --frozen-lockfile
-corepack pnpm build
-```
-
-Then configure your client to run:
-
-```bash
-node /absolute/path/to/trello-mcp/dist/index.js
-```
-
-with these environment variables:
-
-```bash
-TRANSPORT=stdio
-TRELLO_API_KEY=your-key
-TRELLO_TOKEN=your-token
-```
-
-Example MCP config shape:
-
-```json
-{
-  "mcpServers": {
-    "trello": {
-      "command": "node",
-      "args": ["/absolute/path/to/trello-mcp/dist/index.js"],
-      "env": {
-        "TRANSPORT": "stdio",
-        "TRELLO_API_KEY": "your-key",
-        "TRELLO_TOKEN": "your-token"
-      }
-    }
-  }
-}
-```
+The [compatibility record](docs/mcp-client-compatibility.md) distinguishes an
+official-doc review from a real client connection, tool discovery, and an actual
+Trello workflow.
 
 ## Environment
 
@@ -884,12 +713,12 @@ The setup script enables Corepack, activates the pinned pnpm version, installs d
 - Confirm the client is using the right transport.
 - For stdio, set `TRANSPORT=stdio`.
 - For HTTP, point the client to `/mcp`, not `/healthz` or `/readyz`.
-- Restart the MCP client after changing its config.
+- Follow the client-specific restart or reload step in the
+  [MCP Client Setup guide](docs/client-setup.md).
 
 ### Trello says the credentials are invalid
 
 - Run the `auth_whoami` and `auth_token_info` tools from your MCP client to confirm the authenticated member and the token's expiration and permissions.
-- Re-run the `members/me` curl check from the credential setup section.
 - Confirm the token was generated from the same Power-Up/API key.
 - Regenerate the token if it was revoked.
 

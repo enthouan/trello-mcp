@@ -1,91 +1,144 @@
 # MCP Client Compatibility
 
-This page records MCP client compatibility evidence for `trello-mcp`. It is a public validation record, not a promise that every listed client has been fully exercised on every release.
+This page records concrete MCP client evidence for `trello-mcp`. It is a dated
+validation record, not a promise that every client has been fully exercised on
+every release.
 
-Last updated: 2026-06-23.
+Last updated: 2026-08-07.
 
-## Validation Scope
+## Evidence labels
 
-The compatibility target is:
+The table keeps four different claims separate:
 
-- Server startup over `stdio` and Streamable HTTP.
-- MCP tool discovery.
-- `auth_whoami` or another credential diagnostic.
-- Board discovery.
-- List discovery.
-- Card read.
-- Safe disposable card mutation.
-- Cleanup verification for any temporary Trello artifacts.
+- **Official docs reviewed** means the linked vendor documentation was checked
+  for the current configuration shape. It does not prove the client was run.
+- **Client connected** means that named client completed MCP initialization with
+  the built server over the stated transport.
+- **Tools discovered** means the client completed `tools/list`; where available,
+  the client UI or CLI was also checked for the 77 registered tools.
+- **Live Trello workflow** means a tool actually contacted Trello. Startup,
+  health checks, initialization, and `tools/list` do not contact Trello.
 
-Do not treat a client as live-validated unless the row says those Trello workflows were exercised in that client. Client setup can be reviewed without live Trello validation, but the matrix keeps those states separate.
+No row is promoted from one state to another by inference alone.
 
-## What Has Actually Been Checked
+## 2026-08-07 validation environment
 
-This record has three concrete validation sources:
+- Host: macOS `26.6` (`25G72`), Apple silicon (`arm64`).
+- Runtime: Node.js `24.17.0`, pnpm `10.34.1` through Corepack.
+- Server: a clean build of the issue branch, with no runtime changes from its
+  `origin/main` baseline.
+- Tool surface: 77 registered tools.
+- Discovery credentials: dummy Trello values. No Trello tool was invoked during
+  discovery.
+- HTTP auth: an unauthenticated `/mcp` request returned `401`; authenticated
+  Streamable HTTP discovery succeeded with the configured bearer header.
 
-- Manual MCP SDK clients initialized the built server over `stdio` and Streamable HTTP and confirmed `tools/list` returned the registered 77-tool surface.
-- The HTTP bearer-token path was checked with both an unauthenticated request, which returned `401`, and an authenticated Streamable HTTP MCP discovery request, which succeeded.
-- The PR's GitHub Actions `Live Trello Smoke` workflow passed during the 2026-06-23 compatibility pass, including the `Run live Trello smoke` step. That harness exercises authentication, board discovery, list discovery, card reads, safe disposable card mutation, and cleanup through the registered tool handlers and `TrelloClient`.
+## Current validation record
 
-This is useful server and workflow evidence, but it is not the same as proving that every named MCP client below loaded the config and completed an end-to-end Trello workflow. The matrix calls that out explicitly.
+| Client | Official docs reviewed | Installed client and transport | Client connected | Tools discovered | Live Trello workflow | Restart requirement, limitation, or blocker |
+| --- | --- | --- | --- | --- | --- | --- |
+| Claude Desktop | Yes, 2026-08-07: [desktop extensions](https://support.claude.com/en/articles/10949351-getting-started-with-local-mcp-servers-on-claude-desktop) and [manual JSON](https://modelcontextprotocol.io/docs/2026-07-28/develop/connect-local-servers) | Claude Desktop `1.26832.0`; macOS; `stdio` | Yes. A full app launch initialized the existing user-local `trello` entry and connected to the built server. | Yes. Claude Desktop issued `tools/list` successfully. The exact 77-tool count was corroborated against the same built artifact with Inspector; Claude Desktop's log does not print the result body. | No. No Trello tool was called. | Fully quit and reopen after config changes. Current official guidance emphasizes MCPB desktop extensions, but this repository has no `.mcpb` package; the tested manual `stdio` entry remains the documented path. No HTTP bearer path is claimed. |
+| Claude Code | Yes, 2026-08-07: [MCP documentation](https://code.claude.com/docs/en/mcp) | Claude Code `2.1.212`; macOS; `stdio` and Streamable HTTP with bearer auth | Yes on both transports. | Yes. `/mcp` displayed all 77 tools for each temporary entry. | No. No Trello tool was called. | Start a new session if an active one does not reload configuration. Temporary entries were removed and the pre-test config was restored byte for byte. |
+| Codex CLI | Yes, 2026-08-07: [MCP documentation](https://learn.chatgpt.com/docs/extend/mcp) | Codex CLI `0.146.0` (Homebrew); macOS; `stdio` and Streamable HTTP with bearer auth | Yes on both transports through session-only configuration. | Yes. `/mcp` displayed all 77 tools for each entry. | No. No Trello tool was called. | Restart the desktop app or IDE extension after settings changes. The default asdf `codex` shim on this host had no configured version, so validation used the explicit Homebrew binary. Shared config was not changed. ChatGPT desktop and the IDE share this config according to official docs, but those surfaces were not directly tested here. |
+| OpenCode V2 | Yes, 2026-08-07: [MCP servers](https://opencode.ai/v2/docs/mcp-servers) | Not installed; current `stdio` and Streamable HTTP configuration reviewed only | No. | No. | No. | Installation was intentionally skipped. Current V2 requires entries under `mcp.servers`, uses `disabled` rather than `enabled`, and groups MCP tools in Code Mode by default. Hot reload is not documented or validated; relaunch after config edits. |
+| Cursor | Yes, 2026-08-07: [MCP documentation](https://cursor.com/docs/mcp) | Not installed; current `stdio` and Streamable HTTP configuration reviewed only | No. | No. | No. | Installation was intentionally skipped. Restart Cursor after config changes. Project `.cursor/mcp.json` and global `~/.cursor/mcp.json` are documented; Cursor Cloud Agents cannot reach a loopback server on the user's machine. |
+| MCP Inspector | Yes, 2026-08-07: [Inspector documentation](https://modelcontextprotocol.io/docs/tools/inspector) | `@modelcontextprotocol/inspector` `2.0.0`; Node.js `24.17.0`; `stdio` and Streamable HTTP with bearer auth | Yes on both transports. | Yes. `tools/list` returned exactly 77 tools on both transports. | No. No Trello tool was called. | No restart required. The guide uses an ignored, read-only Inspector config so credentials do not appear in process arguments. `--cli` must be the first Inspector argument. Version 2.0.0 requires Node.js `22.19.0` or newer. |
 
-## Current Validation Record
+## Named-client test details
 
-| Client | Date | Client/version | Transport path | Setup/config entry point | Tool discovery | Trello workflow validation | HTTP bearer-token support | Restart/reload caveats | Evidence or skipped/blocker note |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Claude Desktop | 2026-06-23 | Claude Desktop `1.14271.0` on macOS | `stdio` reviewed | Claude Desktop MCP server config, using `node /absolute/path/to/trello-mcp/dist/index.js` with `TRANSPORT=stdio` and Trello env vars | Not exercised directly in Claude Desktop in this session | No: board discovery, list discovery, card reads, and safe card mutation were not validated in Claude Desktop | Not validated for Claude Desktop in this session | Restart Claude Desktop after config changes | App version was available locally, but this session did not modify the user's Claude Desktop config or run live Trello credentials. |
-| Claude Code | 2026-06-23 | Claude Code `2.1.153` | `stdio` and Streamable HTTP reviewed | `claude mcp add-json` for `stdio`; `claude mcp add --transport http` for HTTP | Not exercised directly in Claude Code in this session | No: board discovery, list discovery, card reads, and safe card mutation were not validated in Claude Code | Reviewed CLI setup supports adding an `Authorization: Bearer ...` header for HTTP | Restart or reload the Claude Code session after changing MCP config | CLI version was available locally. Direct client config was not changed; manual SDK validation below covered the server transports. |
-| Codex | 2026-06-23 | Codex CLI `0.140.0` via Homebrew; Codex app bundled CLI `0.142.0`; local asdf shim was misconfigured | `stdio` and Streamable HTTP reviewed | `codex mcp add` for HTTP or a local `node dist/index.js` command with env vars for `stdio` | Not exercised directly in Codex in this session | No: board discovery, list discovery, card reads, and safe card mutation were not validated in Codex | Reviewed setup supports `--bearer-token-env-var` for HTTP bearer auth | Restart the Codex session after changing MCP config | Direct binaries reported versions, but the default `codex` shim failed because no asdf version was configured for that shim in this checkout. |
-| OpenCode | 2026-06-23 | Not installed locally; OpenCode docs reviewed on 2026-06-23 | `stdio` through local MCP config; Streamable HTTP through remote MCP config | `opencode.json` `mcp` entries with `type: "local"` or `type: "remote"` | Not exercised; OpenCode was not installed locally | No: board discovery, list discovery, card reads, and safe card mutation were not validated in OpenCode | Reviewed OpenCode remote MCP config supports request `headers`, including `Authorization` | Restart or reload OpenCode after changing config | Local `opencode` binary was missing. Official docs were reviewed for local/remote MCP config shape, but no OpenCode runtime validation was performed. |
-| Cursor | 2026-06-23 | Not installed locally | `stdio` reviewed from project setup docs | `.cursor/mcp.json` in a project or `~/.cursor/mcp.json` globally | Not exercised; Cursor was not installed locally | No: board discovery, list discovery, card reads, and safe card mutation were not validated in Cursor | Not validated in Cursor in this session | Restart or reload Cursor after changing MCP config | Cursor was not present in `/Applications`, `~/Applications`, or the local shell path, so client validation was skipped. |
-| Manual MCP SDK client | 2026-06-23 | `@modelcontextprotocol/sdk` `1.29.0` | `stdio` and Streamable HTTP tested | Temporary SDK client using `StdioClientTransport` and `StreamableHTTPClientTransport` against the built server | Passed: `tools/list` returned 77 tools on both transports | No live Trello workflow: board discovery, list discovery, card reads, and safe card mutation were not exercised because Trello live env vars were not set | Passed for server behavior: unauthenticated HTTP `/mcp` returned `401`; authorized SDK discovery succeeded with `Authorization: Bearer ...` | No client restart required; restart server process after env/config changes | Used dummy Trello env values only. No Trello API calls were made because discovery does not invoke Trello tools. |
+### Claude Desktop
 
-## Manual Transport Evidence
+The installed app was launched with its existing user-local `stdio`
+configuration. Its MCP log recorded successful server startup, initialization,
+and `tools/list`. The configured server artifact was byte-identical to the build
+enumerated independently as 77 tools. The MCP transport was then closed without
+changing its configuration.
 
-Manual SDK validation was run against the built server with dummy Trello credentials:
+The current Claude Desktop documentation centers on installable `.mcpb` desktop
+extensions. This repository does not contain an MCPB manifest or package, so a
+one-click extension could not be tested without expanding the issue into a new
+packaging deliverable. The guide states that limitation plainly and documents
+the tested manual `stdio` path.
 
-- `stdio`: initialized `node dist/index.js` with `TRANSPORT=stdio`; `tools/list` returned 77 tools, starting with `auth_whoami`, `auth_token_info`, `list_boards`, and `board_create`.
-- Streamable HTTP: started the server with `TRANSPORT=http`, `MCP_AUTH_TOKEN` set, and dummy Trello credentials; `tools/list` with a bearer header returned 77 tools.
-- HTTP auth negative check: a POST to `/mcp` without the bearer header returned `401`.
+### Claude Code
 
-This evidence validates server startup and tool discovery for the two supported transports. It does not prove that each named MCP client loads the config correctly.
+An isolated JSON file copied the guide's project-level shapes, including the
+`${...}` environment references, and Claude Code loaded it with
+`--strict-mcp-config`. Its two entries targeted the built server:
 
-## Live Trello Workflow Evidence
+- `stdio`: Claude Code launched `node dist/index.js` with `TRANSPORT=stdio` and
+  dummy Trello values.
+- Streamable HTTP: Claude Code connected to `/mcp` and sent the required bearer
+  header.
 
-The PR `Live Trello Smoke` workflow passed during the 2026-06-23 compatibility pass, including the `Run live Trello smoke` step.
+The interactive `/mcp` view enumerated the same 77 tools for each transport.
+Separate temporary user entries confirmed that `claude mcp list` also reported
+both connections healthy. All temporary files and entries were removed after
+validation, and the original user configuration was restored exactly.
 
-That secret-backed CI run executed the repository's live smoke harness against a disposable Trello validation board. The harness exercises:
+### Codex
 
-- `auth_whoami` and `auth_token_info`.
-- Board discovery, including board fields, lists, cards, labels, members, memberships, and custom fields.
-- Disposable list creation, read, rename/update, archive, and cleanup.
-- Disposable card creation, read, update, due date, position, archive, restore, move, and delete.
-- Safe label, checklist, member, and comment workflows.
-- Cleanup verification that no open smoke-test lists, cards, or labels remain.
+The Homebrew Codex CLI was launched with session-only configuration overrides;
+the shared `~/.codex/config.toml` was not edited. The `stdio` and bearer-protected
+Streamable HTTP entries both initialized, and `/mcp` enumerated all 77 tools for
+each one.
 
-Local live smoke was not run during the 2026-06-23 compatibility pass because the required local opt-in variables were unavailable:
+The explicit Homebrew binary was used because the unrelated default asdf shim
+did not have a Codex version configured in this checkout. That local shim issue
+does not affect the documented TOML or `codex mcp` syntax.
+
+### OpenCode V2 and Cursor
+
+Neither client was installed on the validation host. Their current official
+documentation was reviewed, and every JSON example was syntax-checked, but no
+connection or tool-discovery claim is made. Installing missing desktop clients
+solely to improve a documentation matrix was outside this validation's safety
+boundary.
+
+### MCP Inspector
+
+Inspector `2.0.0` initialized the built server over both transports. Each
+`tools/list --format json` result contained 77 tools. The guide's ignored
+`--config` form was tested for both named entries. The HTTP test used a dummy
+server bearer token; a separate request without that header returned `401`.
+
+This is direct transport and tool-discovery evidence. It is not evidence that a
+Trello workflow ran.
+
+## Live Trello workflow status
+
+No live Trello tool was invoked from any named client during the 2026-08-07
+pass. The repository's live-validation safety gate requires all of the
+following before any Trello request:
 
 - `TRELLO_LIVE_SMOKE=1`
 - `TRELLO_API_KEY`
 - `TRELLO_TOKEN`
 - `TRELLO_LIVE_SMOKE_BOARD_ID` or `TRELLO_LIVE_SMOKE_BOARD_URL`
 
-Running `corepack pnpm smoke:live` exited before contacting Trello and reported the missing variables. This is the expected safe skip state.
+This pass did not have the explicit live-smoke opt-in plus a confirmed
+disposable board. Discovery therefore used dummy values and stopped at
+`tools/list`. That is the intended safe behavior, not a successful live Trello
+workflow.
 
-When live credentials and a disposable board are available, use:
+The prior 2026-06-23 compatibility pass did record a passing secret-backed
+GitHub Actions `Live Trello Smoke` run. That repository harness covered
+authentication, board/list/card reads, disposable mutations, and cleanup through
+the registered tool handlers. It remains useful historical server evidence, but
+it is not attributed to any named client in the current table.
 
-```bash
-TRELLO_LIVE_SMOKE=1 \
-TRELLO_LIVE_SMOKE_BOARD_ID=<disposable-board-id-or-short-link> \
-TRELLO_API_KEY=<trello-api-key> \
-TRELLO_TOKEN=<trello-token> \
-corepack pnpm smoke:live
-```
+When a disposable board and explicit opt-in are available, follow the
+[live validation instructions](../README.md#live-trello-smoke-tests). Never run
+write-side validation against an ordinary board.
 
-The live smoke harness exercises authentication, board discovery, list discovery, card reads, safe disposable card mutation, and cleanup verification through the registered tool handlers.
+## Documentation and visual review
 
-## Client Setup References
+The canonical [MCP Client Setup guide](client-setup.md) contains the sanitized
+configurations used by this compatibility record. JSON snippets were checked
+with `jq`; Codex TOML and CLI forms were loaded by the actual Codex client; and
+the Inspector commands were executed against the built server.
 
-The README keeps concise setup examples for Claude Code, Codex, OpenCode, Cursor, and generic/manual clients. For named-client examples, see [Connect Your MCP Client](../README.md#3-connect-your-mcp-client). For generic transport details, see [MCP Client Setup](../README.md#mcp-client-setup).
-
-OpenCode's public documentation also describes local and remote MCP server entries in `opencode.json`, including remote request headers for bearer-token style authentication: [OpenCode MCP servers](https://opencode.ai/docs/mcp-servers).
+No client screenshot was committed. The genuine installed-client views also
+contained unrelated user configuration and did not explain the security
+boundary as clearly as a diagram. The reusable transport chooser contains no
+credentials, private UI, machine-specific paths, or third-party product logos.

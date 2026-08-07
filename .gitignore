@@ -18,6 +18,7 @@ coverage/
 .codex/config.toml
 .claude/settings.local.json
 .cursor/mcp.json
+.mcp-inspector.local.json
 
 # Logs
 logs/
