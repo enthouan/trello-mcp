@@ -211,7 +211,7 @@ Choose the transport by where the server runs:
 ![Transport chooser showing local stdio and service-oriented Streamable HTTP paths](docs/assets/client-setup/transport-chooser.svg)
 
 The [MCP Client Setup guide](docs/client-setup.md) has current, sanitized
-examples for Claude Desktop, Claude Code, Codex and ChatGPT desktop, OpenCode V2,
+examples for Claude Desktop, Claude Code, the Codex app and CLI, OpenCode V2,
 Cursor, MCP Inspector, and other manual clients. It also covers restart
 requirements, HTTP bearer support, secret handling, and tested limitations.
 

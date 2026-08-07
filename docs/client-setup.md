@@ -166,7 +166,7 @@ Reference: [Claude Code MCP documentation](https://code.claude.com/docs/en/mcp).
 
 ## Codex
 
-The ChatGPT desktop app, Codex CLI, and Codex IDE extension share MCP entries in
+The Codex app, Codex CLI, and Codex IDE extension share MCP entries in
 `~/.codex/config.toml`. The examples below were directly tested in Codex CLI;
 the shared desktop and IDE behavior was reviewed in the official documentation
 but not run in this validation pass. A trusted project may instead use
