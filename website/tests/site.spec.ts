@@ -356,8 +356,9 @@ test("original site mark and blue accent load in both themes", async ({
   expect(markResponse.headers()["content-type"]).toContain("image/svg+xml");
 
   const favicon = page.locator('link[rel="shortcut icon"]');
-  await expect(favicon).toHaveAttribute("href", "/favicon.svg");
-  const faviconResponse = await request.get("/favicon.svg", {
+  await expect(favicon).toHaveAttribute("href", "/favicon.svg?v=split-card");
+  const faviconHref = await favicon.getAttribute("href");
+  const faviconResponse = await request.get(faviconHref ?? "", {
     failOnStatusCode: false,
   });
   expect(faviconResponse.status(), "Favicon must resolve").toBe(200);
