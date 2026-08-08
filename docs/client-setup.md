@@ -165,10 +165,8 @@ Reference: [Claude Code MCP documentation](https://code.claude.com/docs/en/mcp).
 
 ## Codex
 
-The ChatGPT desktop app, Codex CLI, and Codex IDE extension share MCP entries in
-`~/.codex/config.toml`. The examples below were directly tested in Codex CLI;
-the shared desktop and IDE behavior was reviewed in the official documentation
-but not run in this validation pass. A trusted project may instead use
+Codex CLI reads MCP entries from `~/.codex/config.toml`. The examples below were
+directly tested in Codex CLI. A trusted project may instead use
 `.codex/config.toml`; this repository ignores that local file. Choose one of the
 following `trello` tables, not both.
 
@@ -185,11 +183,8 @@ TRANSPORT = "stdio"
 ```
 
 `env_vars` forwards the already exported credentials without writing their
-values into TOML. Launch Codex CLI from the shell that exported them. A desktop
-or IDE process must receive the variables in its own launch environment; an
-`export` in an unrelated terminal does not update an already-running GUI app.
-If a desktop surface cannot resolve `node`, replace it with an absolute
-executable path.
+values into TOML. Launch Codex CLI from the shell that exported them. If Codex
+cannot resolve `node`, replace it with an absolute executable path.
 
 ### Codex over Streamable HTTP
 
@@ -201,9 +196,8 @@ bearer_token_env_var = "TRELLO_MCP_BEARER_TOKEN"
 
 Omit `bearer_token_env_var` when the HTTP server does not set
 `MCP_AUTH_TOKEN`. Run `codex mcp list` from the CLI or `/mcp` in an interactive
-session to inspect the connection. The same process-environment caveat applies
-to the bearer variable. After editing through the ChatGPT desktop app or IDE
-settings screen, save and use its **Restart** action.
+session to inspect the connection. Start a new Codex CLI session after changing
+the configuration if the active session does not reload it.
 
 Reference: [Codex MCP documentation](https://learn.chatgpt.com/docs/extend/mcp).
 
@@ -269,56 +263,6 @@ Mode groups MCP tools under the normalized server name; set `codemode: false`
 only if you deliberately want all MCP tools exposed individually to the model.
 
 Reference: [OpenCode V2 MCP server documentation](https://opencode.ai/v2/docs/mcp-servers).
-
-## Cursor
-
-Create `.cursor/mcp.json` in a project or `~/.cursor/mcp.json` globally. This
-repository ignores its project-local file. Cursor expands `${env:NAME}` in
-commands, arguments, environment values, URLs, and headers.
-
-### Cursor over stdio
-
-```json
-{
-  "mcpServers": {
-    "trello": {
-      "type": "stdio",
-      "command": "node",
-      "args": ["/absolute/path/to/trello-mcp/dist/index.js"],
-      "env": {
-        "TRANSPORT": "stdio",
-        "TRELLO_API_KEY": "${env:TRELLO_API_KEY}",
-        "TRELLO_TOKEN": "${env:TRELLO_TOKEN}"
-      }
-    }
-  }
-}
-```
-
-### Cursor over Streamable HTTP
-
-```json
-{
-  "mcpServers": {
-    "trello": {
-      "url": "http://127.0.0.1:3000/mcp",
-      "headers": {
-        "Authorization": "Bearer ${env:TRELLO_MCP_BEARER_TOKEN}"
-      }
-    }
-  }
-}
-```
-
-Remove `headers` when HTTP bearer authentication is disabled. Restart Cursor
-after changing its configuration. Confirm that `trello` appears under
-**Available Tools**; connection errors are available in the **MCP Logs** output
-channel.
-
-Cursor Cloud Agents cannot reach a loopback service on your local machine. Use a
-reachable HTTPS deployment with deliberate access controls for that surface.
-
-Reference: [Cursor MCP documentation](https://cursor.com/docs/mcp).
 
 ## MCP Inspector and manual clients
 
