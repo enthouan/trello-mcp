@@ -1,14 +1,15 @@
 :root {
-  --sl-color-accent-low: hsl(19, 48%, 18%);
-  --sl-color-accent: hsl(24, 88%, 62%);
-  --sl-color-accent-high: hsl(31, 92%, 88%);
+  --trello-mcp-blue: #0052cc;
+  --sl-color-accent-low: #082145;
+  --sl-color-accent: #579dff;
+  --sl-color-accent-high: #cce0ff;
   --sl-content-width: 48rem;
 }
 
 :root[data-theme="light"] {
-  --sl-color-accent-high: hsl(17, 78%, 28%);
-  --sl-color-accent: hsl(19, 84%, 38%);
-  --sl-color-accent-low: hsl(28, 88%, 93%);
+  --sl-color-accent-high: #09326c;
+  --sl-color-accent: var(--trello-mcp-blue);
+  --sl-color-accent-low: #e9f2ff;
 }
 
 html {

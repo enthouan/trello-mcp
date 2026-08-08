@@ -307,6 +307,87 @@ test("native theme control applies and persists light and dark modes", async ({
   }
 });
 
+test("original site mark and blue accent load in both themes", async ({
+  page,
+  request,
+}) => {
+  await gotoLoaded(page, "/");
+
+  const siteTitle = page.locator("header a.site-title").first();
+  await expect(siteTitle).toBeVisible();
+  await expect(siteTitle).toHaveAccessibleName("trello-mcp");
+  const mark = siteTitle.locator("img");
+  await expect(mark).toBeVisible();
+  await expect(mark).toHaveAttribute("alt", "");
+  await expect(mark).toHaveAttribute("width", "64");
+  await expect(mark).toHaveAttribute("height", "64");
+
+  const markSource = await mark.getAttribute("src");
+  expect(markSource, "Header mark must have a source").toBeTruthy();
+  const markResponse = await request.get(markSource ?? "", {
+    failOnStatusCode: false,
+  });
+  expect(markResponse.status(), "Header mark must resolve").toBe(200);
+  expect(markResponse.headers()["content-type"]).toContain("image/svg+xml");
+
+  const favicon = page.locator('link[rel="shortcut icon"]');
+  await expect(favicon).toHaveAttribute("href", "/favicon.svg");
+  const faviconResponse = await request.get("/favicon.svg", {
+    failOnStatusCode: false,
+  });
+  expect(faviconResponse.status(), "Favicon must resolve").toBe(200);
+  const faviconSource = (await faviconResponse.text()).toLowerCase();
+  expect(faviconSource).toContain("trello-mcp connection mark");
+  expect(faviconSource).toContain("#0052cc");
+  expect(faviconSource).not.toContain("lineargradient");
+
+  for (const [theme, expectedAccent] of [
+    ["light", "rgb(0, 82, 204)"],
+    ["dark", "rgb(87, 157, 255)"],
+  ] as const) {
+    await test.step(theme, async () => {
+      await page.locator("html").evaluate((element, selectedTheme) => {
+        element.dataset.theme = selectedTheme;
+      }, theme);
+      const accent = await page.evaluate(() => {
+        const probe = document.createElement("span");
+        probe.style.color = "var(--sl-color-accent)";
+        document.body.append(probe);
+        const color = getComputedStyle(probe).color;
+        probe.remove();
+        return color;
+      });
+      expect(accent).toBe(expectedAccent);
+    });
+  }
+});
+
+test("dark theme meets color contrast across every public route", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("starlight-theme", "dark");
+  });
+
+  for (const route of publicRoutes) {
+    await test.step(route, async () => {
+      await gotoLoaded(page, route);
+      await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+      const accessibility = await new AxeBuilder({ page })
+        .withRules(["color-contrast"])
+        .analyze();
+      expect(
+        accessibility.violations,
+        `${route} has dark-theme color contrast violations:\n${JSON.stringify(
+          accessibility.violations,
+          null,
+          2,
+        )}`,
+      ).toEqual([]);
+    });
+  }
+});
+
 test("production Pagefind search returns a tool result", async ({ page }) => {
   const problems = monitorBrowserProblems(page);
   await gotoLoaded(page, "/");
