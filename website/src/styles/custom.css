@@ -25,7 +25,15 @@ h6 {
   letter-spacing: 0;
 }
 
-:where(a, button, input, select, summary, table[tabindex]):focus-visible {
+:where(
+  a,
+  button,
+  input,
+  select,
+  summary,
+  table[tabindex],
+  [data-transport-chooser-scroll]
+):focus-visible {
   outline: 3px solid var(--sl-color-accent);
   outline-offset: 3px;
 }
@@ -59,6 +67,44 @@ h6 {
 
 .sl-markdown-content {
   overflow-wrap: anywhere;
+}
+
+.transport-chooser {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin-inline: 0;
+}
+
+.transport-chooser__viewport {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: 8px;
+}
+
+.transport-chooser__viewport img {
+  display: block;
+  width: 64rem;
+  min-width: 64rem;
+  max-width: none;
+  height: auto;
+  margin: 0;
+}
+
+.transport-chooser figcaption {
+  margin-block-start: 0.625rem;
+  color: var(--sl-color-gray-2);
+  font-size: var(--sl-text-sm);
+}
+
+@media (min-width: 64rem) {
+  .transport-chooser__viewport img {
+    width: 100%;
+    min-width: 0;
+  }
 }
 
 .sl-markdown-content table {

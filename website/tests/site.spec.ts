@@ -4,6 +4,8 @@ import { expect, type Page, type Response, test } from "@playwright/test";
 const DISCLAIMER =
   "trello-mcp is an independent, community-maintained project. It is not an official Trello or Atlassian product, service, or MCP implementation, and it is not affiliated with, endorsed by, or sponsored by Trello or Atlassian.";
 const OFFICIAL_ENDPOINT = "https://mcp.trello.com/v1";
+const TRANSPORT_CHOOSER_ALT =
+  "Transport chooser showing local stdio and service-oriented Streamable HTTP paths";
 
 const publicRoutes = [
   "/",
@@ -530,6 +532,126 @@ test("code blocks copy successfully and contain their own overflow", async ({
     )
     .toContain(source);
   expect(problems, "Copy interaction emitted browser errors").toEqual([]);
+});
+
+test("transport chooser stays legible and scrolls internally when present", async ({
+  page,
+  request,
+}) => {
+  const assetResponse = await request.get("/transport-chooser.svg", {
+    failOnStatusCode: false,
+  });
+  await page.setViewportSize({ width: 360, height: 800 });
+  await gotoLoaded(page, "/clients/");
+
+  const figure = page.locator("figure[data-transport-chooser]");
+  if (assetResponse.status() === 404) {
+    await expect(figure).toHaveCount(0);
+    return;
+  }
+
+  expect(assetResponse.status(), "Transport chooser asset must resolve").toBe(
+    200,
+  );
+  expect(assetResponse.headers()["content-type"]).toContain("image/svg+xml");
+
+  await expect(figure).toBeVisible();
+  const image = figure.getByRole("img", { name: TRANSPORT_CHOOSER_ALT });
+  await expect(image).toHaveAttribute("src", "/transport-chooser.svg");
+  await expect(image).toHaveAttribute("width", "1200");
+  await expect(image).toHaveAttribute("height", "600");
+
+  const caption = figure.locator("figcaption");
+  await expect(caption).toContainText(
+    "Scroll horizontally when needed to compare both paths.",
+  );
+  const fullSizeLink = caption.getByRole("link", {
+    name: "Open the full-size diagram",
+    exact: true,
+  });
+  await expect(fullSizeLink).toHaveAttribute("href", "/transport-chooser.svg");
+  const fullSizeResponse = await request.get(
+    (await fullSizeLink.getAttribute("href")) ?? "",
+    { failOnStatusCode: false },
+  );
+  expect(fullSizeResponse.status(), "Full-size chooser link must resolve").toBe(
+    200,
+  );
+
+  for (const viewport of [
+    { width: 1440, height: 900, scrolls: false },
+    { width: 1180, height: 820, scrolls: false },
+    { width: 820, height: 1180, scrolls: true },
+    { width: 390, height: 844, scrolls: true },
+    { width: 360, height: 800, scrolls: true },
+  ]) {
+    await test.step(`${viewport.width}px`, async () => {
+      await page.setViewportSize(viewport);
+      await gotoLoaded(page, "/clients/");
+
+      const scrollRegion = page.getByRole("region", {
+        name: "Transport chooser diagram",
+      });
+      await expect(scrollRegion).toBeVisible();
+      await expect(scrollRegion).toHaveAttribute("tabindex", "0");
+      const geometry = await scrollRegion.evaluate((element) => {
+        const bounds = element.getBoundingClientRect();
+        const chooserImage = element.querySelector("img");
+        return {
+          clientWidth: element.clientWidth,
+          imageWidth: chooserImage?.getBoundingClientRect().width ?? 0,
+          left: bounds.left,
+          overflowX: getComputedStyle(element).overflowX,
+          right: bounds.right,
+          scrollWidth: element.scrollWidth,
+        };
+      });
+
+      expect(["auto", "scroll"]).toContain(geometry.overflowX);
+      if (viewport.scrolls) {
+        expect(geometry.imageWidth).toBeGreaterThanOrEqual(1023);
+        expect(geometry.scrollWidth).toBeGreaterThan(geometry.clientWidth);
+      } else {
+        expect(geometry.imageWidth).toBeLessThanOrEqual(
+          geometry.clientWidth + 1,
+        );
+        expect(geometry.scrollWidth).toBeLessThanOrEqual(
+          geometry.clientWidth + 1,
+        );
+      }
+      expect(geometry.left).toBeGreaterThanOrEqual(-1);
+      expect(geometry.right).toBeLessThanOrEqual(viewport.width + 1);
+      await assertNoPageOverflow(
+        page,
+        `transport chooser at ${viewport.width}px`,
+      );
+
+      if (viewport.scrolls) {
+        await scrollRegion.evaluate((element) => {
+          element.scrollLeft = 0;
+        });
+        await scrollRegion.focus();
+        await expect(scrollRegion).toBeFocused();
+        await page.keyboard.press("ArrowRight");
+        await page.evaluate(
+          () =>
+            new Promise<void>((resolve) => {
+              requestAnimationFrame(() =>
+                requestAnimationFrame(() => resolve()),
+              );
+            }),
+        );
+        if (
+          (await scrollRegion.evaluate((element) => element.scrollLeft)) === 0
+        ) {
+          await page.keyboard.press("Alt+ArrowRight");
+        }
+        await expect
+          .poll(() => scrollRegion.evaluate((element) => element.scrollLeft))
+          .toBeGreaterThan(0);
+      }
+    });
+  }
 });
 
 test("mobile tool catalog keeps its table internally scrollable and keyboard operable", async ({

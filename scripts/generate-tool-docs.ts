@@ -202,6 +202,42 @@ function rewriteSiteLinks(
   return rewritten;
 }
 
+function escapeHtmlAttribute(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+}
+
+function withTransportChooserFigure(source: string, label: string): string {
+  let imageCount = 0;
+  const wrapped = source.replace(
+    /!\[([^\]\n]+)\]\(\/transport-chooser\.svg\)/g,
+    (_match, altText: string) => {
+      imageCount += 1;
+      return [
+        '<figure class="transport-chooser" data-transport-chooser>',
+        '  <div class="transport-chooser__viewport" data-transport-chooser-scroll role="region" aria-label="Transport chooser diagram" tabindex="0">',
+        `    <img src="/transport-chooser.svg" alt="${escapeHtmlAttribute(altText)}" width="1200" height="600">`,
+        "  </div>",
+        "  <figcaption>",
+        '    Scroll horizontally when needed to compare both paths. <a href="/transport-chooser.svg">Open the full-size diagram</a>.',
+        "  </figcaption>",
+        "</figure>",
+      ].join("\n");
+    },
+  );
+
+  if (imageCount !== 1) {
+    throw new Error(
+      `${label} must contain exactly one generated transport chooser image`,
+    );
+  }
+
+  return wrapped;
+}
+
 function compatibilityIntroduction(source: string): string {
   const body = withoutDocumentTitle(source, "docs/mcp-client-compatibility.md");
   const firstParagraph = body.split(/\n\n+/)[0];
@@ -282,10 +318,13 @@ async function expectedFiles(): Promise<GeneratedFile[]> {
         "Clients",
         "Configure trello-mcp over local stdio or Streamable HTTP in supported MCP clients.",
         withIndependentProjectNotice(
-          rewriteSiteLinks(
-            withoutDocumentTitle(clientSetup, "docs/client-setup.md"),
+          withTransportChooserFigure(
+            rewriteSiteLinks(
+              withoutDocumentTitle(clientSetup, "docs/client-setup.md"),
+              "docs/client-setup.md",
+              true,
+            ),
             "docs/client-setup.md",
-            true,
           ),
         ),
       )
