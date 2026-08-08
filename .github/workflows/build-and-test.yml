@@ -25,3 +25,35 @@ jobs:
       - run: pnpm lint
       - run: pnpm build
       - run: pnpm test:coverage
+
+  website:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      SITE_URL: https://example.invalid
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.1
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm docs:check
+      - run: pnpm site:check
+      - run: pnpm site:build
+      - run: pnpm exec playwright install --with-deps chromium webkit
+      - run: pnpm site:test
+      - run: pnpm site:visual
+      - run: pnpm site:lighthouse
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: website-qa
+          path: |
+            website/artifacts/
+            website/playwright-report/
+            website/test-results/
+          if-no-files-found: warn
+          retention-days: 14

@@ -7,6 +7,12 @@ dist/
 coverage/
 .nyc_output/
 .vitest/
+website/.astro/
+website/dist/
+website/artifacts/
+website/playwright-report/
+website/test-results/
+.lighthouseci/
 *.tsbuildinfo
 
 # Local environment and secrets

@@ -511,6 +511,8 @@ See [docs/api-coverage.md](docs/api-coverage.md) for the Trello REST API group c
 ## Tool Catalog
 
 <!-- tools:start -->
+**77 tools** are registered. Names, descriptions, and key inputs are generated from `allTools`.
+
 | Name | When to use | Key inputs |
 | --- | --- | --- |
 | `auth_whoami` | Use as a read-only credential diagnostic to confirm which Trello member the configured API key and token authenticate as. | fields |

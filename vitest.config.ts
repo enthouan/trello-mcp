@@ -4,7 +4,7 @@ export default defineConfig({
   test: {
     environment: "node",
     restoreMocks: true,
-    exclude: [...configDefaults.exclude, "**/.worktrees/**"],
+    exclude: [...configDefaults.exclude, "**/.worktrees/**", "website/**"],
     coverage: {
       provider: "v8",
       reporter: ["text", "lcov"],

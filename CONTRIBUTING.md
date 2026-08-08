@@ -12,7 +12,27 @@ corepack pnpm typecheck
 corepack pnpm lint
 corepack pnpm test:coverage
 corepack pnpm build
+corepack pnpm docs:check
+corepack pnpm site:check
+corepack pnpm site:build
+corepack pnpm site:test
+corepack pnpm site:lighthouse
 ```
+
+## Documentation website
+
+The public documentation site uses Astro Starlight under `website/`. Canonical
+long-form project documentation remains in `docs/`; the checked-in website
+copies and tool catalog are generated deterministically.
+
+```bash
+corepack pnpm docs:tools
+corepack pnpm site:dev
+```
+
+Before changing generated website pages, update their canonical source or
+`src/trello/tools.ts`, then run `corepack pnpm docs:tools`. Use
+`corepack pnpm docs:check` to confirm the generated output is current.
 
 
 ## Codex cloud setup

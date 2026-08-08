@@ -52,6 +52,11 @@ corepack pnpm lint
 corepack pnpm build
 corepack pnpm test
 corepack pnpm test:coverage
+corepack pnpm docs:check
+corepack pnpm site:check
+corepack pnpm site:build
+corepack pnpm site:test
+corepack pnpm site:lighthouse
 ```
 
 Use these as the normal verification gate before a PR is considered ready:
@@ -112,6 +117,7 @@ corepack pnpm exec biome check --write path/to/file.ts
 - `src/utils/logger.ts`: Pino logger and redaction.
 - `tests/`: Vitest unit tests.
 - `scripts/generate-tool-docs.ts`: regenerates the README tool catalog.
+- `website/`: Astro Starlight source, generated documentation mirrors, production-preview tests, and visual/Lighthouse QA.
 - `scripts/codex/setup.sh`: Codex cloud fresh-container setup.
 - `scripts/codex/maintenance.sh`: Codex cloud cached-container maintenance.
 - `.github/workflows/build-and-test.yml`: Build and Test workflow.
@@ -217,7 +223,8 @@ Avoid:
 ## Documentation Rules
 
 - Keep README quick-start and environment tables current.
-- If MCP tools are added, removed, renamed, or their key inputs change, run `corepack pnpm docs:tools` and commit the README update.
+- If MCP tools are added, removed, renamed, or their key inputs change, run `corepack pnpm docs:tools` and commit the README and generated website catalog updates.
+- Canonical long-form documentation remains under `docs/`; use `corepack pnpm docs:tools` to refresh deterministic website mirrors and `corepack pnpm docs:check` to verify they are current.
 - Keep `.env.example` limited to supported environment variables.
 
 ## CI And Release
@@ -229,6 +236,9 @@ The GitHub Actions workflow named `Build and Test` runs:
 - lint
 - build
 - test coverage
+- Astro content/type checks and the production website build
+- Chromium and WebKit website, accessibility, and responsive checks
+- Lighthouse budgets for the homepage and Get Started page
 
 The `Release` workflow publishes Docker images to GHCR from `main` and `v*` tags.
 
@@ -263,6 +273,11 @@ corepack pnpm typecheck
 corepack pnpm lint
 corepack pnpm build
 corepack pnpm test
+corepack pnpm docs:check
+corepack pnpm site:check
+corepack pnpm site:build
+corepack pnpm site:test
+corepack pnpm site:lighthouse
 ```
 
 For tool catalog changes, also run:
