@@ -7,7 +7,7 @@
 
 :root[data-theme="light"] {
   --sl-color-accent-high: hsl(17, 78%, 28%);
-  --sl-color-accent: hsl(19, 84%, 40%);
+  --sl-color-accent: hsl(19, 84%, 38%);
   --sl-color-accent-low: hsl(28, 88%, 93%);
 }
 
