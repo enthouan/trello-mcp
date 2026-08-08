@@ -37,6 +37,27 @@ test.describe("responsive visual QA matrix", () => {
           }, theme);
           await page.goto(route.path, { waitUntil: "networkidle" });
           await page.evaluate(() => document.fonts.ready);
+          await page.locator("img").evaluateAll(async (images) => {
+            await Promise.all(
+              images.map(async (node) => {
+                const image = node as HTMLImageElement;
+                if (!image.complete) {
+                  await new Promise<void>((resolve, reject) => {
+                    image.addEventListener("load", () => resolve(), {
+                      once: true,
+                    });
+                    image.addEventListener(
+                      "error",
+                      () =>
+                        reject(new Error(`Image failed to load: ${image.src}`)),
+                      { once: true },
+                    );
+                  });
+                }
+                await image.decode();
+              }),
+            );
+          });
           await expect(page.locator("html")).toHaveAttribute(
             "data-theme",
             theme,
