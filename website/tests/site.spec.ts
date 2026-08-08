@@ -337,9 +337,13 @@ test("original site mark and blue accent load in both themes", async ({
   });
   expect(faviconResponse.status(), "Favicon must resolve").toBe(200);
   const faviconSource = (await faviconResponse.text()).toLowerCase();
-  expect(faviconSource).toContain("trello-mcp connection mark");
+  expect(faviconSource).toContain("trello-mcp split-card mark");
   expect(faviconSource).toContain("#0052cc");
   expect(faviconSource).not.toContain("lineargradient");
+  expect(faviconSource.match(/<rect\b/g)).toHaveLength(3);
+  expect(faviconSource.match(/fill="#fff"/g)).toHaveLength(2);
+  expect(faviconSource).not.toContain("<path");
+  expect(faviconSource).not.toContain("<circle");
 
   for (const [theme, expectedAccent] of [
     ["light", "rgb(0, 82, 204)"],
