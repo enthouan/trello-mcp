@@ -2,7 +2,8 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page, type Response, test } from "@playwright/test";
 
 const DISCLAIMER =
-  "trello-mcp is an independent, community-maintained project. It is not an official Trello or Atlassian product, service, or MCP implementation, and it is not affiliated with, endorsed by, or sponsored by Trello or Atlassian.";
+  "trello-mcp is an independent, community-maintained project developed by Antoine Ménard. It is not an official Trello or Atlassian product, service, or MCP implementation, and it is not affiliated with, endorsed by, or sponsored by Trello or Atlassian.";
+const DEVELOPER_URL = "https://www.antoinemenard.com/";
 const OFFICIAL_ENDPOINT = "https://mcp.trello.com/v1";
 const TRANSPORT_CHOOSER_ALT =
   "Transport chooser showing local stdio and service-oriented Streamable HTTP paths";
@@ -212,7 +213,7 @@ test.describe("public production routes", () => {
   }
 });
 
-test("required independent-project language and official alternative are exact", async ({
+test("required attribution, independent-project language, and official alternative are exact", async ({
   page,
 }) => {
   for (const route of ["/", "/get-started/", "/clients/"]) {
@@ -223,6 +224,11 @@ test("required independent-project language and official alternative are exact",
       await expect(
         main.getByText(OFFICIAL_ENDPOINT, { exact: true }),
       ).toBeVisible();
+
+      const developerLink = main.locator(`a[href="${DEVELOPER_URL}"]`).first();
+      await expect(developerLink).toBeVisible();
+      await expect(developerLink).toHaveText("Antoine Ménard");
+      await expect(developerLink).toHaveAttribute("href", DEVELOPER_URL);
 
       const officialLink = main
         .locator('a[href="https://trello.com/mcp"]')

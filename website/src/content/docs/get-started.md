@@ -4,7 +4,7 @@ description: Configure Trello credentials, run trello-mcp with Docker or local s
 ---
 
 :::caution[Independent project]
-trello-mcp is an independent, community-maintained project. It is not an official Trello or Atlassian product, service, or MCP implementation, and it is not affiliated with, endorsed by, or sponsored by Trello or Atlassian.
+trello-mcp is an independent, community-maintained project developed by [Antoine Ménard](https://www.antoinemenard.com/). It is not an official Trello or Atlassian product, service, or MCP implementation, and it is not affiliated with, endorsed by, or sponsored by Trello or Atlassian.
 
 Looking for Trello's official MCP server? Visit [Trello MCP](https://trello.com/mcp), hosted at `https://mcp.trello.com/v1`.
 :::
