@@ -66,6 +66,20 @@ h6 {
   font-size: clamp(2.5rem, calc(2.1rem + 2vw), 3.5rem);
 }
 
+.hero-title-lockup {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3em;
+}
+
+.hero-title-mark {
+  display: block;
+  flex: 0 0 auto;
+  width: 1em;
+  height: 1em;
+}
+
 .sl-markdown-content {
   overflow-wrap: anywhere;
 }

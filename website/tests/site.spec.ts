@@ -322,6 +322,31 @@ test("original site mark and blue accent load in both themes", async ({
   await expect(mark).toHaveAttribute("width", "64");
   await expect(mark).toHaveAttribute("height", "64");
 
+  const heroTitle = page.locator(".hero h1[data-page-title]");
+  await expect(heroTitle).toBeVisible();
+  await expect(heroTitle).toHaveAccessibleName("trello-mcp");
+  const heroMark = heroTitle.locator(".hero-title-mark");
+  await expect(heroMark).toBeVisible();
+  await expect(heroMark).toHaveAttribute("src", "/favicon.svg");
+  await expect(heroMark).toHaveAttribute("alt", "");
+  await expect(heroMark).toHaveAttribute("aria-hidden", "true");
+  await expect(heroMark).toHaveAttribute("width", "64");
+  await expect(heroMark).toHaveAttribute("height", "64");
+  const heroText = heroTitle.locator(".hero-title-text");
+  await expect(heroText).toHaveText("trello-mcp");
+  await expect(
+    heroTitle.locator(".hero-title-mark + .hero-title-text"),
+  ).toHaveCount(1);
+  const [heroMarkBox, heroTextBox] = await Promise.all([
+    heroMark.boundingBox(),
+    heroText.boundingBox(),
+  ]);
+  expect(heroMarkBox).not.toBeNull();
+  expect(heroTextBox).not.toBeNull();
+  expect((heroMarkBox?.x ?? 0) + (heroMarkBox?.width ?? 0)).toBeLessThan(
+    heroTextBox?.x ?? 0,
+  );
+
   const markSource = await mark.getAttribute("src");
   expect(markSource, "Header mark must have a source").toBeTruthy();
   const markResponse = await request.get(markSource ?? "", {

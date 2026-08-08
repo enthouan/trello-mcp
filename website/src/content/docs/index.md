@@ -3,7 +3,7 @@ title: trello-mcp
 description: A self-hosted, auditable Model Context Protocol server for broad Trello automation.
 template: splash
 hero:
-  title: trello-mcp
+  title: '<span class="hero-title-lockup"><img class="hero-title-mark" src="/favicon.svg" width="64" height="64" alt="" aria-hidden="true"><span class="hero-title-text">trello-mcp</span></span>'
   tagline: A self-hosted, auditable Model Context Protocol server for broad Trello automation.
   actions:
     - text: Get started
