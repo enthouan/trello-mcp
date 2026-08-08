@@ -39,7 +39,7 @@ No row is promoted from one state to another by inference alone.
 | --- | --- | --- | --- | --- | --- | --- |
 | Claude Desktop | Yes, 2026-08-07: [desktop extensions](https://support.claude.com/en/articles/10949351-getting-started-with-local-mcp-servers-on-claude-desktop) and [manual JSON](https://modelcontextprotocol.io/docs/2026-07-28/develop/connect-local-servers) | Claude Desktop `1.26832.0`; macOS; `stdio` | Yes. A full app launch initialized the existing user-local `trello` entry and connected to the built server. | Yes. Claude Desktop issued `tools/list` successfully. The exact 77-tool count was corroborated against the same built artifact with Inspector; Claude Desktop's log does not print the result body. | No. No Trello tool was called. | Fully quit and reopen after config changes. Current official guidance emphasizes MCPB desktop extensions, but this repository has no `.mcpb` package; the tested manual `stdio` entry remains the documented path. No HTTP bearer path is claimed. |
 | Claude Code | Yes, 2026-08-07: [MCP documentation](https://code.claude.com/docs/en/mcp) | Claude Code `2.1.212`; macOS; `stdio` and Streamable HTTP with bearer auth | Yes on both transports. | Yes. `/mcp` displayed all 77 tools for each temporary entry. | No. No Trello tool was called. | Start a new session if an active one does not reload configuration. Temporary entries were removed and the pre-test config was restored byte for byte. |
-| Codex CLI | Yes, 2026-08-07: [MCP documentation](https://learn.chatgpt.com/docs/extend/mcp) | Codex CLI `0.146.0` (Homebrew); macOS; `stdio` and Streamable HTTP with bearer auth | Yes on both transports through session-only configuration. | Yes. `/mcp` displayed all 77 tools for each entry. | No. No Trello tool was called. | Restart the Codex app or IDE extension after settings changes. The default asdf `codex` shim on this host had no configured version, so validation used the explicit Homebrew binary. Shared config was not changed. The Codex app and IDE share this config according to official docs, but those surfaces were not directly tested here. |
+| Codex CLI | Yes, 2026-08-07: [MCP documentation](https://learn.chatgpt.com/docs/extend/mcp) | Codex CLI `0.146.0` (Homebrew); macOS; `stdio` and Streamable HTTP with bearer auth | Yes on both transports through session-only configuration. | Yes. `/mcp` displayed all 77 tools for each entry. | No. No Trello tool was called. | Restart the ChatGPT desktop app or Codex IDE extension after settings changes. The default asdf `codex` shim on this host had no configured version, so validation used the explicit Homebrew binary. Shared config was not changed. The ChatGPT desktop app and Codex IDE extension share this config according to official docs, but those surfaces were not directly tested here. |
 | OpenCode V2 | Yes, 2026-08-07: [MCP servers](https://opencode.ai/v2/docs/mcp-servers) | Not installed; current `stdio` and Streamable HTTP configuration reviewed only | No. | No. | No. | Installation was intentionally skipped. Current V2 requires entries under `mcp.servers`, uses `disabled` rather than `enabled`, and groups MCP tools in Code Mode by default. Hot reload is not documented or validated; relaunch after config edits. |
 | Cursor | Yes, 2026-08-07: [MCP documentation](https://cursor.com/docs/mcp) | Not installed; current `stdio` and Streamable HTTP configuration reviewed only | No. | No. | No. | Installation was intentionally skipped. Restart Cursor after config changes. Project `.cursor/mcp.json` and global `~/.cursor/mcp.json` are documented; Cursor Cloud Agents cannot reach a loopback server on the user's machine. |
 | MCP Inspector | Yes, 2026-08-07: [Inspector documentation](https://modelcontextprotocol.io/docs/tools/inspector) | `@modelcontextprotocol/inspector` `2.0.0`; Node.js `24.17.0`; `stdio` and Streamable HTTP with bearer auth | Yes on both transports. | Yes. `tools/list` returned exactly 77 tools on both transports. | No. No Trello tool was called. | No restart required. The guide uses an ignored, read-only Inspector config so credentials do not appear in process arguments. `--cli` must be the first Inspector argument. Version 2.0.0 requires Node.js `22.19.0` or newer. |
@@ -116,16 +116,18 @@ following before any Trello request:
 - `TRELLO_TOKEN`
 - `TRELLO_LIVE_SMOKE_BOARD_ID` or `TRELLO_LIVE_SMOKE_BOARD_URL`
 
-This pass did not have the explicit live-smoke opt-in plus a confirmed
-disposable board. Discovery therefore used dummy values and stopped at
-`tools/list`. That is the intended safe behavior, not a successful live Trello
-workflow.
+The local named-client pass did not have the explicit live-smoke opt-in plus a
+confirmed disposable board. Discovery therefore used dummy values and stopped
+at `tools/list`. That is the intended safe behavior, not a successful live
+Trello workflow from a named client.
 
-The prior 2026-06-23 compatibility pass did record a passing secret-backed
-GitHub Actions `Live Trello Smoke` run. That repository harness covered
-authentication, board/list/card reads, disposable mutations, and cleanup through
-the registered tool handlers. It remains useful historical server evidence, but
-it is not attributed to any named client in the current table.
+Separately, a secret-backed
+[GitHub Actions `Live Trello Smoke` run](https://github.com/enthouan/trello-mcp/actions/runs/31227974590)
+passed during the 2026-08-07 PR validation. The repository harness covered
+authentication, board/list/card reads, disposable mutations, and cleanup
+through the registered tool handlers. This is server-harness evidence only; it
+is not attributed to any named client and does not change the `No` entries in
+the table's **Live Trello workflow** column.
 
 When a disposable board and explicit opt-in are available, follow the
 [live validation instructions](../README.md#live-trello-smoke-tests). Never run

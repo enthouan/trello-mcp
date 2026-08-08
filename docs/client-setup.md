@@ -70,8 +70,7 @@ environment that way.
 
 [Claude Desktop's current local-server guidance](https://support.claude.com/en/articles/10949351-getting-started-with-local-mcp-servers-on-claude-desktop)
 emphasizes one-click desktop extensions (`.mcpb`). This repository does not yet
-ship an MCPB package or appear in the extension directory. Packaging one would
-be separate work. The current
+ship an MCPB package. Packaging one would be separate work. The current
 [MCP local-server walkthrough](https://modelcontextprotocol.io/docs/2026-07-28/develop/connect-local-servers)
 also documents Claude Desktop's manual JSON path; that is the directly tested
 `stdio` path today.
@@ -112,12 +111,12 @@ local path, so this guide does not claim an HTTP bearer-token setup for it.
 
 ## Claude Code
 
-Claude Code supports both transports. Its project `.mcp.json` format expands
-`${NAME}` references from the environment, including values in `env` and
-`headers`. Choose one of the following entries and ensure the referenced
-variables are exported before starting Claude Code. A project-scoped entry can
-prompt for workspace trust; approve it only after reviewing the command, URL,
-and environment names.
+Claude Code supports both transports. Save project-scoped entries in `.mcp.json`
+at the project root; that format expands `${NAME}` references from the
+environment, including values in `env` and `headers`. Choose one of the
+following entries and ensure the referenced variables are exported before
+starting Claude Code. A project-scoped entry can prompt for workspace trust;
+approve it only after reviewing the command, URL, and environment names.
 
 ### Claude Code over stdio
 
@@ -166,7 +165,7 @@ Reference: [Claude Code MCP documentation](https://code.claude.com/docs/en/mcp).
 
 ## Codex
 
-The Codex app, Codex CLI, and Codex IDE extension share MCP entries in
+The ChatGPT desktop app, Codex CLI, and Codex IDE extension share MCP entries in
 `~/.codex/config.toml`. The examples below were directly tested in Codex CLI;
 the shared desktop and IDE behavior was reviewed in the official documentation
 but not run in this validation pass. A trusted project may instead use
@@ -203,8 +202,8 @@ bearer_token_env_var = "TRELLO_MCP_BEARER_TOKEN"
 Omit `bearer_token_env_var` when the HTTP server does not set
 `MCP_AUTH_TOKEN`. Run `codex mcp list` from the CLI or `/mcp` in an interactive
 session to inspect the connection. The same process-environment caveat applies
-to the bearer variable. After editing through a desktop or IDE settings screen,
-save and use its **Restart** action.
+to the bearer variable. After editing through the ChatGPT desktop app or IDE
+settings screen, save and use its **Restart** action.
 
 Reference: [Codex MCP documentation](https://learn.chatgpt.com/docs/extend/mcp).
 
@@ -214,7 +213,10 @@ OpenCode V2 defines named servers under `mcp.servers`. V1 examples that put
 server names directly under `mcp`, or that use `enabled`, are stale. V2 connects
 servers by default and uses `disabled: true` to turn one off.
 
-Choose one of these `opencode.json` configurations.
+Choose one of these `opencode.json` configurations. For project scope, save it
+as `<project-root>/opencode.json` or `<project-root>/.opencode/opencode.json`.
+For global scope, use `~/.config/opencode/opencode.json`. OpenCode also accepts
+the corresponding `.jsonc` filenames.
 
 ### OpenCode V2 over stdio
 
