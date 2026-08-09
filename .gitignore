@@ -17,7 +17,8 @@ coverage/
 # Local AI-agent configuration may include credentials or per-user permissions
 .codex/config.toml
 .claude/settings.local.json
-.cursor/mcp.json
+.*/mcp.json
+.mcp-inspector.local.json
 
 # Logs
 logs/
