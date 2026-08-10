@@ -1,0 +1,117 @@
+---
+// biome-ignore lint/correctness/noUnusedImports: Astro renders this component in the template below.
+import EditLink from "@astrojs/starlight/components/EditLink.astro";
+// biome-ignore lint/correctness/noUnusedImports: Astro renders this component in the template below.
+import LastUpdated from "@astrojs/starlight/components/LastUpdated.astro";
+// biome-ignore lint/correctness/noUnusedImports: Astro renders this component in the template below.
+import Pagination from "@astrojs/starlight/components/Pagination.astro";
+
+// biome-ignore lint/correctness/noUnusedVariables: Astro renders this value in the template below.
+const base = import.meta.env.BASE_URL;
+// biome-ignore lint/correctness/noUnusedVariables: Astro renders this value in the template below.
+const repositoryUrl = "https://github.com/enthouan/trello-mcp";
+---
+
+<footer class="site-footer sl-flex">
+  <div class="meta sl-flex">
+    <EditLink />
+    <LastUpdated />
+  </div>
+  <Pagination />
+
+  <div class="project-footer">
+    <div class="project-footer__about">
+      <a class="project-footer__name" href={base}>trello-mcp</a>
+      <p>
+        trello-mcp is an open-source project released under the MIT License and
+        maintained by <a href="https://www.antoinemenard.com/" rel="external"
+          >Antoine Ménard</a
+        >.
+      </p>
+      <p>
+        It is not an official <a href="https://trello.com/" rel="external"
+          >Trello</a
+        > or <a href="https://www.atlassian.com/" rel="external">Atlassian</a>
+        {" "}product and is not affiliated with or endorsed by either company.
+      </p>
+      <p>
+        Generated with <a href="https://astro.build/" rel="external">Astro</a>
+        {" "}using the <a href="https://starlight.astro.build/" rel="external"
+          >Starlight</a
+        >{" "}documentation theme.
+      </p>
+    </div>
+
+    <nav aria-label="Project links">
+      <a href={`${base}tools/`}>Tools</a>
+      <a href={`${base}security/`}>Security</a>
+      <a href={repositoryUrl} rel="external">GitHub</a>
+    </nav>
+  </div>
+</footer>
+
+<style>
+  @layer starlight.core {
+    .site-footer {
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .meta {
+      gap: 0.75rem 3rem;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      margin-top: 3rem;
+      color: var(--sl-color-gray-3);
+      font-size: var(--sl-text-sm);
+    }
+
+    .meta > :global(p:only-child) {
+      margin-inline-start: auto;
+    }
+
+    .project-footer {
+      display: grid;
+      gap: 1.25rem;
+      padding-block: 1.5rem;
+      border-top: 1px solid var(--sl-color-gray-5);
+      color: var(--sl-color-gray-3);
+      font-size: var(--sl-text-sm);
+    }
+
+    .project-footer__about {
+      display: grid;
+      max-width: 46rem;
+      gap: 0.4rem;
+    }
+
+    .project-footer__about p {
+      margin: 0;
+    }
+
+    .project-footer__name {
+      width: fit-content;
+      color: var(--sl-color-white);
+      font-family: var(--sl-font-mono);
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .project-footer a:not(.project-footer__name) {
+      color: var(--sl-color-text-accent);
+    }
+
+    .project-footer nav {
+      display: flex;
+      align-items: start;
+      flex-wrap: wrap;
+      gap: 0.5rem 1.25rem;
+    }
+
+    @media (min-width: 50rem) {
+      .project-footer {
+        grid-template-columns: minmax(0, 1fr) auto;
+      }
+    }
+  }
+</style>

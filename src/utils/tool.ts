@@ -79,14 +79,29 @@ export function registerTool(
           {
             durationMs: Math.round(performance.now() - startedAt),
             errorType: appError.name,
-            details: appError.details,
+            ...safeErrorLogDetails(appError.details),
           },
-          appError.message,
+          "tool invocation failed",
         );
         throw toMcpError(appError);
       }
     },
   );
+}
+
+function safeErrorLogDetails(
+  details: Record<string, string | number | boolean | undefined> | undefined,
+): { resourceType?: string; statusCode?: number } {
+  if (!details) return {};
+
+  return {
+    ...(typeof details.resourceType === "string"
+      ? { resourceType: details.resourceType }
+      : {}),
+    ...(typeof details.status === "number"
+      ? { statusCode: details.status }
+      : {}),
+  };
 }
 
 function zodObjectShape(schema: z.ZodType): z.ZodRawShape {

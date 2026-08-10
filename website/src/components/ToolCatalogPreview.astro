@@ -1,0 +1,166 @@
+---
+// biome-ignore lint/correctness/noUnusedImports: Astro renders this component in the template below.
+import { Icon } from "@astrojs/starlight/components";
+// biome-ignore lint/correctness/noUnusedImports: Astro renders these values in the template below.
+import { CATEGORY_ENTRIES, TOOL_COUNT } from "../data/tool-catalog.js";
+---
+
+<figure
+  class="catalog-preview not-content"
+  data-catalog-preview
+  data-tool-count={TOOL_COUNT}
+  data-category-count={CATEGORY_ENTRIES.length}
+>
+  <div class="catalog-preview__bar" aria-hidden="true">
+    <span></span><span></span><span></span>
+    <strong>MCP request</strong>
+  </div>
+  <div class="catalog-preview__body">
+    <p>MCP method: <code>tools/list</code></p>
+    <p class="catalog-preview__success">
+      <Icon name="puzzle" size="1.1rem" />
+      <span>{TOOL_COUNT} tools loaded from the project catalog</span>
+    </p>
+    <dl>
+      {
+        CATEGORY_ENTRIES.map(({ category, label, tools }) => (
+          <div data-catalog-preview-row data-category={category}>
+            <dt>{label}</dt>
+            <dd>
+              <strong>{tools.length}</strong>{" "}
+              {tools
+                .slice(0, 4)
+                .map((tool) => tool.name)
+                .join(", ")}
+              {tools.length > 4 ? ", …" : ""}
+            </dd>
+          </div>
+        ))
+      }
+    </dl>
+  </div>
+  <figcaption>
+    Generated from the same registered tools and schemas as the server. It contains no credentials
+    or Trello account data.
+  </figcaption>
+</figure>
+
+<style>
+  .catalog-preview {
+    --catalog-preview-bg: #0c1624;
+    --catalog-preview-surface: #16243a;
+    --catalog-preview-border: #334a68;
+    --catalog-preview-text: #eef6ff;
+    --catalog-preview-muted: #b9c9df;
+    --catalog-preview-accent: #80b5ff;
+    --catalog-preview-success: #79e2c8;
+    margin-block: 1.5rem;
+    overflow: hidden;
+    border: 1px solid var(--catalog-preview-border);
+    border-radius: 0.5rem;
+    color: var(--catalog-preview-text);
+    background: var(--catalog-preview-bg);
+    color-scheme: dark;
+  }
+
+  .catalog-preview__bar {
+    display: flex;
+    min-height: 42px;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.65rem 0.8rem;
+    border-bottom: 1px solid var(--catalog-preview-border);
+    background: var(--catalog-preview-surface);
+  }
+
+  .catalog-preview__bar > span {
+    width: 0.55rem;
+    height: 0.55rem;
+    border: 1px solid #8293aa;
+    border-radius: 50%;
+  }
+
+  .catalog-preview__bar strong {
+    margin-inline-start: 0.35rem;
+    color: var(--catalog-preview-muted);
+    font-family: var(--sl-font-mono);
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .catalog-preview__body {
+    padding: clamp(0.9rem, 2vw, 1.25rem);
+    font-family: var(--sl-font-mono);
+    font-size: clamp(0.72rem, 1.8vw, 0.88rem);
+  }
+
+  .catalog-preview__body > p {
+    margin: 0 0 0.65rem;
+  }
+
+  .catalog-preview__body code {
+    padding: 0.08rem 0.3rem;
+    border: 1px solid var(--catalog-preview-border);
+    border-radius: 0.25rem;
+    color: #cce0ff;
+    background: #1c304b;
+    font: inherit;
+  }
+
+  .catalog-preview__success {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: var(--catalog-preview-success);
+  }
+
+  .catalog-preview dl {
+    margin: 1rem 0 0;
+  }
+
+  .catalog-preview dl > div {
+    display: grid;
+    grid-template-columns: minmax(8rem, 0.45fr) minmax(0, 1fr);
+    gap: 1rem;
+    padding-block: 0.65rem;
+    border-top: 1px solid #263b57;
+  }
+
+  .catalog-preview dt {
+    color: var(--catalog-preview-accent);
+    font-weight: 700;
+  }
+
+  .catalog-preview dd {
+    min-width: 0;
+    margin: 0;
+    overflow-wrap: anywhere;
+    color: var(--catalog-preview-muted);
+  }
+
+  .catalog-preview dd strong {
+    display: inline-grid;
+    min-width: 1.75rem;
+    min-height: 1.75rem;
+    place-items: center;
+    margin-inline-end: 0.4rem;
+    border: 1px solid #58789e;
+    border-radius: 0.25rem;
+    color: #e1efff;
+  }
+
+  .catalog-preview figcaption {
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--catalog-preview-border);
+    color: var(--catalog-preview-muted);
+    background: var(--catalog-preview-surface);
+    font-size: 0.78rem;
+  }
+
+  @media (max-width: 42rem) {
+    .catalog-preview dl > div {
+      grid-template-columns: 1fr;
+      gap: 0.25rem;
+    }
+  }
+</style>

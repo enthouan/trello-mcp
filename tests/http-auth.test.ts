@@ -1,7 +1,8 @@
+import type { IncomingMessage, ServerResponse } from "node:http";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
-import { afterEach, describe, expect, it } from "vitest";
-import { handleHealth, writeJson } from "../src/health.js";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { handleHealth, rejectNonMcpPath, writeJson } from "../src/health.js";
 import {
   authorizeHttpMcpRequest,
   extractBearerToken,
@@ -32,6 +33,9 @@ async function startAuthServer(config: TestAuthConfig): Promise<{
     if (
       handleHealth(req, res, { ready: true, config: { TRANSPORT: "http" } })
     ) {
+      return;
+    }
+    if (rejectNonMcpPath(req, res)) {
       return;
     }
     if (!authorizeHttpMcpRequest(config, req, res)) {
@@ -133,6 +137,50 @@ describe("HTTP MCP bearer auth", () => {
       transport: "http",
     });
   });
+
+  it("rejects non-MCP paths before authentication or body parsing", async () => {
+    const server = await startAuthServer({ MCP_AUTH_TOKEN: "shared-secret" });
+
+    const response = await fetch(`${server.url}/anything`, {
+      method: "POST",
+      body: JSON.stringify({ method: "initialize" }),
+    });
+
+    expect(response.status).toBe(404);
+    await expect(response.json()).resolves.toEqual({ error: "not found" });
+    expect(server.bodyReadCount()).toBe(0);
+  });
+
+  it("routes MCP requests with query parameters to the MCP handler", async () => {
+    const server = await startAuthServer({});
+
+    const response = await fetch(`${server.url}/mcp?client=test`, {
+      method: "POST",
+      body: "{}",
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ ok: true });
+    expect(server.bodyReadCount()).toBeGreaterThan(0);
+  });
+
+  it.each(["//other-host/mcp", "http://other-host/mcp", "http://["])(
+    "rejects non-origin-form request target %s without parsing it",
+    (url) => {
+      const end = vi.fn();
+      const writeHead = vi.fn();
+      const response = {
+        end,
+        writeHead,
+      } as unknown as ServerResponse;
+
+      expect(rejectNonMcpPath({ url } as IncomingMessage, response)).toBe(true);
+      expect(writeHead).toHaveBeenCalledWith(404, {
+        "content-type": "application/json",
+      });
+      expect(end).toHaveBeenCalledWith('{"error":"not found"}');
+    },
+  );
 });
 
 describe("bearer token helpers", () => {

@@ -1,0 +1,46 @@
+---
+title: Streamable HTTP
+description: Connect an HTTP MCP client to trello-mcp on loopback and understand the wider-network boundary.
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+import InstallMethod from "../../../components/InstallMethod.astro";
+import VerifySetup from "../../../components/VerifySetup.astro";
+
+Streamable HTTP exposes the MCP endpoint at `/mcp`, plus process checks at `GET /healthz` and `GET /readyz`. For a same-machine source build, the local Compose file is the documented path because Docker publishes the host port to loopback by default.
+
+<InstallMethod method="http" />
+
+## Connect a client
+
+<Steps>
+
+1. **Start with a loopback publication.** Keep Compose's default `TRELLO_MCP_HOST_BIND_IP=127.0.0.1` for same-machine access.
+
+2. **Verify the process.** Request `http://127.0.0.1:3000/healthz` and `http://127.0.0.1:3000/readyz`.
+
+3. **Register the MCP endpoint.** Point a Streamable HTTP client at `http://127.0.0.1:3000/mcp`.
+
+4. **Add authorization when configured.** Send `Authorization: Bearer <token>` on every MCP request whenever the server sets `MCP_AUTH_TOKEN`.
+
+</Steps>
+
+<Aside type="danger" title="Direct Node.js HTTP is not loopback-constrained">
+  The current Node.js server starts with a port but no configurable host, so a direct `TRANSPORT=http` process is not guaranteed to listen only on loopback. Do not copy a `HOST=127.0.0.1` setting from another project; trello-mcp does not implement that option. Use the loopback-published Compose path for local-only access. For deliberate LAN or public access, require `MCP_AUTH_TOKEN`, restrict the network or firewall, and terminate TLS at a reverse proxy.
+</Aside>
+
+## What each endpoint proves
+
+| Endpoint | Purpose | Contacts Trello |
+| --- | --- | --- |
+| `/healthz` | Confirms that the HTTP process is running. | No |
+| `/readyz` | Confirms that the server is still accepting requests. | No |
+| `/mcp` | Initializes MCP sessions, discovers tools, and runs approved tools. | Only when a selected tool calls Trello |
+
+`MCP_AUTH_TOKEN` is a shared-secret guardrail for `/mcp`; it does not replace HTTPS, prevent every network client from reaching health checks, or change the Trello credentials stored on the server.
+
+## Verify through MCP
+
+Health and readiness do not exercise MCP discovery or Trello. After registering `/mcp` in a client, verify the complete read-only path.
+
+<VerifySetup />

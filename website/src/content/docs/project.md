@@ -12,9 +12,12 @@ description: Repository, policy, support, release, contribution, and roadmap res
 - [Changelog](https://github.com/enthouan/trello-mcp/blob/main/CHANGELOG.md) — version-by-version project changes.
 - [Issues](https://github.com/enthouan/trello-mcp/issues) — bugs, focused feature requests, and documentation fixes.
 - [Roadmap](https://trello.com/b/GnKmvuHz/trello-mcp) — the public Trello board used to track project direction.
+- [`llms.txt`](/llms.txt) — a generated, machine-readable index of the public documentation.
 
 ## Policies and help
 
+- [Security and data flow](/security/) — runtime boundaries, credentials, transports, logs, attachment uploads, and safer tool use.
+- [FAQ](/faq/) — hosting, official status, transport choice, Trello access, destructive tools, privacy, and support.
 - [Security](https://github.com/enthouan/trello-mcp/blob/main/SECURITY.md) — supported versions, private reporting guidance, credential handling, and threat-model notes.
 - [Privacy](https://github.com/enthouan/trello-mcp/blob/main/PRIVACY.md) — data processed by a self-hosted deployment and operator responsibilities.
 - [Support](https://github.com/enthouan/trello-mcp/blob/main/SUPPORT.md) — best-effort support channels, boundaries, and useful report context.

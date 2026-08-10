@@ -1,0 +1,38 @@
+---
+// biome-ignore lint/correctness/noUnusedImports: referenced from the Astro template
+import { TabItem, Tabs } from "@astrojs/starlight/components";
+// biome-ignore lint/correctness/noUnusedImports: referenced from the Astro template
+import InstallMethod from "./InstallMethod.astro";
+
+const base = import.meta.env.BASE_URL.endsWith("/")
+  ? import.meta.env.BASE_URL
+  : `${import.meta.env.BASE_URL}/`;
+// biome-ignore lint/correctness/noUnusedVariables: referenced from the Astro template
+const guideRoot = `${base}get-started/`;
+---
+
+<div class="install-methods" data-install-methods>
+  <Tabs syncKey="install-method">
+    <TabItem label="Docker">
+      <InstallMethod method="docker" showGuideLink />
+    </TabItem>
+    <TabItem label="HTTP">
+      <InstallMethod method="http" showGuideLink />
+    </TabItem>
+    <TabItem label="stdio">
+      <InstallMethod method="stdio" showGuideLink />
+    </TabItem>
+  </Tabs>
+  <noscript>
+    <style>
+      [data-install-methods] starlight-tabs {
+        display: none !important;
+      }
+    </style>
+    <nav aria-label="Installation guides without JavaScript">
+      JavaScript is disabled. Open the <a href={`${guideRoot}docker/`}>Docker</a>,{" "}
+      <a href={`${guideRoot}http/`}>HTTP</a>, or <a href={`${guideRoot}stdio/`}>stdio</a> guide to
+      read every setup method.
+    </nav>
+  </noscript>
+</div>

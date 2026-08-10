@@ -79,7 +79,7 @@ Use `corepack pnpm test:coverage` when changing core behavior, error handling, o
 ## Formatting And Linting
 
 - Biome is the formatter/linter.
-- The configured Biome version is `@biomejs/biome@2.4.16`; keep it aligned with `biome.json`.
+- The configured Biome version is `@biomejs/biome@2.5.7`; keep it aligned with `biome.json`.
 - Run `corepack pnpm lint` to check formatting and lint rules.
 - To format, run:
 
@@ -238,7 +238,7 @@ The GitHub Actions workflow named `Build and Test` runs:
 - test coverage
 - Astro content/type checks and the production website build
 - Chromium and WebKit website, accessibility, and responsive checks
-- Lighthouse budgets for the homepage and Get Started page
+- Lighthouse budgets for every public documentation route
 
 The `Release` workflow publishes Docker images to GHCR from `main` and `v*` tags.
 

@@ -1,0 +1,266 @@
+---
+title: "How it works"
+description: "Follow a tool call across the MCP client, trello-mcp, and the Trello REST API."
+editUrl: "https://github.com/enthouan/trello-mcp/edit/main/docs/how-it-works.md"
+---
+
+import {
+  Steps,
+} from "@astrojs/starlight/components";
+
+`trello-mcp` is an adapter between an MCP client and Trello's REST API. The MCP
+client chooses a tool and supplies structured inputs; the server validates that
+call, performs the corresponding Trello request, parses the response with the
+tool's configured schema, and returns JSON to the client.
+
+```text
+MCP client
+    |
+    | stdio or sessionful Streamable HTTP
+    v
+trello-mcp transport -> registered tool -> validated input
+                                           |
+                                           v
+                                  shared Trello client
+                                  rate limit + 429 retry
+                                           |
+                                           | API key + token
+                                           v
+                                    Trello REST API
+                                           |
+                                           v
+                                    parsed JSON result
+                                           |
+                                           v
+                                      MCP client
+```
+
+The server does not maintain a second copy of boards, cards, or activity. Trello
+remains the source of truth for persistent data and access control.
+
+:::caution[The MCP client is part of the trust boundary]
+Tool inputs and results can
+contain private Trello data, and any client-side approval dialog belongs to
+that client. Review its privacy, retention, and approval behavior even when
+`trello-mcp` runs locally.
+:::
+
+## Request lifecycle
+
+A usable tool call depends on two setup stages, followed by six stages for each
+invocation:
+
+<Steps>
+
+1. **Load runtime configuration at startup.** Zod validates the required
+   `TRELLO_API_KEY` and `TRELLO_TOKEN`, transport choice, port, logging level,
+   attachment root, and rate-limit and retry settings. Invalid configuration
+   stops startup instead of producing a partially configured server.
+2. **Establish an MCP connection.** Before invoking a tool, the client
+   initializes either a child process over `stdio` or an HTTP session at `/mcp`,
+   then requests the tool catalog and chooses a named tool.
+3. **Validate tool input.** Each registered tool has a Zod input schema. Empty
+   IDs, missing required values, unsupported enums, malformed URLs, and invalid
+   field-specific combinations fail before a Trello request is sent. A
+   non-empty ID can still be unknown to Trello and fail at the API boundary.
+4. **Build one Trello operation.** The handler delegates network access to the
+   shared `TrelloClient`. That client is the only project component that calls
+   Trello with `fetch`; it adds the configured API key and token at this
+   boundary.
+5. **Apply rate control.** A token bucket controls request pacing. If Trello
+   returns HTTP `429`, the client retries with exponential backoff, bounded
+   jitter, a maximum wait, and a configured total attempt count.
+6. **Parse the response.** Successful JSON from Trello is parsed with the Zod
+   schema configured for that tool. Most resource-returning tools validate an
+   expected structure; field-generic and mutation-acknowledgement endpoints use
+   intentionally permissive schemas and can return any decoded JSON value.
+7. **Return an MCP result.** Tool results remain JSON-serializable and are
+   returned as formatted JSON in MCP text content. Known validation,
+   authentication, permission, not-found, rate-limit, and Trello API failures
+   are mapped to MCP errors.
+8. **Record safe diagnostics.** Each invocation receives a request ID and tool
+   logger with duration and error-type metadata. Tool failures use a fixed log
+   message and retain only safe status and resource-type details. Logger
+   redaction also removes credentials, authorization headers, URLs, paths,
+   query strings, and common key/token fields from structured logs.
+
+</Steps>
+
+There is no cross-tool transaction. If a workflow needs several mutations, each
+successful call is already persisted in Trello before the next call begins.
+Clients should use the discover, inspect, propose, approve, and verify sequence
+described in [Trello Workflows](/guides/workflows/).
+
+## Transport boundaries
+
+### stdio
+
+With `TRANSPORT=stdio`, the MCP client launches `trello-mcp` as a local child
+process and communicates through standard input and output. The server opens no
+HTTP listener. Structured logs go to standard error so they do not corrupt the
+MCP protocol stream.
+
+The child process receives Trello credentials from the environment configured
+by the MCP client. Its lifetime normally follows the client connection. This is
+the smallest boundary for one client on one machine, but the client process and
+its configuration are part of the secret-handling boundary.
+
+### Direct Streamable HTTP
+
+With `TRANSPORT=http`, the Node process serves sessionful Streamable HTTP at
+`/mcp` on `PORT`, which defaults to `3000`. The process does not expose a
+separate bind-address setting: when running it directly, use host firewall,
+container publishing, or a reverse proxy to control which interfaces can reach
+the port.
+
+`/mcp` is the only MCP route. Requests to any other non-health path return
+`404` instead of reaching the MCP transport.
+
+`/healthz` reports that the HTTP process is running. `/readyz` reports whether
+it is accepting work and returns the selected transport. These health endpoints
+are handled before optional MCP bearer authentication and expose only their
+small status payloads.
+
+### Docker Compose
+
+The published-image and local-build Compose files run the HTTP transport inside
+a container. Their host port defaults to `127.0.0.1:3000`, so the published port
+is loopback-only unless `TRELLO_MCP_HOST_BIND_IP` is deliberately changed.
+Compose passes the required credentials and supported runtime settings into the
+container; local file uploads additionally require an upload directory to be
+mounted and `TRELLO_ATTACHMENT_UPLOAD_ROOT` to point to its absolute container
+path.
+
+Changing the Compose bind address makes the service reachable more broadly. For
+remote access, place `/mcp` behind HTTPS and an appropriate reverse-proxy,
+network, or identity boundary. An optional shared bearer token alone is not a
+replacement for encrypted transport or deliberate exposure.
+
+See [Set up your MCP client](/clients/) for client-specific configurations and
+the README's [environment reference](/reference/configuration/) for all runtime
+settings.
+
+## HTTP sessions
+
+The HTTP transport is intentionally sessionful:
+
+<Steps>
+
+1. An MCP `initialize` request without a session ID creates a new transport and
+   assigns a random MCP session ID.
+2. The server stores that transport and MCP server instance in an in-memory map.
+3. Subsequent requests must send the returned `Mcp-Session-Id` header.
+4. An unknown session ID returns `404`; a non-initialize request without one
+   returns `400`.
+5. Closing the transport removes the session. Restarting the process clears all
+   sessions, so clients must initialize again.
+
+</Steps>
+
+The map belongs to one server process. A multi-replica deployment therefore
+needs routing that keeps a session on the process that created it, or another
+design that preserves that process-local state. `trello-mcp` does not provide a
+shared session store.
+
+HTTP sessions have separate MCP server and transport instances, but they share
+the process's `TrelloClient`. Requests therefore pass through the same local
+pacing and 429-retry implementation, rather than receiving a client instance
+per session.
+
+## Authentication boundaries
+
+The two kinds of credentials protect different connections:
+
+| Credential | Required | Boundary | What it does |
+| --- | --- | --- | --- |
+| `TRELLO_API_KEY` | Yes | `trello-mcp` -> Trello | Identifies the Trello Power-Up/application for outbound REST requests. |
+| `TRELLO_TOKEN` | Yes | `trello-mcp` -> Trello | Authorizes outbound requests as the Trello member who granted the token. Trello uses that member's visibility and permissions. |
+| `MCP_AUTH_TOKEN` | No | MCP client -> HTTP `/mcp` | Requires `Authorization: Bearer <token>` on HTTP MCP requests when set. It is not sent to Trello and has no effect on `stdio`. |
+
+For `stdio`, the client commonly forwards the two Trello values into its child
+process environment. For HTTP, the long-running server owns the Trello values;
+remote clients should receive only the MCP URL and, when enabled, the separate
+HTTP bearer value.
+
+`MCP_AUTH_TOKEN` is one shared-secret check. It does not create per-user
+identities, limit individual tools, or reduce the permissions of the configured
+Trello token. Every accepted client call uses the same server-side Trello
+credentials. Use `auth_whoami` and `auth_token_info` to inspect that identity,
+token expiry, and token permissions without making a write.
+
+Follow [Trello API Key](/trello-api-key/) for credential creation and rotation.
+
+## Validation and error handling
+
+Validation happens on both sides of each tool handler:
+
+- Configuration schemas reject missing credentials, unsupported transports,
+  invalid ports, non-positive rate settings, and non-absolute upload roots at
+  startup.
+- Tool schemas describe and validate the structured inputs advertised to MCP
+  clients. Some tools add relationship checks, such as requiring the value that
+  corresponds to a selected custom-field type.
+- Most Trello response schemas validate a resource shape before a handler
+  returns data. A small set of field-generic and mutation-acknowledgement tools
+  deliberately accepts any decoded JSON response.
+
+The server translates expected failures into stable categories. Authentication
+errors recommend checking the configured credentials; permission and not-found
+errors distinguish resources that the token cannot access; persistent `429`
+responses become a rate-limit error. Network failures, non-JSON responses, and
+non-success Trello responses do not become successful tool results. Structural
+response checking depends on the schema configured by each tool.
+
+Validation protects the protocol boundary, but it cannot decide whether a
+valid mutation matches the user's intent. A syntactically correct card ID and
+title can still target the wrong board. That is why workflows resolve names to
+current IDs and show the proposed target before writing.
+
+## Rate limiting and retries
+
+Each `TrelloClient` owns one token bucket, configured by default with a capacity
+of 100 and a 10-second refill interval. A request that finds the bucket empty
+waits for the calculated refill time. This is local request pacing, not a strict
+distributed quota or a guarantee that every concurrent workload stays below
+Trello's server-side limits.
+
+Trello `429` responses receive a separate retry policy. Defaults are three total
+attempts, a 100 ms exponential-backoff base, and a 2,000 ms cap for each wait;
+bounded jitter reduces synchronized retries. These values can be changed with
+the `TRELLO_RATE_LIMIT_*` and `TRELLO_RETRY_*` environment settings.
+
+Only HTTP `429` responses use this retry loop. The server does not automatically
+repeat every network, authentication, permission, validation, `5xx`, or write
+failure. After the configured attempts are exhausted, the client receives an
+error and should wait or narrow the workflow rather than assuming the mutation
+succeeded.
+
+## Results, logging, and safety boundaries
+
+- Tool results are plain JSON rendered into MCP text content. The MCP client is
+  responsible for presenting or interpreting that result for the user.
+- Trello data is not cached as a local board mirror. Read again when current
+  state matters, especially after a write or when other members and automations
+  may be active.
+- The server performs a mutation as soon as it receives a valid write tool call.
+  It has no universal preview, approval dialog, `confirm` property, transaction,
+  or rollback layer. Any client-side permission prompt is a feature of that
+  client, not a server guarantee.
+- Archive operations are the recoverable cleanup path for cards and lists.
+  Permanent deletion tools exist for cards, labels, checklists, checklist items,
+  comments, and attachments and should be invoked only for an explicit target
+  and explicit user intent.
+- Local attachment uploads are disabled unless an absolute
+  `TRELLO_ATTACHMENT_UPLOAD_ROOT` is configured. The server resolves the real
+  path, rejects directories and paths outside that root, and reads only a file
+  already available on the server or inside the container.
+- The logger redacts credential-bearing and request-location fields. Do not add
+  secrets to prompts, tool inputs, filenames, card text, or other user content
+  and assume log redaction will make that safe.
+- Trello enforces the configured member's resource visibility and role. The MCP
+  bearer token only controls entrance to `/mcp`; it does not grant or constrain
+  Trello permissions.
+
+For the implemented surface and intentionally unsupported Trello domains, see
+[API Coverage](/tools/api-coverage/). For operational safeguards, see the README's
+[Security Notes](/security/).

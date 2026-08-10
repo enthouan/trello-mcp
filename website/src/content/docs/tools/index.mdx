@@ -1,0 +1,19 @@
+---
+title: "Tool catalog"
+description: "Search 77 Trello MCP tools by category, behavior, name, purpose, and input."
+editUrl: false
+tableOfContents: false
+---
+
+import ToolCatalog from "../../../components/ToolCatalog.astro";
+import { CATEGORY_COUNT, TOOL_COUNT } from "../../../data/tool-catalog.js";
+
+The server exposes **{TOOL_COUNT} tools across {CATEGORY_COUNT} focused areas**. Names, descriptions, and input definitions come directly from the same `allTools` entries and Zod schemas used by the server. Category, behavior, scope, and result labels are curated for this reference and checked to cover every registered tool exactly once.
+
+“Read only” means the tool does not intentionally change Trello. “Writes data” covers creates, updates, assignments, moves, and reversible state changes. “Permanent delete” identifies calls that remove a Trello resource rather than archive or detach it. Tool handlers return JSON-serializable data to the MCP client.
+
+Search by tool name, purpose, result, or input, or narrow the catalog by category and behavior. Every tool name is a permanent link. Example prompts use placeholder names and contain no credentials or account data.
+
+<ToolCatalog />
+
+For supported and deferred Trello REST endpoint families, see [API coverage](/tools/api-coverage/).

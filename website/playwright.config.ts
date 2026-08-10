@@ -55,7 +55,7 @@ export default defineConfig({
         webServer: {
           command: `corepack pnpm site:build && corepack pnpm site:preview --host ${host} --port ${port}`,
           cwd: repositoryRoot,
-          reuseExistingServer: !process.env.CI,
+          reuseExistingServer: false,
           timeout: 120_000,
           url: localBaseUrl,
         },

@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img">
   <title>trello-mcp split-card mark</title>
-  <rect x="4" y="4" width="56" height="56" rx="14" fill="#0052cc" />
-  <rect x="14" y="14" width="16" height="25" rx="4" fill="#fff" />
-  <rect x="34" y="25" width="16" height="25" rx="4" fill="#fff" />
+  <rect width="64" height="64" rx="14" fill="#0052cc" />
+  <rect x="11.43" y="11.43" width="18.29" height="28.57" rx="4.57" fill="#fff" />
+  <rect x="34.29" y="24" width="18.29" height="28.57" rx="4.57" fill="#fff" />
 </svg>

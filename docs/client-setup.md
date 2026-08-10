@@ -1,4 +1,4 @@
-# MCP Client Setup
+# Set up your MCP client
 
 This is the canonical setup guide for connecting MCP clients to `trello-mcp`.
 Choose one transport, keep credentials out of source control, and then follow the
@@ -25,6 +25,10 @@ replacement for transport security.
 
 ## Prepare the server and secrets
 
+Create `TRELLO_API_KEY` and `TRELLO_TOKEN` first by following
+[Trello API Key](trello-api-key.md). Keep both values out of
+source control and public troubleshooting material.
+
 For `stdio`, build the local server before configuring a client:
 
 ```bash
@@ -43,8 +47,8 @@ export TRELLO_TOKEN=replace-with-your-token
 
 For Streamable HTTP, follow the README's
 [published Docker setup](../README.md#option-a-run-the-published-docker-image) or
-[local build setup](../README.md#option-b-build-locally-from-source). The default
-local endpoint is:
+[local Docker build](../README.md#option-b-build-locally-from-source). The
+default local endpoint is:
 
 ```text
 http://127.0.0.1:3000/mcp
@@ -195,11 +199,94 @@ bearer_token_env_var = "TRELLO_MCP_BEARER_TOKEN"
 ```
 
 Omit `bearer_token_env_var` when the HTTP server does not set
-`MCP_AUTH_TOKEN`. Run `codex mcp list` from the CLI or `/mcp` in an interactive
-session to inspect the connection. Start a new Codex CLI session after changing
-the configuration if the active session does not reload it.
+`MCP_AUTH_TOKEN`.
+
+Run `codex mcp list` from the CLI or `/mcp` in an interactive session to inspect
+the connection. Start a new Codex CLI session after changing the configuration
+if the active session does not reload it.
 
 Reference: [Codex MCP documentation](https://learn.chatgpt.com/docs/extend/mcp).
+
+## VS Code
+
+VS Code stores workspace-scoped servers in `.vscode/mcp.json`. For a private
+user-level setup, run **MCP: Open User Configuration** from the Command Palette.
+The configuration uses a top-level `servers` object. The examples below use
+password inputs so secrets are requested and stored without appearing directly
+in the JSON file.
+
+### VS Code over stdio
+
+```json
+{
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "trello-api-key",
+      "description": "Trello API key",
+      "password": true
+    },
+    {
+      "type": "promptString",
+      "id": "trello-token",
+      "description": "Trello token",
+      "password": true
+    }
+  ],
+  "servers": {
+    "trello": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["/absolute/path/to/trello-mcp/dist/index.js"],
+      "env": {
+        "TRANSPORT": "stdio",
+        "TRELLO_API_KEY": "${input:trello-api-key}",
+        "TRELLO_TOKEN": "${input:trello-token}"
+      }
+    }
+  }
+}
+```
+
+### VS Code over Streamable HTTP
+
+```json
+{
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "trello-mcp-bearer-token",
+      "description": "trello-mcp bearer token",
+      "password": true
+    }
+  ],
+  "servers": {
+    "trello": {
+      "type": "http",
+      "url": "http://127.0.0.1:3000/mcp",
+      "headers": {
+        "Authorization": "Bearer ${input:trello-mcp-bearer-token}"
+      }
+    }
+  }
+}
+```
+
+Remove both `headers` and the unused bearer-token input when the server does not
+set `MCP_AUTH_TOKEN`. These password-input examples target desktop VS Code.
+Current VS Code Agent Host behavior does not forward servers that require
+interactive inputs; use environment references or a private `envFile` when
+that separate mode must start the server without a prompt.
+
+Run **MCP: List Servers**, select `trello`, and choose **Start**, **Restart**, or
+**Show Output**. Review the configuration before accepting VS Code's trust
+prompt, then use **Configure Tools** in Chat to confirm that Trello tools are
+available.
+
+References:
+[VS Code MCP server guide](https://code.visualstudio.com/docs/agent-customization/mcp-servers)
+and
+[MCP configuration reference](https://code.visualstudio.com/docs/agents/reference/mcp-configuration).
 
 ## OpenCode V2
 
@@ -256,11 +343,13 @@ the corresponding `.jsonc` filenames.
 }
 ```
 
-Remove `headers` when HTTP bearer authentication is disabled. OpenCode's V2
-documentation does not promise hot reload after direct config edits, so relaunch
-it and run `opencode2 mcp list` to inspect connection status. Its default Code
-Mode groups MCP tools under the normalized server name; set `codemode: false`
-only if you deliberately want all MCP tools exposed individually to the model.
+Remove `headers` when HTTP bearer authentication is disabled.
+
+OpenCode's V2 documentation does not promise hot reload after direct config
+edits, so relaunch it and run `opencode2 mcp list` to inspect connection status.
+Its default Code Mode groups MCP tools under the normalized server name; set
+`codemode: false` only if you deliberately want all MCP tools exposed
+individually to the model.
 
 Reference: [OpenCode V2 MCP server documentation](https://opencode.ai/v2/docs/mcp-servers).
 

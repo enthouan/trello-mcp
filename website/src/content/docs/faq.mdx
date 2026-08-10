@@ -1,0 +1,108 @@
+---
+title: FAQ
+description: Answers about trello-mcp hosting, credentials, transports, Trello access, destructive tools, privacy, support, and the official Trello MCP server.
+---
+
+import { CardGrid, LinkCard } from "@astrojs/starlight/components";
+
+## Is trello-mcp an official Trello or Atlassian project?
+
+No. `trello-mcp` is an independent, community-maintained open source project. It is not affiliated with, endorsed by, or sponsored by Trello or Atlassian.
+
+Trello also operates an [official hosted MCP server](https://trello.com/mcp) at `https://mcp.trello.com/v1`.
+
+## Which Trello MCP server should I choose?
+
+Choose this project when you specifically want to operate an inspectable, self-hosted server, use a local `stdio` process, or control the HTTP deployment and its logs. Choose Trello's official service when you want the Trello-hosted endpoint and its official setup and support path.
+
+| Dimension | `trello-mcp` community project | Official Trello MCP |
+| --- | --- | --- |
+| Status | Independent, community-maintained open source project. | Official service operated by Trello. |
+| Hosting | You run the process locally, in Docker, or on infrastructure you manage. | Trello-hosted endpoint at `https://mcp.trello.com/v1`. |
+| Connection | Local `stdio` or your own Streamable HTTP `/mcp` endpoint. | Follow Trello's current connection instructions for the official endpoint. |
+| Authentication | Operator-supplied Trello API key and token; optional separate bearer token for this project's HTTP endpoint. | Follow Trello's current authentication instructions. |
+| Support | Best-effort community support through this repository. | Use Trello's official documentation and support channels. |
+
+The two services have different implementations and may expose different behavior. Verify the current documentation for the service you choose rather than assuming their tool surfaces or security models are interchangeable.
+
+## Is there a hosted trello-mcp service?
+
+No. The maintainers do not operate a hosted service for this repository. You run it yourself and point a compatible MCP client at the local process or your own HTTP deployment.
+
+## Which transport should I use?
+
+- Use **Docker with Streamable HTTP** when the server should run as a container or long-running service.
+- Use **local stdio** when the MCP client should launch the server as a child process on the same machine.
+
+The [Get Started guide](/get-started/) covers both paths. Client support varies, so check the dated [compatibility evidence](/clients/compatibility/) before relying on a specific configuration.
+
+## What can the configured Trello credentials access?
+
+One running server instance uses one `TRELLO_API_KEY` and `TRELLO_TOKEN` pair. Trello's permission model and the authenticated member's visibility determine which boards, cards, members, and workspaces the server can read or change through its tools.
+
+Use `auth_whoami` to confirm the authenticated member and `auth_token_info` to inspect the token owner, expiration, and permissions. These tools do not reveal the credential values.
+
+## Can it work across multiple Trello workspaces?
+
+Yes, when the configured member and token can see those workspaces. The server can list visible workspaces and address workspace, board, and card resources by their identifiers; it does not impose a one-workspace setting.
+
+That also means a single credential pair can create a broad access boundary. Use separate deployments and credentials when different accounts or environments need isolation.
+
+## Where are credentials stored?
+
+You supply Trello credentials through the server environment or a local MCP client configuration. `trello-mcp` does not provide a hosted credential vault, database-backed credential store, or OAuth/token-lifecycle service. Your client configuration, `.env` file, container platform, secrets manager, shell environment, and backups determine where the values persist.
+
+For HTTP deployments, `MCP_AUTH_TOKEN` is a separate optional shared secret that protects `/mcp`; it is not sent to Trello. Read [Security and data flow](/security/) before exposing the server beyond the local machine.
+
+## Does it support OAuth?
+
+No. This project currently uses a Trello API key and token supplied by the operator. It does not implement OAuth redirects, token creation, refresh, or revocation. Follow the [Trello API credentials guide](/trello-api-key/) to obtain them through Trello's official flow and use Trello's controls to revoke them.
+
+## Can trello-mcp change or permanently delete data?
+
+Yes. The server exposes write tools for common card, list, label, checklist, comment, member, attachment, and custom-field workflows. It also includes deletion tools for cards, labels, attachments, checklists, checklist items, and comments.
+
+There is no universal server-side read-only mode or confirmation gate. Start with read-only diagnostics and discovery, use client-side tool approvals where available, prefer card or list archiving when it meets the need, and confirm permanent deletions explicitly. The generated [tool catalog](/tools/) describes each operation.
+
+## How should I handle prompt injection?
+
+Treat Trello content as untrusted input to the AI client. A card description, comment, or attachment name can contain text that attempts to redirect an agent. The server validates tool inputs and Trello response shapes, but it does not determine whether natural-language Trello content is safe or intended as an instruction.
+
+Keep human approval enabled for writes, verify target ids and names, scope searches and reads narrowly, and inspect the proposed operation before allowing a mutation.
+
+## Does the project collect telemetry or receive my Trello data?
+
+The maintainers do not collect deployment telemetry or receive runtime data from your self-hosted process. Runtime Trello requests go from your deployment to Trello.
+
+Your MCP client, hosting provider, reverse proxy, logging stack, backups, Trello, GHCR, and GitHub may each process information under their own configuration and policies. Do not post private Trello content, secrets, unredacted logs, or sensitive local paths in public project spaces.
+
+## Are local attachment uploads enabled by default?
+
+No. URL attachments do not require local filesystem access, while server-local uploads remain disabled until `TRELLO_ATTACHMENT_UPLOAD_ROOT` points to an absolute directory. When enabled, upload paths must resolve inside that directory.
+
+For remote or container deployments, the file must first exist on the server or inside the container. Review the [security guidance](/security/#local-attachment-uploads) before enabling it.
+
+## How can I verify a new setup safely?
+
+For HTTP, `/healthz` and `/readyz` verify the process but do not validate Trello credentials. From the MCP client, call the read-only `auth_whoami` tool first, then `auth_token_info` if you need token metadata.
+
+Do not use write tools as a connectivity test. The repository's live smoke and regression suites are maintainer workflows for a confirmed disposable board, not a normal first-run check.
+
+## What support is available?
+
+Support is best effort, with no service-level agreement or guaranteed response time. Use GitHub issues for reproducible repository bugs, focused feature requests, and documentation fixes. Use the private path in the security policy for vulnerabilities, and contact Trello or Atlassian for account access, billing, workspace administration, API availability, or Trello product behavior.
+
+Never include credentials, authorization headers, private Trello data, full credential-bearing URLs, raw environment dumps, or unredacted logs in a public report.
+
+<CardGrid>
+  <LinkCard
+    title="Get started"
+    description="Choose Docker with Streamable HTTP or a local stdio process."
+    href="/get-started/"
+  />
+  <LinkCard
+    title="Project and support"
+    description="Find repository, release, policy, contribution, and support resources."
+    href="/project/"
+  />
+</CardGrid>

@@ -1,12 +1,13 @@
 ---
 title: "API coverage"
 description: "Supported, partially supported, deferred, and out-of-scope Trello REST API groups."
+editUrl: "https://github.com/enthouan/trello-mcp/edit/main/docs/api-coverage.md"
 ---
 
 ## Source Snapshot
 
 - Official source: [Trello REST API reference](https://developer.atlassian.com/cloud/trello/rest/).
-- Checked on: 2026-06-22.
+- Checked on: 2026-08-09.
 - REST route prefix: `https://api.trello.com/1`. Atlassian's Trello REST reference is organized by API group rather than a named semver-style API version, so this matrix tracks the checked date and route prefix instead of a separate API version.
 
 This project exposes focused MCP tools for personal and self-hosted Trello workflows. It does not try to mirror every Trello REST endpoint one-for-one. The matrix below tracks the current public API group coverage, known gaps, and non-goals so contributors can see where broad endpoint families are intentionally outside the current tool surface.
@@ -51,7 +52,9 @@ For API groups marked partially supported, the detailed coverage section breaks 
 
 The tables below use the same status legend as the top-level matrix. They are intentionally grouped by useful endpoint families rather than listing every Trello REST route.
 
-### API Group: Actions
+<span id="api-group-actions" class="legacy-anchor" aria-hidden="true"></span>
+
+### Actions
 
 | Endpoint family | Status | MCP tools | Unsupported or deferred details | Notes |
 | --- | --- | --- | --- | --- |
@@ -59,7 +62,9 @@ The tables below use the same status legend as the top-level matrix. They are in
 | Card comments | ✅ Supported | `card_comment_add`, `card_comment_update`, `card_comment_delete` | Generic action mutation/deletion is not exposed. | Comment tools are intentionally card-scoped. |
 | Action reactions and related-resource reads | ⏳ Deferred | None. | Reactions and action-related board/card/list/member reads are not exposed. | Add only when a concrete review or collaboration workflow needs them. |
 
-### API Group: Boards
+<span id="api-group-boards" class="legacy-anchor" aria-hidden="true"></span>
+
+### Boards
 
 | Endpoint family | Status | MCP tools | Unsupported or deferred details | Notes |
 | --- | --- | --- | --- | --- |
@@ -71,7 +76,9 @@ The tables below use the same status legend as the top-level matrix. They are in
 | Board viewed-state mutation | ⏳ Deferred | None. | `POST /boards/{id}/markedAsViewed` is not exposed. | This is a notification/read-state helper and should wait for a concrete triage workflow. |
 | Board deletion | ⏳ Deferred | None. | Board delete helpers are not exposed. | Destructive board operations need explicit safety design before adding tools. |
 
-### API Group: Cards
+<span id="api-group-cards" class="legacy-anchor" aria-hidden="true"></span>
+
+### Cards
 
 | Endpoint family | Status | MCP tools | Unsupported or deferred details | Notes |
 | --- | --- | --- | --- | --- |
@@ -84,7 +91,9 @@ The tables below use the same status legend as the top-level matrix. They are in
 | Labels, members, and custom field items | 🟡 Partially supported | `card_label_add`, `card_label_remove`, `card_label_create_and_add`, `card_member_add`, `card_member_remove`, `card_custom_field_items`, `card_custom_field_set`, `card_custom_field_clear` | Full label/admin, member/admin, and custom field definition management are handled outside the card tool family or not exposed. | Card-scoped assignment and value workflows are covered. |
 | Votes, stickers, pluginData, and notification state | ⏳ Deferred | None. | Votes, stickers, custom sticker images, pluginData, and card notification marking are not exposed. | These lower-frequency social, Power-Up, and notification surfaces need concrete MCP use cases first. |
 
-### API Group: Checklists
+<span id="api-group-checklists" class="legacy-anchor" aria-hidden="true"></span>
+
+### Checklists
 
 | Endpoint family | Status | MCP tools | Unsupported or deferred details | Notes |
 | --- | --- | --- | --- | --- |
@@ -92,7 +101,9 @@ The tables below use the same status legend as the top-level matrix. They are in
 | Checklist item create/read/update/move/delete | ✅ Supported | `card_checklist_item_create`, `card_checklist_items`, `card_checklist_item_update`, `card_checklist_item_set_checked`, `card_checklist_item_move`, `card_checklist_item_delete` | Bulk item operations are not exposed. | Covers normal checklist item management. |
 | Checklist field reads and relationships | ⏳ Deferred | None. | Direct checklist field reads, field-specific update aliases beyond the focused rename/position tool, and checklist board/card relationship reads are not exposed. | Add only if card-scoped reads and item-level edits are insufficient for real workflows. |
 
-### API Group: CustomFields
+<span id="api-group-customfields" class="legacy-anchor" aria-hidden="true"></span>
+
+### CustomFields
 
 | Endpoint family | Status | MCP tools | Unsupported or deferred details | Notes |
 | --- | --- | --- | --- | --- |
@@ -100,7 +111,9 @@ The tables below use the same status legend as the top-level matrix. They are in
 | Card custom field values | ✅ Supported | `card_custom_field_items`, `card_custom_field_set`, `card_custom_field_clear` | Bulk custom field item mutation is not exposed. | Supports setting and clearing one card field value at a time with type-specific validation. |
 | Definition and option management | ⏳ Deferred | None. | Custom field definition creation/update/deletion and option creation/update/deletion are not exposed. | Needs narrower requirements because schema and option mutation can affect whole boards. |
 
-### API Group: Lists
+<span id="api-group-lists" class="legacy-anchor" aria-hidden="true"></span>
+
+### Lists
 
 | Endpoint family | Status | MCP tools | Unsupported or deferred details | Notes |
 | --- | --- | --- | --- | --- |
@@ -109,7 +122,9 @@ The tables below use the same status legend as the top-level matrix. They are in
 | List create/update/archive/move | ✅ Supported | `list_create`, `list_update`, `list_archive`, `list_move_to_board` | Subscription helpers are not exposed. | Normal list management is covered with focused tools. |
 | Native mass-card operations | ⏳ Deferred | None. | Archive-all-cards and move-all-cards are not exposed. | These broad mutations need explicit safety behavior. Follow-up: [#140](https://github.com/enthouan/trello-mcp/issues/140). |
 
-### API Group: Members
+<span id="api-group-members" class="legacy-anchor" aria-hidden="true"></span>
+
+### Members
 
 | Endpoint family | Status | MCP tools | Unsupported or deferred details | Notes |
 | --- | --- | --- | --- | --- |
@@ -119,14 +134,18 @@ The tables below use the same status legend as the top-level matrix. They are in
 | Card membership assignment | ✅ Supported | `card_members`, `card_member_add`, `card_member_remove` | Workspace or board member/admin mutation is not exposed. | Assignment is card-scoped rather than account-administrative. |
 | Account assets and settings | 🚫 Not planned | None. | Avatars, custom board backgrounds, board stars, custom emoji, custom stickers, saved searches, notification state, and token lifecycle endpoints are not exposed. | These are outside the current personal Trello workflow server scope. |
 
-### API Group: Organizations
+<span id="api-group-organizations" class="legacy-anchor" aria-hidden="true"></span>
+
+### Organizations
 
 | Endpoint family | Status | MCP tools | Unsupported or deferred details | Notes |
 | --- | --- | --- | --- | --- |
 | Workspace discovery and metadata | ✅ Supported | `list_workspaces`, `workspace_get` | Organization creation/update/deletion is not exposed. | User-facing tools call these workspaces while Trello's API calls them Organizations. |
 | Workspace boards, members, and activity | 🟡 Partially supported | `workspace_boards`, `workspace_members`, `workspace_actions`, `search` | Membership record reads, admin/member mutation, invitations, exports, preferences, tags, paid-account/admin endpoints, and plugin-related organization endpoints are not exposed. | Current coverage is for discovery, lookup, and audit, not workspace administration or permission-record inspection. |
 
-### API Group: Tokens
+<span id="api-group-tokens" class="legacy-anchor" aria-hidden="true"></span>
+
+### Tokens
 
 | Endpoint family | Status | MCP tools | Unsupported or deferred details | Notes |
 | --- | --- | --- | --- | --- |

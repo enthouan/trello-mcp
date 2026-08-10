@@ -1,15 +1,18 @@
 :root {
   --trello-mcp-blue: #0052cc;
+  --trello-mcp-button-hover-ring: #579dff;
   --sl-color-accent-low: #082145;
   --sl-color-accent: #579dff;
   --sl-color-accent-high: #cce0ff;
-  --sl-content-width: 48rem;
 }
 
 :root[data-theme="light"] {
   --sl-color-accent-high: #09326c;
   --sl-color-accent: var(--trello-mcp-blue);
   --sl-color-accent-low: #e9f2ff;
+  --sl-color-gray-6: #e2eaf5;
+  --sl-color-gray-7: #f1f6ff;
+  --sl-color-black: #f8fbff;
 }
 
 html {
@@ -26,6 +29,11 @@ h6 {
   letter-spacing: 0;
 }
 
+.site-title {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  letter-spacing: -0.035em;
+}
+
 :where(
   a,
   button,
@@ -39,45 +47,149 @@ h6 {
   outline-offset: 3px;
 }
 
-.sl-link-button {
-  min-height: 2.75rem;
-  border-radius: 0.375rem;
+html[data-has-hero] .hero {
+  padding-block: clamp(2rem, 7vmin, 5rem);
 }
 
-.hero:not(:has(> img, > .hero-html)) {
-  grid-template-columns: minmax(0, 46rem);
-  justify-content: center;
+.sl-link-button:is(.primary, .secondary) {
+  font-weight: 700;
+  transition: box-shadow 150ms ease;
 }
 
-.hero:not(:has(> img, > .hero-html)) .stack {
-  align-items: center;
-  text-align: center;
+.sl-link-button:is(.primary, .secondary):hover {
+  box-shadow: 0 0 0 2px var(--trello-mcp-button-hover-ring);
 }
 
-.hero:not(:has(> img, > .hero-html)) .copy {
-  align-items: center;
+[data-github-action] {
+  border-color: #181717;
+  color: #ffffff;
+  background: #181717;
 }
 
-.hero:not(:has(> img, > .hero-html)) .actions {
-  justify-content: center;
+[data-github-action]:hover {
+  border-color: #000000;
+  color: #ffffff;
+  background: #000000;
 }
 
-.hero h1 {
-  font-size: clamp(2.5rem, calc(2.1rem + 2vw), 3.5rem);
+:root:not([data-theme="light"]) [data-github-action] {
+  border-color: var(--sl-color-gray-4);
 }
 
-.hero-title-lockup {
+:root:not([data-theme="light"]) [data-github-action]:hover {
+  border-color: var(--sl-color-gray-2);
+}
+
+html[data-has-hero] .card-grid:first-of-type > .card:first-child {
+  --sl-card-border: var(--sl-color-blue);
+  --sl-card-bg: var(--sl-color-blue-low);
+}
+
+.sl-link-card a[data-client-icon="claude"],
+[data-client-setups] [role="tab"][data-client-icon="claude"] {
+  --client-card-icon: url("/client-icons/claude.svg");
+}
+
+.sl-link-card a[data-client-icon="openai"],
+[data-client-setups] [role="tab"][data-client-icon="openai"] {
+  --client-card-icon: url("/client-icons/openai.svg");
+}
+
+.sl-link-card a[data-client-icon="vscode"],
+[data-client-setups] [role="tab"][data-client-icon="vscode"] {
+  --client-card-icon: url("/client-icons/vscode.svg");
+}
+
+.sl-link-card a[data-client-icon="opencode"],
+[data-client-setups] [role="tab"][data-client-icon="opencode"] {
+  --client-card-icon: url("/client-icons/opencode.svg");
+}
+
+.sl-link-card a[data-client-icon="evidence"] {
+  --client-card-icon: url("/client-icons/evidence.svg");
+}
+
+.sl-link-card a[data-client-icon] .title {
   display: inline-flex;
+  gap: 0.5rem;
   align-items: center;
-  justify-content: center;
-  gap: 0.3em;
 }
 
-.hero-title-mark {
-  display: block;
-  flex: 0 0 auto;
+[data-client-setups] [role="tab"] {
+  gap: 0.375rem;
+  padding-inline: 0.625rem;
+  white-space: nowrap;
+}
+
+.sl-link-card a[data-client-icon] .title::before,
+[data-client-setups] [role="tab"][data-client-icon]::before {
   width: 1em;
   height: 1em;
+  flex: 0 0 auto;
+  content: "";
+  background-color: currentColor;
+  -webkit-mask: var(--client-card-icon) center / contain no-repeat;
+  mask: var(--client-card-icon) center / contain no-repeat;
+}
+
+.sl-markdown-content h2:is(#claude-desktop, #claude-code) {
+  --client-heading-icon: url("/client-icons/claude.svg");
+}
+
+.sl-markdown-content h2#codex {
+  --client-heading-icon: url("/client-icons/openai.svg");
+}
+
+.sl-markdown-content h2#vs-code {
+  --client-heading-icon: url("/client-icons/vscode.svg");
+}
+
+.sl-markdown-content h2#opencode-v2 {
+  --client-heading-icon: url("/client-icons/opencode.svg");
+}
+
+.sl-markdown-content h2#mcp-inspector-and-manual-clients {
+  --client-heading-icon: url("/client-icons/inspector.svg");
+}
+
+.sl-markdown-content
+  h2:is(
+    #claude-desktop,
+    #claude-code,
+    #codex,
+    #vs-code,
+    #opencode-v2,
+    #mcp-inspector-and-manual-clients
+  )::before {
+  display: inline-block;
+  width: 0.88em;
+  height: 0.88em;
+  margin-inline-end: 0.45rem;
+  vertical-align: -0.06em;
+  content: "";
+  background-color: var(--sl-color-text-accent);
+  -webkit-mask: var(--client-heading-icon) center / contain no-repeat;
+  mask: var(--client-heading-icon) center / contain no-repeat;
+}
+
+.hero-html img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.install-methods {
+  margin-block: 1.5rem 1.75rem;
+}
+
+.install-method > p {
+  color: var(--sl-color-gray-2);
+  font-size: var(--sl-text-sm);
+}
+
+.legacy-anchor {
+  display: block;
+  scroll-margin-block-start: calc(var(--sl-nav-height) + 1rem);
 }
 
 .sl-markdown-content {
@@ -162,15 +274,9 @@ h6 {
   }
 }
 
-@media (max-width: 30rem) {
-  .hero:not(:has(> img, > .hero-html)) .actions {
-    width: 100%;
-    gap: 0.75rem;
-  }
-
-  .hero:not(:has(> img, > .hero-html)) .actions .sl-link-button {
-    justify-content: center;
-    width: 100%;
+@media (max-width: 42rem) {
+  html[data-has-hero] .hero {
+    padding-block: 1.75rem 2.25rem;
   }
 }
 
@@ -179,7 +285,11 @@ h6 {
     scroll-behavior: auto;
   }
 
-  .caret {
+  .caret,
+  .sl-link-button:is(.primary, .secondary),
+  .expressive-code .copy button,
+  .expressive-code .copy button div,
+  .expressive-code .copy .feedback {
     transition-duration: 0s;
   }
 }

@@ -1,5 +1,6 @@
 import { type ChildProcess, spawn } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
+import { createServer } from "node:net";
 import { resolve } from "node:path";
 import { chromium } from "@playwright/test";
 import { launch } from "chrome-launcher";
@@ -17,6 +18,21 @@ const reportDirectory = resolve("website/artifacts/lighthouse");
 const routes = [
   { name: "home", path: "/" },
   { name: "get-started", path: "/get-started/" },
+  { name: "get-started-docker", path: "/get-started/docker/" },
+  { name: "get-started-http", path: "/get-started/http/" },
+  { name: "get-started-stdio", path: "/get-started/stdio/" },
+  { name: "trello-api-key", path: "/trello-api-key/" },
+  { name: "clients", path: "/clients/" },
+  { name: "clients-compatibility", path: "/clients/compatibility/" },
+  { name: "how-it-works", path: "/concepts/how-it-works/" },
+  { name: "workflows", path: "/guides/workflows/" },
+  { name: "troubleshooting", path: "/guides/troubleshooting/" },
+  { name: "configuration", path: "/reference/configuration/" },
+  { name: "tools", path: "/tools/" },
+  { name: "tools-api-coverage", path: "/tools/api-coverage/" },
+  { name: "security", path: "/security/" },
+  { name: "faq", path: "/faq/" },
+  { name: "project", path: "/project/" },
 ] as const;
 const minimumScores = {
   accessibility: 1,
@@ -35,6 +51,26 @@ function startPreview(): ChildProcess {
       stdio: ["ignore", "pipe", "pipe"],
     },
   );
+}
+
+async function assertPreviewPortAvailable() {
+  await new Promise<void>((resolveAvailable, rejectUnavailable) => {
+    const probe = createServer();
+    probe.once("error", (error) => {
+      rejectUnavailable(
+        new Error(
+          `Cannot start a fresh Lighthouse preview on ${host}:${port}.`,
+          { cause: error },
+        ),
+      );
+    });
+    probe.listen({ host, port }, () => {
+      probe.close((error) => {
+        if (error) rejectUnavailable(error);
+        else resolveAvailable();
+      });
+    });
+  });
 }
 
 async function waitForServer(url: string, preview?: ChildProcess) {
@@ -111,6 +147,7 @@ async function auditRoute(url: string) {
 
 async function main() {
   await mkdir(reportDirectory, { recursive: true });
+  if (!configuredBaseUrl) await assertPreviewPortAvailable();
   const preview = configuredBaseUrl ? undefined : startPreview();
 
   preview?.stdout?.on("data", () => undefined);

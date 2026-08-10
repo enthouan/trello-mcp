@@ -30,7 +30,9 @@ const CreateListInput = z.object({
     "Board id where the new Trello list should be created.",
   ),
   name: z.string().min(1).describe("Human-readable list name."),
-  pos: ListPositionInput.default("bottom"),
+  pos: ListPositionInput.default("bottom").describe(
+    "Position for the list on its board.",
+  ),
 });
 
 const UpdateListInput = ListIdInput.extend({

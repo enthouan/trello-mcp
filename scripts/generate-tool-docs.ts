@@ -12,20 +12,46 @@ const paths = {
     import.meta.url,
   ),
   clientSetup: new URL("../docs/client-setup.md", import.meta.url),
+  configuration: new URL("../docs/configuration.md", import.meta.url),
+  howItWorks: new URL("../docs/how-it-works.md", import.meta.url),
+  troubleshooting: new URL("../docs/troubleshooting.md", import.meta.url),
+  trelloApiKey: new URL("../docs/trello-api-key.md", import.meta.url),
+  workflows: new URL("../docs/workflows.md", import.meta.url),
   clientSetupTransportChooser: new URL(
     "../docs/assets/client-setup/transport-chooser.svg",
     import.meta.url,
   ),
   siteClients: new URL(
-    "../website/src/content/docs/clients/index.md",
+    "../website/src/content/docs/clients/index.mdx",
+    import.meta.url,
+  ),
+  siteHome: new URL("../website/src/content/docs/index.mdx", import.meta.url),
+  siteTrelloApiKey: new URL(
+    "../website/src/content/docs/trello-api-key.mdx",
     import.meta.url,
   ),
   siteCompatibility: new URL(
     "../website/src/content/docs/clients/compatibility.md",
     import.meta.url,
   ),
+  siteConfiguration: new URL(
+    "../website/src/content/docs/reference/configuration.mdx",
+    import.meta.url,
+  ),
+  siteHowItWorks: new URL(
+    "../website/src/content/docs/concepts/how-it-works.mdx",
+    import.meta.url,
+  ),
+  siteTroubleshooting: new URL(
+    "../website/src/content/docs/guides/troubleshooting.mdx",
+    import.meta.url,
+  ),
   siteTools: new URL(
-    "../website/src/content/docs/tools/index.md",
+    "../website/src/content/docs/tools/index.mdx",
+    import.meta.url,
+  ),
+  siteWorkflows: new URL(
+    "../website/src/content/docs/guides/workflows.mdx",
     import.meta.url,
   ),
   siteApiCoverage: new URL(
@@ -115,6 +141,22 @@ function replaceReadmeCatalog(readmeSource: string, table: string): string {
   return `${readme.slice(0, start)}${catalog}${readme.slice(end + toolsEndMarker.length)}`;
 }
 
+function validateHomepageToolCount(homepageSource: string): string {
+  const homepage = normalizeMarkdown(homepageSource);
+  const importStatement =
+    "import { TOOL_COUNT } from '../../data/tool-catalog.js';";
+  const firstImport = homepage.indexOf(importStatement);
+  const lastImport = homepage.lastIndexOf(importStatement);
+
+  if (firstImport === -1 || firstImport !== lastImport) {
+    throw new Error(
+      "website/src/content/docs/index.mdx must import the runtime-backed TOOL_COUNT exactly once",
+    );
+  }
+
+  return homepage;
+}
+
 function withoutDocumentTitle(source: string, label: string): string {
   const normalized = normalizeMarkdown(source);
   const title = normalized.match(/^# [^\n]+\n/);
@@ -129,11 +171,17 @@ function starlightPage(
   title: string,
   description: string,
   body: string,
+  editUrl?: string | false,
+  extraFrontmatter: readonly string[] = [],
 ): string {
   return [
     "---",
     `title: ${JSON.stringify(title)}`,
     `description: ${JSON.stringify(description)}`,
+    ...(editUrl === undefined
+      ? []
+      : [`editUrl: ${editUrl === false ? "false" : JSON.stringify(editUrl)}`]),
+    ...extraFrontmatter,
     "---",
     "",
     body.trimEnd(),
@@ -142,33 +190,52 @@ function starlightPage(
 }
 
 const siteLinkRewrites = new Map([
+  ["api-coverage.md", "/tools/api-coverage/"],
+  ["configuration.md", "/reference/configuration/"],
+  ["how-it-works.md", "/concepts/how-it-works/"],
+  ["troubleshooting.md", "/guides/troubleshooting/"],
+  ["workflows.md", "/guides/workflows/"],
   ["mcp-client-compatibility.md", "/clients/compatibility/"],
   ["client-setup.md", "/clients/"],
   [
+    "client-setup.md#mcp-inspector-and-manual-clients",
+    "/clients/#mcp-inspector-and-manual-clients",
+  ],
+  ["trello-api-key.md", "/trello-api-key/"],
+  [
+    "../README.md#attachment-uploads",
+    "/reference/configuration/#local-attachment-uploads",
+  ],
+  ["../README.md#environment", "/reference/configuration/"],
+  ["../README.md#quick-start", "/get-started/"],
+  ["../README.md#security-notes", "/security/"],
+  ["../SECURITY.md", "/security/"],
+  [
+    "../CONTRIBUTING.md",
+    "https://github.com/enthouan/trello-mcp/blob/main/CONTRIBUTING.md",
+  ],
+  [
+    "../docker-compose.yml",
+    "https://github.com/enthouan/trello-mcp/blob/main/docker-compose.yml",
+  ],
+  [
+    "../docker-compose.local.yml",
+    "https://github.com/enthouan/trello-mcp/blob/main/docker-compose.local.yml",
+  ],
+  [
     "../README.md#option-a-run-the-published-docker-image",
-    "/get-started/#docker-streamable-http",
+    "/get-started/docker/",
   ],
   [
     "../README.md#option-b-build-locally-from-source",
-    "/get-started/#local-stdio",
+    "/get-started/docker/#local-docker-build",
   ],
   ["../README.md#live-trello-smoke-tests", "/project/#live-validation"],
   ["assets/client-setup/transport-chooser.svg", "/transport-chooser.svg"],
 ]);
 
 const readmeUrl = "https://github.com/enthouan/trello-mcp/blob/main/README.md";
-
-const independentProjectNotice = [
-  ":::caution[Independent project]",
-  "trello-mcp is an independent, community-maintained project developed by [Antoine Ménard](https://www.antoinemenard.com/). It is not an official Trello or Atlassian product, service, or MCP implementation, and it is not affiliated with, endorsed by, or sponsored by Trello or Atlassian.",
-  "",
-  "Looking for Trello's official MCP server? Visit [Trello MCP](https://trello.com/mcp), hosted at `https://mcp.trello.com/v1`.",
-  ":::",
-].join("\n");
-
-function withIndependentProjectNotice(body: string): string {
-  return `${independentProjectNotice}\n\n${body}`;
-}
+const githubEditBaseUrl = "https://github.com/enthouan/trello-mcp/edit/main";
 
 function rewriteSiteLinks(
   source: string,
@@ -191,7 +258,7 @@ function rewriteSiteLinks(
   }
 
   const unresolved = rewritten.match(
-    /\]\((?:\.\.\/README\.md|(?:\.\/)?(?:client-setup|mcp-client-compatibility)\.md|assets\/client-setup\/)[^)]*\)/,
+    /\]\((?:\.\.\/(?:README|SECURITY|CONTRIBUTING)\.md|\.\.\/docker-compose(?:\.local)?\.yml|(?:\.\/)?(?:api-coverage|client-setup|configuration|how-it-works|mcp-client-compatibility|trello-api-key|troubleshooting|workflows)\.md|assets\/client-setup\/)[^)]*\)/,
   );
   if (unresolved) {
     throw new Error(
@@ -219,7 +286,7 @@ function withTransportChooserFigure(source: string, label: string): string {
       return [
         '<figure class="transport-chooser" data-transport-chooser>',
         '  <div class="transport-chooser__viewport" data-transport-chooser-scroll role="region" aria-label="Transport chooser diagram" tabindex="0">',
-        `    <img src="/transport-chooser.svg" alt="${escapeHtmlAttribute(altText)}" width="1200" height="600">`,
+        `    <img src="/transport-chooser.svg" alt="${escapeHtmlAttribute(altText)}" width="1200" height="600" />`,
         "  </div>",
         "  <figcaption>",
         '    Scroll horizontally when needed to compare both paths. <a href="/transport-chooser.svg">Open the full-size diagram</a>.',
@@ -236,6 +303,322 @@ function withTransportChooserFigure(source: string, label: string): string {
   }
 
   return wrapped;
+}
+
+function withMdxComponentImport(
+  source: string,
+  components: readonly string[],
+): string {
+  return [
+    "import {",
+    ...components.map((component) => `  ${component},`),
+    '} from "@astrojs/starlight/components";',
+    "",
+    source,
+  ].join("\n");
+}
+
+function blockquoteToAside(
+  source: string,
+  title: string,
+  type: "caution" | "danger" | "note",
+  label: string,
+): string {
+  const lines = source.split("\n");
+  const firstLinePrefix = `> **${title}.** `;
+  const startIndexes = lines.flatMap((line, index) =>
+    line.startsWith(firstLinePrefix) ? [index] : [],
+  );
+
+  if (startIndexes.length !== 1) {
+    throw new Error(
+      `${label} must contain exactly one blockquote titled ${JSON.stringify(title)}`,
+    );
+  }
+
+  const start = startIndexes[0];
+  if (start === undefined) {
+    throw new Error(`${label} could not locate ${JSON.stringify(title)}`);
+  }
+
+  let end = start;
+  while (end < lines.length && lines[end]?.startsWith(">")) {
+    end += 1;
+  }
+
+  const quoteLines = lines
+    .slice(start, end)
+    .map((line) => line.replace(/^> ?/, ""));
+  const firstQuoteLine = quoteLines[0];
+  if (!firstQuoteLine?.startsWith(`**${title}.** `)) {
+    throw new Error(
+      `${label} has an invalid ${JSON.stringify(title)} blockquote`,
+    );
+  }
+  quoteLines[0] = firstQuoteLine.slice(`**${title}.** `.length);
+
+  lines.splice(
+    start,
+    end - start,
+    `:::${type}[${title}]`,
+    ...quoteLines,
+    ":::",
+  );
+  return lines.join("\n");
+}
+
+function withStepsAfterHeading(
+  source: string,
+  heading: string,
+  expectedItems: number,
+  label: string,
+): string {
+  const headingMarker = `## ${heading}\n`;
+  const headingCount = source.split(headingMarker).length - 1;
+  if (headingCount !== 1) {
+    throw new Error(
+      `${label} must contain exactly one ordered procedure under ${JSON.stringify(heading)}`,
+    );
+  }
+
+  const headingStart = source.indexOf(headingMarker);
+  const headingEnd = headingStart + headingMarker.length;
+  const sectionEnd = source.indexOf("\n## ", headingEnd);
+  const listMarker = "\n1. ";
+  const listMarkerStart = source.indexOf(listMarker, headingEnd);
+  if (
+    listMarkerStart < 0 ||
+    (sectionEnd >= 0 && listMarkerStart >= sectionEnd)
+  ) {
+    throw new Error(
+      `${label} must contain an ordered procedure under ${JSON.stringify(heading)}`,
+    );
+  }
+
+  const listStart = listMarkerStart + 1;
+  const remainingLines = source.slice(listStart).split("\n");
+  let lastContentLine = -1;
+  let itemCount = 0;
+
+  for (let index = 0; index < remainingLines.length; index += 1) {
+    const line = remainingLines[index] ?? "";
+    if (/^\d+\. /.test(line)) {
+      itemCount += 1;
+      lastContentLine = index;
+      continue;
+    }
+    if (line === "" || /^ {2,}\S/.test(line)) {
+      if (line !== "") {
+        lastContentLine = index;
+      }
+      continue;
+    }
+    break;
+  }
+
+  if (itemCount !== expectedItems || lastContentLine < 0) {
+    throw new Error(
+      `${label} must contain ${expectedItems} ordered items under ${JSON.stringify(heading)}; found ${itemCount}`,
+    );
+  }
+
+  const list = remainingLines.slice(0, lastContentLine + 1).join("\n");
+  const listEnd = listStart + list.length;
+  return [
+    source.slice(0, listStart),
+    "<Steps>\n\n",
+    list,
+    "\n\n</Steps>",
+    source.slice(listEnd),
+  ].join("");
+}
+
+type ClientTransportTabs = {
+  endMarker: string;
+  httpHeading: string;
+  stdioHeading: string;
+};
+
+function indentTabContent(source: string): string {
+  return source
+    .split("\n")
+    .map((line) => (line === "" ? "" : `    ${line}`))
+    .join("\n");
+}
+
+function withClientTransportTabs(source: string, label: string): string {
+  const tabGroups: readonly ClientTransportTabs[] = [
+    {
+      stdioHeading: "Claude Code over stdio",
+      httpHeading: "Claude Code over Streamable HTTP",
+      endMarker: "Run `claude mcp list`",
+    },
+    {
+      stdioHeading: "Codex over stdio",
+      httpHeading: "Codex over Streamable HTTP",
+      endMarker: "Run `codex mcp list`",
+    },
+    {
+      stdioHeading: "VS Code over stdio",
+      httpHeading: "VS Code over Streamable HTTP",
+      endMarker: "Run **MCP: List Servers**",
+    },
+    {
+      stdioHeading: "OpenCode V2 over stdio",
+      httpHeading: "OpenCode V2 over Streamable HTTP",
+      endMarker: "OpenCode's V2 documentation",
+    },
+    {
+      stdioHeading: "Inspect stdio",
+      httpHeading: "Inspect Streamable HTTP",
+      endMarker: "Both commands print",
+    },
+  ];
+
+  let transformed = source;
+  for (const group of tabGroups) {
+    const stdioMarker = `### ${group.stdioHeading}\n\n`;
+    const httpMarker = `\n\n### ${group.httpHeading}\n\n`;
+    const endMarker = `\n\n${group.endMarker}`;
+    const stdioCount = transformed.split(stdioMarker).length - 1;
+    const httpCount = transformed.split(httpMarker).length - 1;
+    if (stdioCount !== 1 || httpCount !== 1) {
+      throw new Error(
+        `${label} must contain one ${JSON.stringify(group.stdioHeading)} and one ${JSON.stringify(group.httpHeading)} section`,
+      );
+    }
+
+    const groupStart = transformed.indexOf(stdioMarker);
+    const stdioStart = groupStart + stdioMarker.length;
+    const httpHeadingStart = transformed.indexOf(httpMarker, stdioStart);
+    const httpStart = httpHeadingStart + httpMarker.length;
+    const groupEnd = transformed.indexOf(endMarker, httpStart);
+    if (httpHeadingStart < 0 || groupEnd < 0) {
+      throw new Error(
+        `${label} could not determine the boundaries for ${JSON.stringify(group.stdioHeading)}`,
+      );
+    }
+
+    const stdioContent = transformed.slice(stdioStart, httpHeadingStart).trim();
+    const httpContent = transformed.slice(httpStart, groupEnd).trim();
+    const tabs = [
+      '<Tabs syncKey="client-transport">',
+      '  <TabItem label="Local stdio">',
+      indentTabContent(stdioContent),
+      "  </TabItem>",
+      "",
+      '  <TabItem label="Streamable HTTP">',
+      indentTabContent(httpContent),
+      "  </TabItem>",
+      "</Tabs>",
+    ].join("\n");
+
+    transformed = `${transformed.slice(0, groupStart)}${tabs}${transformed.slice(groupEnd)}`;
+  }
+
+  return transformed;
+}
+
+function credentialSiteBody(source: string): string {
+  const label = "docs/trello-api-key.md";
+  let body = blockquoteToAside(
+    source,
+    "This guide sends you to Trello",
+    "note",
+    label,
+  );
+  body = blockquoteToAside(
+    body,
+    "The token is broad account access",
+    "caution",
+    label,
+  );
+  body = withStepsAfterHeading(body, "Create the credentials", 7, label);
+  body = withStepsAfterHeading(body, "Revoke or replace a token", 4, label);
+
+  const createHeading = "## Create the credentials\n\n";
+  const createHeadingCount = body.split(createHeading).length - 1;
+  if (createHeadingCount !== 1) {
+    throw new Error(`${label} must contain one Create the credentials heading`);
+  }
+  body = body.replace(
+    createHeading,
+    [
+      createHeading.trimEnd(),
+      "",
+      '<LinkButton href="https://trello.com/apps/admin" variant="primary" icon="external">',
+      "  Open Trello App Admin Portal",
+      "</LinkButton>",
+      "",
+      "",
+    ].join("\n"),
+  );
+
+  return withMdxComponentImport(body, ["LinkButton", "Steps"]);
+}
+
+function clientsSiteBody(source: string): string {
+  const label = "docs/client-setup.md";
+  let body = withTransportChooserFigure(source, label);
+  body = withClientTransportTabs(body, label);
+  body = withStepsAfterHeading(body, "Verify the connection safely", 4, label);
+  return withMdxComponentImport(body, ["Steps", "TabItem", "Tabs"]);
+}
+
+function configurationSiteBody(source: string): string {
+  return blockquoteToAside(
+    source,
+    "Keep configuration private",
+    "caution",
+    "docs/configuration.md",
+  );
+}
+
+function howItWorksSiteBody(source: string): string {
+  const label = "docs/how-it-works.md";
+  let body = blockquoteToAside(
+    source,
+    "The MCP client is part of the trust boundary",
+    "caution",
+    label,
+  );
+  body = withStepsAfterHeading(body, "Request lifecycle", 8, label);
+  body = withStepsAfterHeading(body, "HTTP sessions", 5, label);
+  return withMdxComponentImport(body, ["Steps"]);
+}
+
+function troubleshootingSiteBody(source: string): string {
+  const label = "docs/troubleshooting.md";
+  let body = blockquoteToAside(
+    source,
+    "Sanitize before sharing",
+    "danger",
+    label,
+  );
+  body = withStepsAfterHeading(body, "First checks", 5, label);
+  return withMdxComponentImport(body, ["Steps"]);
+}
+
+function workflowsSiteBody(source: string): string {
+  const label = "docs/workflows.md";
+  let body = blockquoteToAside(
+    source,
+    "Client approval is not a server guarantee",
+    "caution",
+    label,
+  );
+  for (const heading of [
+    "The five-stage pattern",
+    "Summarize a board without changing it",
+    "Create and organize a card",
+    "Move or archive completed work",
+    "Review activity before adding a comment",
+    "Set or clear a custom field",
+    "Attach a URL or a server-local file",
+  ]) {
+    body = withStepsAfterHeading(body, heading, 5, label);
+  }
+  return withMdxComponentImport(body, ["Steps"]);
 }
 
 function compatibilityIntroduction(source: string): string {
@@ -264,9 +647,10 @@ function fallbackClientsPage(compatibilitySource: string): string {
   ].join("\n");
 
   return starlightPage(
-    "Clients",
+    "Set up your MCP client",
     "Start with a transport path and review dated MCP client compatibility evidence.",
-    withIndependentProjectNotice(body),
+    body,
+    `${githubEditBaseUrl}/docs/mcp-client-compatibility.md`,
   );
 }
 
@@ -288,12 +672,24 @@ async function expectedFiles(): Promise<GeneratedFile[]> {
     clientCompatibility,
     clientSetup,
     clientSetupTransportChooser,
+    configuration,
+    howItWorks,
+    siteHome,
+    troubleshooting,
+    trelloApiKey,
+    workflows,
   ] = await Promise.all([
     readFile(paths.readme, "utf8"),
     readFile(paths.apiCoverage, "utf8"),
     readFile(paths.clientCompatibility, "utf8"),
     readOptional(paths.clientSetup),
     readOptional(paths.clientSetupTransportChooser),
+    readFile(paths.configuration, "utf8"),
+    readFile(paths.howItWorks, "utf8"),
+    readFile(paths.siteHome, "utf8"),
+    readFile(paths.troubleshooting, "utf8"),
+    readFile(paths.trelloApiKey, "utf8"),
+    readFile(paths.workflows, "utf8"),
   ]);
 
   const hasClientSetup = clientSetup !== undefined;
@@ -315,18 +711,16 @@ async function expectedFiles(): Promise<GeneratedFile[]> {
   const table = toolTable();
   const clients = clientSetup
     ? starlightPage(
-        "Clients",
+        "Set up your MCP client",
         "Configure trello-mcp over local stdio or Streamable HTTP in supported MCP clients.",
-        withIndependentProjectNotice(
-          withTransportChooserFigure(
-            rewriteSiteLinks(
-              withoutDocumentTitle(clientSetup, "docs/client-setup.md"),
-              "docs/client-setup.md",
-              true,
-            ),
+        clientsSiteBody(
+          rewriteSiteLinks(
+            withoutDocumentTitle(clientSetup, "docs/client-setup.md"),
             "docs/client-setup.md",
+            true,
           ),
         ),
+        `${githubEditBaseUrl}/docs/client-setup.md`,
       )
     : fallbackClientsPage(clientCompatibility);
 
@@ -337,8 +731,29 @@ async function expectedFiles(): Promise<GeneratedFile[]> {
       contents: replaceReadmeCatalog(readme, table),
     },
     {
+      path: paths.siteHome,
+      label: "website/src/content/docs/index.mdx",
+      contents: validateHomepageToolCount(siteHome),
+    },
+    {
+      path: paths.siteTrelloApiKey,
+      label: "website/src/content/docs/trello-api-key.mdx",
+      contents: starlightPage(
+        "Trello API Key",
+        "Create a Trello app, generate an API key, authorize a token, store both credentials safely, and verify them with trello-mcp.",
+        credentialSiteBody(
+          rewriteSiteLinks(
+            withoutDocumentTitle(trelloApiKey, "docs/trello-api-key.md"),
+            "docs/trello-api-key.md",
+            hasClientSetup,
+          ),
+        ),
+        `${githubEditBaseUrl}/docs/trello-api-key.md`,
+      ),
+    },
+    {
       path: paths.siteClients,
-      label: "website/src/content/docs/clients/index.md",
+      label: "website/src/content/docs/clients/index.mdx",
       contents: clients,
     },
     {
@@ -355,23 +770,95 @@ async function expectedFiles(): Promise<GeneratedFile[]> {
           "docs/mcp-client-compatibility.md",
           hasClientSetup,
         ),
+        `${githubEditBaseUrl}/docs/mcp-client-compatibility.md`,
+      ),
+    },
+    {
+      path: paths.siteHowItWorks,
+      label: "website/src/content/docs/concepts/how-it-works.mdx",
+      contents: starlightPage(
+        "How it works",
+        "Follow a tool call across the MCP client, trello-mcp, and the Trello REST API.",
+        howItWorksSiteBody(
+          rewriteSiteLinks(
+            withoutDocumentTitle(howItWorks, "docs/how-it-works.md"),
+            "docs/how-it-works.md",
+            hasClientSetup,
+          ),
+        ),
+        `${githubEditBaseUrl}/docs/how-it-works.md`,
+      ),
+    },
+    {
+      path: paths.siteWorkflows,
+      label: "website/src/content/docs/guides/workflows.mdx",
+      contents: starlightPage(
+        "Workflows",
+        "Practical Trello workflows expressed through the MCP tool catalog.",
+        workflowsSiteBody(
+          rewriteSiteLinks(
+            withoutDocumentTitle(workflows, "docs/workflows.md"),
+            "docs/workflows.md",
+            hasClientSetup,
+          ),
+        ),
+        `${githubEditBaseUrl}/docs/workflows.md`,
+      ),
+    },
+    {
+      path: paths.siteTroubleshooting,
+      label: "website/src/content/docs/guides/troubleshooting.mdx",
+      contents: starlightPage(
+        "Troubleshooting",
+        "Diagnose startup, transport, authentication, Docker, Trello API, rate-limit, and attachment failures safely.",
+        troubleshootingSiteBody(
+          rewriteSiteLinks(
+            withoutDocumentTitle(troubleshooting, "docs/troubleshooting.md"),
+            "docs/troubleshooting.md",
+            hasClientSetup,
+          ),
+        ),
+        `${githubEditBaseUrl}/docs/troubleshooting.md`,
+      ),
+    },
+    {
+      path: paths.siteConfiguration,
+      label: "website/src/content/docs/reference/configuration.mdx",
+      contents: starlightPage(
+        "Configuration reference",
+        "Every trello-mcp runtime and Compose setting, its default, and the boundary it controls.",
+        configurationSiteBody(
+          rewriteSiteLinks(
+            withoutDocumentTitle(configuration, "docs/configuration.md"),
+            "docs/configuration.md",
+            hasClientSetup,
+          ),
+        ),
+        `${githubEditBaseUrl}/docs/configuration.md`,
       ),
     },
     {
       path: paths.siteTools,
-      label: "website/src/content/docs/tools/index.md",
+      label: "website/src/content/docs/tools/index.mdx",
       contents: starlightPage(
-        "Tools",
-        `Search the ${allTools.length} MCP tools generated from the registered trello-mcp tool surface.`,
+        "Tool catalog",
+        `Search ${allTools.length} Trello MCP tools by category, behavior, name, purpose, and input.`,
         [
-          `The server exposes **${allTools.length} MCP tools**. This catalog shares its names, descriptions, and key inputs with the README and is generated directly from \`allTools\`.`,
+          'import ToolCatalog from "../../../components/ToolCatalog.astro";',
+          'import { CATEGORY_COUNT, TOOL_COUNT } from "../../../data/tool-catalog.js";',
           "",
-          "## Tool catalog",
+          "The server exposes **{TOOL_COUNT} tools across {CATEGORY_COUNT} focused areas**. Names, descriptions, and input definitions come directly from the same `allTools` entries and Zod schemas used by the server. Category, behavior, scope, and result labels are curated for this reference and checked to cover every registered tool exactly once.",
           "",
-          table,
+          "“Read only” means the tool does not intentionally change Trello. “Writes data” covers creates, updates, assignments, moves, and reversible state changes. “Permanent delete” identifies calls that remove a Trello resource rather than archive or detach it. Tool handlers return JSON-serializable data to the MCP client.",
+          "",
+          "Search by tool name, purpose, result, or input, or narrow the catalog by category and behavior. Every tool name is a permanent link. Example prompts use placeholder names and contain no credentials or account data.",
+          "",
+          "<ToolCatalog />",
           "",
           "For supported and deferred Trello REST endpoint families, see [API coverage](/tools/api-coverage/).",
         ].join("\n"),
+        false,
+        ["tableOfContents: false"],
       ),
     },
     {
@@ -385,6 +872,7 @@ async function expectedFiles(): Promise<GeneratedFile[]> {
           "docs/api-coverage.md",
           hasClientSetup,
         ),
+        `${githubEditBaseUrl}/docs/api-coverage.md`,
       ),
     },
   ];

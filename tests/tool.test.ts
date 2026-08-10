@@ -115,6 +115,50 @@ describe("registerTool", () => {
       }),
     );
   });
+
+  it("logs safe error metadata without messages or private resource identifiers", async () => {
+    logger.warn.mockClear();
+    const { server, handlers } = fakeServer();
+    const privateResource =
+      "https://trello.com/c/AbCd1234/private-title?key=secret-key&token=secret-token";
+    const tool = defineTool({
+      name: "test_private_error",
+      description: "test",
+      inputSchema: z.object({ cardId: z.string() }),
+      handler: async ({ cardId }) => {
+        throw new PermissionError(`Trello denied access to card ${cardId}.`, {
+          status: 403,
+          resourceType: "card",
+          resourceId: cardId,
+          trelloMessage: "private upstream response",
+        });
+      },
+    });
+
+    registerTool(server as never, tool, {
+      trello: trello as never,
+      logger: logger as never,
+    });
+
+    await expect(handlers[0]?.({ cardId: privateResource })).rejects.toEqual(
+      expect.objectContaining({ code: -32600 }),
+    );
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        errorType: "PermissionError",
+        resourceType: "card",
+        statusCode: 403,
+      }),
+      "tool invocation failed",
+    );
+
+    const logged = JSON.stringify(logger.warn.mock.calls.at(-1));
+    expect(logged).not.toContain(privateResource);
+    expect(logged).not.toContain("private-title");
+    expect(logged).not.toContain("secret-key");
+    expect(logged).not.toContain("secret-token");
+    expect(logged).not.toContain("private upstream response");
+  });
 });
 
 describe("Trello tool names", () => {
