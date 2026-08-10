@@ -120,7 +120,7 @@ corepack pnpm exec biome check --write path/to/file.ts
 - `website/`: Astro Starlight source, generated documentation mirrors, production-preview tests, and visual/Lighthouse QA.
 - `scripts/codex/setup.sh`: Codex cloud fresh-container setup.
 - `scripts/codex/maintenance.sh`: Codex cloud cached-container maintenance.
-- `.github/workflows/build-and-test.yml`: Build, test, website QA, and gated Cloudflare Pages deployment workflow.
+- `.github/workflows/build-and-test.yml`: Build, test, and website QA workflow.
 - `.github/workflows/release.yml`: GHCR Docker image publishing.
 
 ## Architecture Rules
@@ -242,11 +242,9 @@ The GitHub Actions workflow named `Build and Test` runs:
 
 The `Release` workflow publishes Docker images to GHCR from `main` and `v*` tags.
 
-After both `Build and Test` jobs pass on a push to `main`, the same workflow
-builds the site with `SITE_URL=https://trello-mcp.com` and deploys
-`website/dist` to the `trello-mcp` Cloudflare Pages project. Production deploys
-require the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` repository
-secrets and cancel older in-progress deploys.
+Cloudflare Pages handles production website builds and deployment outside GitHub
+Actions. Keep `Build and Test` focused on validation; it must not require
+Cloudflare credentials or invoke a production deployment.
 
 If changing CI:
 

@@ -45,6 +45,10 @@ function makeScrollableTablesKeyboardAccessible() {
 export default defineConfig({
   site: siteUrl,
   trailingSlash: "always",
+  redirects: {
+    "/concepts/how-it-works": "/guides/how-it-works/",
+    "/project": "/reference/",
+  },
   markdown: {
     processor: unified({
       rehypePlugins: [makeScrollableTablesKeyboardAccessible],
@@ -55,7 +59,7 @@ export default defineConfig({
       title: "trello-mcp",
       description:
         "Documentation for trello-mcp, a self-hosted and auditable Model Context Protocol server for broad Trello automation.",
-      favicon: "/favicon.svg?v=staggered-cards",
+      favicon: "/favicon.svg?v=full-bleed-split-card",
       logo: {
         src: "./public/favicon.svg",
         alt: "",
@@ -115,9 +119,7 @@ export default defineConfig({
       customCss: ["./src/styles/custom.css"],
       components: {
         Footer: "./src/components/Footer.astro",
-      },
-      editLink: {
-        baseUrl: `${repositoryUrl}/edit/main/website/`,
+        PageSidebar: "./src/components/PageSidebar.astro",
       },
       social: [
         {
@@ -133,24 +135,21 @@ export default defineConfig({
             { slug: "get-started", label: "Install and run" },
             { slug: "trello-api-key", label: "Trello API Key" },
             { slug: "clients", label: "Set up your MCP client" },
-            { slug: "get-started/docker", label: "Docker Compose" },
-            { slug: "get-started/http", label: "Streamable HTTP" },
-            { slug: "get-started/stdio", label: "stdio" },
             {
               slug: "clients/compatibility",
               label: "Compatibility",
             },
+            { slug: "get-started/docker", label: "Docker Compose" },
+            { slug: "get-started/http", label: "Streamable HTTP" },
+            { slug: "get-started/stdio", label: "stdio" },
           ],
-        },
-        {
-          label: "Concepts",
-          items: [{ slug: "concepts/how-it-works", label: "How it works" }],
         },
         {
           label: "Guides",
           items: [
+            { slug: "guides/how-it-works", label: "How it works" },
             { slug: "guides/workflows", label: "Workflows" },
-            { slug: "security", label: "Security and data flow" },
+            { slug: "security", label: "Security & Data" },
             {
               slug: "guides/troubleshooting",
               label: "Troubleshooting",
@@ -161,17 +160,23 @@ export default defineConfig({
         {
           label: "Reference",
           items: [
+            { slug: "reference", label: "Overview" },
             {
               slug: "reference/configuration",
               label: "Configuration",
             },
             { slug: "tools", label: "Tool catalog" },
             { slug: "tools/api-coverage", label: "API coverage" },
+            { slug: "reference/contributing", label: "Contributing" },
+            {
+              slug: "reference/support",
+              label: "Reporting issues and support",
+            },
+            {
+              slug: "reference/security-policy",
+              label: "Security policy",
+            },
           ],
-        },
-        {
-          label: "Project",
-          items: [{ slug: "project", label: "Overview" }],
         },
       ],
       lastUpdated: true,

@@ -1,0 +1,25 @@
+---
+// biome-ignore lint/correctness/noUnusedImports: Astro renders this component in the template below.
+import DefaultPageSidebar from "@astrojs/starlight/components/PageSidebar.astro";
+import { CATEGORY_ENTRIES } from "../data/tool-catalog.js";
+
+const route = Astro.locals.starlightRoute;
+
+if (route.id === "tools" && route.toc) {
+  const categorySlugs = new Set(
+    CATEGORY_ENTRIES.map(({ category }) => `tool-group-${category}`),
+  );
+
+  route.toc.items = [
+    ...route.toc.items.filter(({ slug }) => !categorySlugs.has(slug)),
+    ...CATEGORY_ENTRIES.map(({ category, label }) => ({
+      depth: 2,
+      slug: `tool-group-${category}`,
+      text: label,
+      children: [],
+    })),
+  ];
+}
+---
+
+<DefaultPageSidebar />

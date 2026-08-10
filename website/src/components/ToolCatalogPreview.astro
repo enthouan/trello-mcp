@@ -25,7 +25,9 @@ import { CATEGORY_ENTRIES, TOOL_COUNT } from "../data/tool-catalog.js";
       {
         CATEGORY_ENTRIES.map(({ category, label, tools }) => (
           <div data-catalog-preview-row data-category={category}>
-            <dt>{label}</dt>
+            <dt>
+              <a href={`/tools/#tool-group-${category}`}>{label}</a>
+            </dt>
             <dd>
               <strong>{tools.length}</strong>{" "}
               {tools
@@ -54,6 +56,12 @@ import { CATEGORY_ENTRIES, TOOL_COUNT } from "../data/tool-catalog.js";
     --catalog-preview-muted: #b9c9df;
     --catalog-preview-accent: #80b5ff;
     --catalog-preview-success: #79e2c8;
+    --catalog-preview-dot: #8293aa;
+    --catalog-preview-code-bg: #1c304b;
+    --catalog-preview-code-text: #cce0ff;
+    --catalog-preview-divider: #263b57;
+    --catalog-preview-count-border: #58789e;
+    --catalog-preview-count-text: #e1efff;
     margin-block: 1.5rem;
     overflow: hidden;
     border: 1px solid var(--catalog-preview-border);
@@ -61,6 +69,23 @@ import { CATEGORY_ENTRIES, TOOL_COUNT } from "../data/tool-catalog.js";
     color: var(--catalog-preview-text);
     background: var(--catalog-preview-bg);
     color-scheme: dark;
+  }
+
+  :global(:root[data-theme="light"]) .catalog-preview {
+    --catalog-preview-bg: #ffffff;
+    --catalog-preview-surface: #edf5ff;
+    --catalog-preview-border: #b8c8dc;
+    --catalog-preview-text: #172b4d;
+    --catalog-preview-muted: #44546f;
+    --catalog-preview-accent: #0052cc;
+    --catalog-preview-success: #147d64;
+    --catalog-preview-dot: #7388a5;
+    --catalog-preview-code-bg: #e9f2ff;
+    --catalog-preview-code-text: #09326c;
+    --catalog-preview-divider: #d6e0ee;
+    --catalog-preview-count-border: #8ba7cc;
+    --catalog-preview-count-text: #09326c;
+    color-scheme: light;
   }
 
   .catalog-preview__bar {
@@ -76,7 +101,7 @@ import { CATEGORY_ENTRIES, TOOL_COUNT } from "../data/tool-catalog.js";
   .catalog-preview__bar > span {
     width: 0.55rem;
     height: 0.55rem;
-    border: 1px solid #8293aa;
+    border: 1px solid var(--catalog-preview-dot);
     border-radius: 50%;
   }
 
@@ -102,8 +127,8 @@ import { CATEGORY_ENTRIES, TOOL_COUNT } from "../data/tool-catalog.js";
     padding: 0.08rem 0.3rem;
     border: 1px solid var(--catalog-preview-border);
     border-radius: 0.25rem;
-    color: #cce0ff;
-    background: #1c304b;
+    color: var(--catalog-preview-code-text);
+    background: var(--catalog-preview-code-bg);
     font: inherit;
   }
 
@@ -123,12 +148,17 @@ import { CATEGORY_ENTRIES, TOOL_COUNT } from "../data/tool-catalog.js";
     grid-template-columns: minmax(8rem, 0.45fr) minmax(0, 1fr);
     gap: 1rem;
     padding-block: 0.65rem;
-    border-top: 1px solid #263b57;
+    border-top: 1px solid var(--catalog-preview-divider);
   }
 
   .catalog-preview dt {
     color: var(--catalog-preview-accent);
     font-weight: 700;
+  }
+
+  .catalog-preview dt a {
+    color: inherit;
+    text-underline-offset: 0.2em;
   }
 
   .catalog-preview dd {
@@ -144,9 +174,9 @@ import { CATEGORY_ENTRIES, TOOL_COUNT } from "../data/tool-catalog.js";
     min-height: 1.75rem;
     place-items: center;
     margin-inline-end: 0.4rem;
-    border: 1px solid #58789e;
+    border: 1px solid var(--catalog-preview-count-border);
     border-radius: 0.25rem;
-    color: #e1efff;
+    color: var(--catalog-preview-count-text);
   }
 
   .catalog-preview figcaption {

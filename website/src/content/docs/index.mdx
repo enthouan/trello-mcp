@@ -4,9 +4,9 @@ description: A self-hosted, auditable Model Context Protocol server for broad Tr
 template: splash
 hero:
   title: 'Manage Trello<br>from your MCP client.'
-  tagline: Find cards, organize lists, manage checklists, and coordinate projects from a server you run.
+  tagline: A self-hosted Model Context Protocol (MCP) server for existing Trello users. Find cards, organize lists, manage checklists, and coordinate projects from a server you run.
   image:
-    html: '<img src="/favicon.svg?v=staggered-cards" width="400" height="400" alt="trello-mcp staggered-card mark">'
+    html: '<img src="/favicon.svg?v=full-bleed-split-card" width="400" height="400" alt="trello-mcp split-card mark">'
   actions:
     - text: Get started
       link: /get-started/
@@ -65,7 +65,7 @@ import { TOOL_COUNT } from '../../data/tool-catalog.js';
   </Card>
 </CardGrid>
 
-## Make your MCP client create a Trello card for you
+## Let your MCP client create a Trello card for you
 
 This example creates one real card in an existing list in your connected Trello account. Your MCP client can discover the board and list IDs, so you only need to choose the destination and supply a card title.
 
@@ -111,7 +111,7 @@ First time connecting? [Create your Trello API key and token](/trello-api-key/) 
   <LinkCard
     title="OpenCode"
     description="Configuration reviewed — local stdio and authenticated Streamable HTTP setup. No dated client run or live Trello call is claimed."
-    href="/clients/#opencode-v2"
+    href="/clients/#opencode"
     data-client-icon="opencode"
   />
   <LinkCard
@@ -215,37 +215,15 @@ Names, descriptions, and input definitions come directly from the same registere
   Browse all {TOOL_COUNT} tools
 </LinkButton>
 
-The [API coverage matrix](/tools/api-coverage/) makes partial support, deferred work, and intentional non-goals explicit.
-
-## Why run this community server?
-
-<CardGrid>
-  <Card title="Self-hosted operation">
-    Run the server locally or on infrastructure you control. This repository does not operate a hosted Trello MCP service.
-  </Card>
-
-  <Card title="Auditable implementation">
-    Inspect the open source tool definitions, Trello request client, validation schemas, logging, tests, and release history.
-  </Card>
-
-  <Card title="Two deployment models">
-    Use stdio when the client owns a local process, or Streamable HTTP when the server runs continuously as a service.
-  </Card>
-
-  <Card title="Documented boundaries">
-    Generated tools, API coverage, compatibility evidence, security guidance, and project policies make supported behavior and gaps visible.
-  </Card>
-</CardGrid>
-
 ## Know where to go next
 
-Move from setup into practical automation, then use the focused concept, reference, and recovery pages when you need to understand or change the boundary.
+Move from setup into practical automation, then use the focused guides, reference, and recovery pages when you need to understand or change the boundary.
 
 <CardGrid>
   <LinkCard
     title="How it works"
     description="Follow a request through the MCP client, session or process transport, trello-mcp, and the Trello REST API."
-    href="/concepts/how-it-works/"
+    href="/guides/how-it-works/"
   />
   <LinkCard
     title="Workflows"

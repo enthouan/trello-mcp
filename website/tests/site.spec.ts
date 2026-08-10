@@ -12,7 +12,7 @@ const FOOTER_DISCLAIMER =
   "It is not an official Trello or Atlassian product and is not affiliated with or endorsed by either company.";
 const HERO_TITLE = "Manage Trello from your MCP client.";
 const HERO_TAGLINE =
-  "Find cards, organize lists, manage checklists, and coordinate projects from a server you run.";
+  "A self-hosted Model Context Protocol (MCP) server for existing Trello users. Find cards, organize lists, manage checklists, and coordinate projects from a server you run.";
 const TRANSPORT_CHOOSER_ALT =
   "Transport chooser showing local stdio and service-oriented Streamable HTTP paths";
 const CATALOG_PREVIEW_CATEGORIES = [
@@ -125,15 +125,18 @@ const publicRoutes = [
   "/trello-api-key/",
   "/clients/",
   "/clients/compatibility/",
-  "/concepts/how-it-works/",
+  "/guides/how-it-works/",
   "/guides/workflows/",
+  "/security/",
   "/guides/troubleshooting/",
+  "/faq/",
+  "/reference/",
   "/reference/configuration/",
   "/tools/",
   "/tools/api-coverage/",
-  "/project/",
-  "/security/",
-  "/faq/",
+  "/reference/contributing/",
+  "/reference/support/",
+  "/reference/security-policy/",
   "/404.html",
 ] as const;
 
@@ -178,7 +181,7 @@ const publicDocumentMetadata = {
     description:
       "Dated evidence for MCP client setup, transport connection, tool discovery, and live Trello validation.",
   },
-  "/concepts/how-it-works/": {
+  "/guides/how-it-works/": {
     title: "How it works",
     description:
       "Follow a tool call across the MCP client, trello-mcp, and the Trello REST API.",
@@ -192,6 +195,11 @@ const publicDocumentMetadata = {
     title: "Troubleshooting",
     description:
       "Diagnose startup, transport, authentication, Docker, Trello API, rate-limit, and attachment failures safely.",
+  },
+  "/reference/": {
+    title: "Reference",
+    description:
+      "Repository, policy, support, documentation-source, live-validation, release, and roadmap resources for trello-mcp.",
   },
   "/reference/configuration/": {
     title: "Configuration reference",
@@ -208,10 +216,20 @@ const publicDocumentMetadata = {
     description:
       "Supported, partially supported, deferred, and out-of-scope Trello REST API groups.",
   },
-  "/project/": {
-    title: "Project",
+  "/reference/contributing/": {
+    title: "Contributing",
     description:
-      "Repository, policy, support, release, contribution, and roadmap resources for trello-mcp.",
+      "Run the project checks, update canonical documentation, follow the Trello tool pattern, and prepare focused contributions safely.",
+  },
+  "/reference/support/": {
+    title: "Reporting issues and support",
+    description:
+      "Choose the right support channel and prepare a useful, sanitized trello-mcp bug report.",
+  },
+  "/reference/security-policy/": {
+    title: "Security policy",
+    description:
+      "Supported versions, private vulnerability reporting, sensitive data handling, and threat-model boundaries for trello-mcp.",
   },
   "/security/": {
     title: "Security and data flow",
@@ -236,15 +254,18 @@ const primaryNavigation = [
   ["Docker Compose", "/get-started/docker/"],
   ["Streamable HTTP", "/get-started/http/"],
   ["stdio", "/get-started/stdio/"],
-  ["How it works", "/concepts/how-it-works/"],
+  ["How it works", "/guides/how-it-works/"],
   ["Workflows", "/guides/workflows/"],
   ["Security & Data", "/security/"],
   ["Troubleshooting", "/guides/troubleshooting/"],
   ["FAQ", "/faq/"],
+  ["Overview", "/reference/"],
   ["Configuration", "/reference/configuration/"],
   ["Tool catalog", "/tools/"],
   ["API coverage", "/tools/api-coverage/"],
-  ["Project", "/project/"],
+  ["Contributing", "/reference/contributing/"],
+  ["Reporting issues and support", "/reference/support/"],
+  ["Security policy", "/reference/security-policy/"],
 ] as const;
 
 const responsiveViewports = [
@@ -493,17 +514,33 @@ test("project footer preserves Starlight metadata and matches the reference layo
 
   const footer = page.locator("footer.site-footer");
   const projectFooter = footer.locator(".project-footer");
-  const about = projectFooter.locator(".project-footer__about");
-  const links = projectFooter.getByRole("navigation", {
-    name: "Project links",
+  const bar = projectFooter.locator(":scope > .project-footer__bar");
+  const about = projectFooter.locator(":scope > .project-footer__about");
+  const projectName = bar.getByRole("link", {
+    name: "trello-mcp",
+    exact: true,
+  });
+  const links = bar.getByRole("navigation", {
+    name: "Documentation links",
   });
 
-  await expect(footer.getByRole("link", { name: "Edit page" })).toBeVisible();
+  await expect(footer.getByRole("link", { name: "Edit page" })).toHaveCount(0);
   await expect(projectFooter).toContainText(FOOTER_ATTRIBUTION);
   await expect(projectFooter).toContainText(FOOTER_DISCLAIMER);
   await expect(projectFooter).toContainText(
     "Generated with Astro using the Starlight documentation theme.",
   );
+  expect(
+    await projectFooter
+      .locator(":scope > *")
+      .evaluateAll((elements) =>
+        elements.map((element) =>
+          [...element.classList].find((className) =>
+            className.startsWith("project-footer__"),
+          ),
+        ),
+      ),
+  ).toEqual(["project-footer__bar", "project-footer__about"]);
 
   const expectedLinks = [
     ["trello-mcp", "/"],
@@ -519,6 +556,24 @@ test("project footer preserves Starlight metadata and matches the reference layo
     ).toHaveAttribute("href", href);
   }
 
+  const footerInlineLink = projectFooter.getByRole("link", {
+    name: "Antoine Ménard",
+    exact: true,
+  });
+  expect(
+    await footerInlineLink.evaluate(
+      (element) => getComputedStyle(element).textDecorationLine,
+    ),
+  ).toContain("underline");
+  await footerInlineLink.hover();
+  await expect
+    .poll(() =>
+      footerInlineLink.evaluate(
+        (element) => getComputedStyle(element).textDecorationLine,
+      ),
+    )
+    .toBe("none");
+
   for (const [name, href] of [
     ["Tools", "/tools/"],
     ["Security", "/security/"],
@@ -529,22 +584,52 @@ test("project footer preserves Starlight metadata and matches the reference layo
     ).toHaveAttribute("href", href);
   }
 
-  const desktopLayout = await projectFooter.evaluate((element) => ({
-    columns: getComputedStyle(element).gridTemplateColumns,
-    borderTopStyle: getComputedStyle(element).borderTopStyle,
-  }));
-  expect(desktopLayout.columns.split(" ")).toHaveLength(2);
+  const desktopLayout = await projectFooter.evaluate((element) => {
+    const styles = getComputedStyle(element);
+    return {
+      columns: styles.gridTemplateColumns,
+      borderTopStyle: styles.borderTopStyle,
+    };
+  });
+  expect(desktopLayout.columns.split(" ")).toHaveLength(1);
   expect(desktopLayout.borderTopStyle).toBe("solid");
 
-  const [desktopAbout, desktopLinks] = await Promise.all([
-    about.boundingBox(),
-    links.boundingBox(),
-  ]);
+  const barLayout = await bar.evaluate((element) => {
+    const styles = getComputedStyle(element);
+    return {
+      display: styles.display,
+      justifyContent: styles.justifyContent,
+      flexWrap: styles.flexWrap,
+    };
+  });
+  expect(barLayout).toEqual({
+    display: "flex",
+    justifyContent: "space-between",
+    flexWrap: "wrap",
+  });
+
+  const [desktopBar, desktopName, desktopAbout, desktopLinks, aboutMaxWidth] =
+    await Promise.all([
+      bar.boundingBox(),
+      projectName.boundingBox(),
+      about.boundingBox(),
+      links.boundingBox(),
+      about.evaluate((element) => getComputedStyle(element).maxWidth),
+    ]);
+  expect(desktopBar).not.toBeNull();
+  expect(desktopName).not.toBeNull();
   expect(desktopAbout).not.toBeNull();
   expect(desktopLinks).not.toBeNull();
+  expect(aboutMaxWidth).toBe("none");
   expect(desktopLinks?.x ?? 0).toBeGreaterThan(
-    (desktopAbout?.x ?? 0) + (desktopAbout?.width ?? 0),
+    (desktopName?.x ?? 0) + (desktopName?.width ?? 0),
   );
+  expect(desktopAbout?.y ?? 0).toBeGreaterThanOrEqual(
+    (desktopBar?.y ?? 0) + (desktopBar?.height ?? 0),
+  );
+  expect(
+    Math.abs((desktopAbout?.width ?? 0) - (desktopBar?.width ?? 0)),
+  ).toBeLessThan(2);
 
   await page.setViewportSize({ width: 390, height: 844 });
   const mobileLayout = await projectFooter.evaluate((element) => ({
@@ -552,20 +637,32 @@ test("project footer preserves Starlight metadata and matches the reference layo
     scrollWidth: element.scrollWidth,
     clientWidth: element.clientWidth,
   }));
+  const mobileBarLayout = await bar.evaluate((element) => ({
+    scrollWidth: element.scrollWidth,
+    clientWidth: element.clientWidth,
+  }));
   expect(mobileLayout.columns.split(" ")).toHaveLength(1);
   expect(mobileLayout.scrollWidth).toBeLessThanOrEqual(
     mobileLayout.clientWidth + 1,
   );
+  expect(mobileBarLayout.scrollWidth).toBeLessThanOrEqual(
+    mobileBarLayout.clientWidth + 1,
+  );
 
-  const [mobileAbout, mobileLinks] = await Promise.all([
+  const [mobileBar, mobileAbout, mobileLinks] = await Promise.all([
+    bar.boundingBox(),
     about.boundingBox(),
     links.boundingBox(),
   ]);
+  expect(mobileBar).not.toBeNull();
   expect(mobileAbout).not.toBeNull();
   expect(mobileLinks).not.toBeNull();
-  expect(mobileLinks?.y ?? 0).toBeGreaterThan(
-    (mobileAbout?.y ?? 0) + (mobileAbout?.height ?? 0),
+  expect(mobileAbout?.y ?? 0).toBeGreaterThanOrEqual(
+    (mobileBar?.y ?? 0) + (mobileBar?.height ?? 0),
   );
+  expect(
+    Math.abs((mobileAbout?.width ?? 0) - (mobileBar?.width ?? 0)),
+  ).toBeLessThan(2);
   await assertNoPageOverflow(page, "project footer at 390px");
 });
 
@@ -607,7 +704,7 @@ test("required attribution, independent-project language, and official alternati
     });
   }
 
-  for (const route of ["/faq/", "/project/"]) {
+  for (const route of ["/faq/", "/reference/"]) {
     await gotoLoaded(page, route);
     await expect(page.locator("main")).toContainText(OFFICIAL_ENDPOINT);
     await expect(page.locator("main")).not.toContainText(
@@ -665,7 +762,7 @@ test("installation guidance names the image, recommends reproducible tags, and l
   ).toHaveAttribute("href", "/get-started/docker/#local-docker-build");
 });
 
-test("README publishing, local QA, and OCI metadata stay on the documented safe defaults", async () => {
+test("README publishing, website CI, local QA, and OCI metadata stay on the documented safe defaults", async () => {
   const [readme, releaseWorkflow, buildWorkflow, contributing] =
     await Promise.all([
       readFile(new URL("../../README.md", import.meta.url), "utf8"),
@@ -694,7 +791,27 @@ test("README publishing, local QA, and OCI metadata stay on the documented safe 
   expect(releaseWorkflow).not.toContain("trello-mcp.antoinemenard.com");
   expect(
     buildWorkflow.match(/actions\/checkout@v7\n\s+with:\n\s+fetch-depth: 0/g),
-  ).toHaveLength(2);
+  ).toHaveLength(1);
+  for (const command of [
+    "pnpm docs:check",
+    "pnpm site:og:check",
+    "pnpm site:check",
+    "pnpm site:build",
+    "pnpm site:test",
+    "pnpm site:visual",
+    "pnpm site:lighthouse",
+  ]) {
+    expect(buildWorkflow).toContain(command);
+  }
+  for (const deploymentMarker of [
+    "deploy-website",
+    "cloudflare/wrangler-action",
+    "CLOUDFLARE_API_TOKEN",
+    "CLOUDFLARE_ACCOUNT_ID",
+    "pages deploy",
+  ]) {
+    expect(buildWorkflow).not.toContain(deploymentMarker);
+  }
   expect(contributing).toContain(
     [
       "corepack pnpm site:build",
@@ -903,7 +1020,7 @@ test("onboarding uses native client and installation tabs", async ({
   ).toHaveText("Codex");
   for (const [hash, label] of [
     ["vscode", "VS Code"],
-    ["opencode-v2", "OpenCode"],
+    ["opencode", "OpenCode"],
   ] as const) {
     await page.goto(`/get-started/#${hash}`, { waitUntil: "networkidle" });
     await expect(
@@ -919,7 +1036,7 @@ test("onboarding uses native client and installation tabs", async ({
     ["Claude Code", "claude-code", "claude.svg"],
     ["Codex", "codex", "openai.svg"],
     ["VS Code", "vs-code", "vscode.svg"],
-    ["OpenCode V2", "opencode-v2", "opencode.svg"],
+    ["OpenCode", "opencode", "opencode.svg"],
     [
       "MCP Inspector and manual clients",
       "mcp-inspector-and-manual-clients",
@@ -1005,7 +1122,7 @@ test("onboarding uses native client and installation tabs", async ({
   await expect(verificationSteps.locator(":scope > li")).toHaveCount(4);
 });
 
-test("removed client branding stays out of the public setup docs", async ({
+test("removed client branding and version labels stay out of the public setup docs", async ({
   page,
 }) => {
   for (const route of [
@@ -1016,6 +1133,7 @@ test("removed client branding stays out of the public setup docs", async ({
   ]) {
     await gotoLoaded(page, route);
     await expect(page.locator("main")).not.toContainText(/\bCursor\b/);
+    await expect(page.locator("main")).not.toContainText(/OpenCode V\d/i);
   }
 });
 
@@ -1123,7 +1241,7 @@ test("homepage uses descriptive SEO and complete social metadata", async ({
   expect(socialSource).toContain("Self-hosted, auditable Trello automation.");
   expect(socialSource).toContain("Independent community project");
   expect(socialSource).not.toContain("trello-mcp.com");
-  expect(socialSource).toContain("--og-accent: #146acb;");
+  expect(socialSource).toContain("--og-accent: #0052cc;");
   expect(socialSource).toContain('<svg viewBox="0 0 64 64"');
   expect(socialSource).not.toContain("<img");
 
@@ -1161,6 +1279,23 @@ test("homepage keeps two hero actions and exposes setup, workflows, clients, and
     ),
   ).toBe("from your MCP client.");
   await expect(page.locator(".hero .tagline")).toHaveText(HERO_TAGLINE);
+  const inlineTextLink = page.getByRole("link", {
+    name: "Trello MCP",
+    exact: true,
+  });
+  expect(
+    await inlineTextLink.evaluate(
+      (element) => getComputedStyle(element).textDecorationLine,
+    ),
+  ).toContain("underline");
+  await inlineTextLink.hover();
+  await expect
+    .poll(() =>
+      inlineTextLink.evaluate(
+        (element) => getComputedStyle(element).textDecorationLine,
+      ),
+    )
+    .toBe("none");
   const heroActions = page.locator(".hero .actions a.sl-link-button");
   await expect(heroActions).toHaveCount(2);
   const getStartedAction = heroActions.nth(0);
@@ -1184,7 +1319,10 @@ test("homepage keeps two hero actions and exposes setup, workflows, clients, and
     githubActionMarkup.indexOf("View on GitHub"),
   );
 
-  for (const theme of ["light", "dark"] as const) {
+  for (const [theme, expectedHoverRing] of [
+    ["light", "rgb(0, 82, 204)"],
+    ["dark", "rgb(87, 157, 255)"],
+  ] as const) {
     await page.locator("html").evaluate((element, nextTheme) => {
       element.dataset.theme = nextTheme;
     }, theme);
@@ -1192,6 +1330,7 @@ test("homepage keeps two hero actions and exposes setup, workflows, clients, and
       getStartedAction.evaluate((element) => {
         const styles = getComputedStyle(element);
         return {
+          backgroundColor: styles.backgroundColor,
           fontWeight: styles.fontWeight,
         };
       }),
@@ -1215,13 +1354,28 @@ test("homepage keeps two hero actions and exposes setup, workflows, clients, and
     );
     expect(githubActionStyle.borderColor).not.toBe("rgba(0, 0, 0, 0)");
 
-    for (const action of [getStartedAction, githubAction]) {
+    for (const [action, expectedBackground] of [
+      [getStartedAction, getStartedActionStyle.backgroundColor],
+      [githubAction, githubActionStyle.backgroundColor],
+    ] as const) {
       await action.hover();
       await expect
         .poll(() =>
           action.evaluate((element) => getComputedStyle(element).boxShadow),
         )
-        .toContain("2px");
+        .toContain(`${expectedHoverRing} 0px 0px 0px 5px`);
+      await expect
+        .poll(() =>
+          action.evaluate((element) => getComputedStyle(element).transform),
+        )
+        .toBe("none");
+      await expect
+        .poll(() =>
+          action.evaluate(
+            (element) => getComputedStyle(element).backgroundColor,
+          ),
+        )
+        .toBe(expectedBackground);
       await heroTitle.hover();
     }
   }
@@ -1245,7 +1399,7 @@ test("homepage keeps two hero actions and exposes setup, workflows, clients, and
   );
 
   const cardExampleHeading = page.getByRole("heading", {
-    name: "Make your MCP client create a Trello card for you",
+    name: "Let your MCP client create a Trello card for you",
   });
   await expect(cardExampleHeading).toBeVisible();
   const cardExamplePrompt = page
@@ -1272,7 +1426,7 @@ test("homepage keeps two hero actions and exposes setup, workflows, clients, and
   const cardExampleOrder = await page.locator("main").evaluate((main) => {
     const proofGrid = main.querySelector(".card-grid");
     const cardExample = main.querySelector(
-      "#make-your-mcp-client-create-a-trello-card-for-you",
+      "#let-your-mcp-client-create-a-trello-card-for-you",
     );
     const clientPicker = main.querySelector("#pick-your-mcp-client");
     const runChooser = main.querySelector("#choose-how-to-run-trello-mcp");
@@ -1353,7 +1507,7 @@ test("homepage keeps two hero actions and exposes setup, workflows, clients, and
     [
       "OpenCode",
       "opencode",
-      "/clients/#opencode-v2",
+      "/clients/#opencode",
       "Configuration reviewed — local stdio and authenticated Streamable HTTP setup. No dated client run or live Trello call is claimed.",
     ],
     [
@@ -1437,10 +1591,13 @@ test("homepage keeps two hero actions and exposes setup, workflows, clients, and
   await expect(page.locator('main a[href="/security/"]').first()).toBeVisible();
   await expect(page.locator('main a[href="/faq/"]').first()).toBeVisible();
   await expect(
+    page.getByRole("heading", { name: "Why run this community server?" }),
+  ).toHaveCount(0);
+  await expect(
     page.getByRole("heading", { name: "Know where to go next" }),
   ).toBeVisible();
   for (const [name, href] of [
-    ["How it works", "/concepts/how-it-works/"],
+    ["How it works", "/guides/how-it-works/"],
     ["Workflows", "/guides/workflows/"],
     ["Configuration", "/reference/configuration/"],
     ["Troubleshooting", "/guides/troubleshooting/"],
@@ -1488,7 +1645,11 @@ test("homepage previews the canonical searchable tool catalog", async ({
       `[data-catalog-preview-row][data-category="${category}"]`,
     );
     await expect(row).toHaveCount(1);
-    await expect(row.locator("dt")).toHaveText(label);
+    const categoryLink = row.getByRole("link", { name: label, exact: true });
+    await expect(categoryLink).toHaveAttribute(
+      "href",
+      `/tools/#tool-group-${category}`,
+    );
     await expect(row.locator("dd strong")).toHaveText(String(count));
     for (const toolName of toolNames) {
       await expect(row.locator("dd")).toContainText(toolName);
@@ -1498,27 +1659,72 @@ test("homepage previews the canonical searchable tool catalog", async ({
   await expect(preview.locator("figcaption")).toHaveText(
     "Generated from the same registered tools and schemas as the server. It contains no credentials or Trello account data.",
   );
+
+  for (const [theme, expected] of [
+    [
+      "light",
+      {
+        background: "rgb(255, 255, 255)",
+        color: "rgb(23, 43, 77)",
+        colorScheme: "light",
+        surface: "rgb(237, 245, 255)",
+      },
+    ],
+    [
+      "dark",
+      {
+        background: "rgb(12, 22, 36)",
+        color: "rgb(238, 246, 255)",
+        colorScheme: "dark",
+        surface: "rgb(22, 36, 58)",
+      },
+    ],
+  ] as const) {
+    await page.locator("html").evaluate((element, nextTheme) => {
+      element.dataset.theme = nextTheme;
+    }, theme);
+    const [previewStyle, barBackground] = await Promise.all([
+      preview.evaluate((element) => {
+        const styles = getComputedStyle(element);
+        return {
+          background: styles.backgroundColor,
+          color: styles.color,
+          colorScheme: styles.colorScheme,
+        };
+      }),
+      preview
+        .locator(".catalog-preview__bar")
+        .evaluate((element) => getComputedStyle(element).backgroundColor),
+    ]);
+    expect(previewStyle).toEqual({
+      background: expected.background,
+      color: expected.color,
+      colorScheme: expected.colorScheme,
+    });
+    expect(barBackground).toBe(expected.surface);
+  }
+
   await expect(
     page.getByRole("link", { name: "Browse all 77 tools", exact: true }),
   ).toHaveAttribute("href", "/tools/");
   await expect(
     page.getByRole("link", { name: "API coverage matrix", exact: true }),
-  ).toHaveAttribute("href", "/tools/api-coverage/");
+  ).toHaveCount(0);
 
   const sectionOrder = await page.locator("main").evaluate((main) => {
     const automation = main.querySelector("#what-you-can-automate");
     const catalog = main.querySelector(
       "#one-canonical-searchable-tool-catalog",
     );
-    const rationale = main.querySelector("#why-run-this-community-server");
-    if (!automation || !catalog || !rationale) return false;
+    const next = main.querySelector("#know-where-to-go-next");
+    if (!automation || !catalog || !next) return false;
     return (
       Boolean(
         automation.compareDocumentPosition(catalog) &
           Node.DOCUMENT_POSITION_FOLLOWING,
       ) &&
       Boolean(
-        catalog.compareDocumentPosition(rationale) &
+        catalog.compareDocumentPosition(next) &
           Node.DOCUMENT_POSITION_FOLLOWING,
       )
     );
@@ -1653,6 +1859,104 @@ test("security and FAQ pages state operational boundaries without overclaiming",
   await expect(
     page.locator('main a[href="https://trello.com/mcp"]').first(),
   ).toBeVisible();
+});
+
+test("Reference overview preserves project resources, policies, sources, and official distinction", async ({
+  page,
+}) => {
+  await gotoLoaded(page, "/reference/#live-validation");
+  const main = page.locator("main");
+  await expect(main.locator("h1")).toHaveText("Reference");
+  await expect(main.locator("#live-validation")).toHaveCount(1);
+  await expect(main).toContainText("remains canonical");
+  await expect(main).toContainText("corepack pnpm docs:tools");
+  await expect(main).toContainText(DISCLAIMER);
+  await expect(main).toContainText(OFFICIAL_ENDPOINT);
+
+  for (const [name, href] of [
+    ["GitHub repository", "https://github.com/enthouan/trello-mcp"],
+    ["Releases", "https://github.com/enthouan/trello-mcp/releases"],
+    [
+      "Changelog",
+      "https://github.com/enthouan/trello-mcp/blob/main/CHANGELOG.md",
+    ],
+    ["Issues", "https://github.com/enthouan/trello-mcp/issues"],
+    ["Roadmap", "https://trello.com/b/GnKmvuHz/trello-mcp"],
+    ["MIT License", "https://github.com/enthouan/trello-mcp/blob/main/LICENSE"],
+    ["llms.txt", "/llms.txt"],
+    ["Contributing", "/reference/contributing/"],
+    ["Reporting issues and support", "/reference/support/"],
+    ["Security policy", "/reference/security-policy/"],
+    [
+      "Privacy policy",
+      "https://github.com/enthouan/trello-mcp/blob/main/PRIVACY.md",
+    ],
+    [
+      "live validation instructions",
+      "https://github.com/enthouan/trello-mcp/blob/main/README.md#live-trello-smoke-tests",
+    ],
+    ["Trello MCP", "https://trello.com/mcp"],
+  ] as const) {
+    await expect(
+      main.getByRole("link", { name, exact: true }).first(),
+    ).toHaveAttribute("href", href);
+  }
+});
+
+test("generated policy pages preserve canonical guidance and internal reporting routes", async ({
+  page,
+}) => {
+  const policyPages = [
+    {
+      route: "/reference/contributing/",
+      title: "Contributing",
+      headings: ["Local checks", "Documentation website", "Pull requests"],
+    },
+    {
+      route: "/reference/support/",
+      title: "Reporting issues and support",
+      headings: [
+        "Support Channels",
+        "Support Boundaries",
+        "Bug Report Context",
+      ],
+    },
+    {
+      route: "/reference/security-policy/",
+      title: "Security policy",
+      headings: [
+        "Supported Versions",
+        "Reporting A Vulnerability",
+        "Sensitive Data",
+      ],
+    },
+  ] as const;
+
+  for (const policy of policyPages) {
+    await gotoLoaded(page, policy.route);
+    const main = page.locator("main");
+    await expect(main.locator("h1")).toHaveText(policy.title);
+    await expect(main.locator("h1")).toHaveCount(1);
+    for (const heading of policy.headings) {
+      await expect(
+        main.getByRole("heading", { name: heading, exact: true }),
+      ).toBeVisible();
+    }
+    await expect(
+      page.locator(
+        'starlight-toc nav[aria-labelledby="starlight__on-this-page"]',
+      ),
+    ).toBeVisible();
+  }
+
+  for (const route of ["/reference/contributing/", "/reference/support/"]) {
+    await gotoLoaded(page, route);
+    await expect(
+      page
+        .locator("main .sl-markdown-content")
+        .getByRole("link", { name: "SECURITY.md", exact: true }),
+    ).toBeVisible();
+  }
 });
 
 test("Trello API credential guide follows the current official flow and separates secrets", async ({
@@ -1796,6 +2100,8 @@ test("robots.txt points crawlers to a complete public sitemap", async ({
     Object.keys(publicDocumentMetadata).sort(),
   );
   expect(sitemapBody).not.toContain("/404");
+  expect(sitemapBody).not.toContain("/concepts/how-it-works/");
+  expect(sitemapBody).not.toContain("/project/");
 });
 
 test("llms.txt is generated from the public documentation collection", async ({
@@ -1819,13 +2125,19 @@ test("llms.txt is generated from the public documentation collection", async ({
   expect(body).toContain("/get-started/stdio/");
   expect(body).toContain("/trello-api-key/");
   expect(body).toContain("/clients/");
-  expect(body).toContain("/concepts/how-it-works/");
+  expect(body).toContain("/guides/how-it-works/");
   expect(body).toContain("/guides/workflows/");
   expect(body).toContain("/guides/troubleshooting/");
+  expect(body).toContain("/reference/");
   expect(body).toContain("/reference/configuration/");
+  expect(body).toContain("/reference/contributing/");
+  expect(body).toContain("/reference/support/");
+  expect(body).toContain("/reference/security-policy/");
   expect(body).toContain("/tools/");
   expect(body).toContain("/security/");
   expect(body).toContain("/faq/");
+  expect(body).not.toContain("/concepts/how-it-works/");
+  expect(body).not.toContain("/project/");
   expect(body).not.toContain("undefined");
 
   const normalizedBody = body.toLowerCase();
@@ -1842,7 +2154,9 @@ test("llms.txt is generated from the public documentation collection", async ({
   }
 });
 
-test("generated pages route edits to canonical sources", async ({ page }) => {
+test("generated pages route edits to their canonical repository sources", async ({
+  page,
+}) => {
   const canonicalEdits = [
     [
       "/clients/",
@@ -1857,11 +2171,7 @@ test("generated pages route edits to canonical sources", async ({ page }) => {
       "https://github.com/enthouan/trello-mcp/edit/main/docs/trello-api-key.md",
     ],
     [
-      "/tools/api-coverage/",
-      "https://github.com/enthouan/trello-mcp/edit/main/docs/api-coverage.md",
-    ],
-    [
-      "/concepts/how-it-works/",
+      "/guides/how-it-works/",
       "https://github.com/enthouan/trello-mcp/edit/main/docs/how-it-works.md",
     ],
     [
@@ -1876,6 +2186,22 @@ test("generated pages route edits to canonical sources", async ({ page }) => {
       "/reference/configuration/",
       "https://github.com/enthouan/trello-mcp/edit/main/docs/configuration.md",
     ],
+    [
+      "/tools/api-coverage/",
+      "https://github.com/enthouan/trello-mcp/edit/main/docs/api-coverage.md",
+    ],
+    [
+      "/reference/contributing/",
+      "https://github.com/enthouan/trello-mcp/edit/main/CONTRIBUTING.md",
+    ],
+    [
+      "/reference/support/",
+      "https://github.com/enthouan/trello-mcp/edit/main/SUPPORT.md",
+    ],
+    [
+      "/reference/security-policy/",
+      "https://github.com/enthouan/trello-mcp/edit/main/SECURITY.md",
+    ],
   ] as const;
 
   for (const [route, editUrl] of canonicalEdits) {
@@ -1886,14 +2212,16 @@ test("generated pages route edits to canonical sources", async ({ page }) => {
     );
   }
 
-  await gotoLoaded(page, "/tools/");
-  await expect(page.getByRole("link", { name: "Edit page" })).toHaveCount(0);
+  for (const route of ["/", "/tools/", "/reference/", "/security/", "/faq/"]) {
+    await gotoLoaded(page, route);
+    await expect(page.getByRole("link", { name: "Edit page" })).toHaveCount(0);
+  }
 });
 
-test("concept, workflow, troubleshooting, and configuration pages cover their operational boundaries", async ({
+test("guide, workflow, troubleshooting, and configuration pages cover their operational boundaries", async ({
   page,
 }) => {
-  await gotoLoaded(page, "/concepts/how-it-works/");
+  await gotoLoaded(page, "/guides/how-it-works/");
   await expect(page.locator("main h1")).toHaveText("How it works");
   await expect(
     page.getByRole("complementary", {
@@ -2038,6 +2366,15 @@ test("tool catalog groups every runtime tool and exposes searchable input metada
     ["Labels", 7],
     ["Search", 2],
   ] as const;
+
+  const tableOfContents = page.locator(
+    'starlight-toc nav[aria-labelledby="starlight__on-this-page"]',
+  );
+  await expect(tableOfContents).toBeVisible();
+  await expect(tableOfContents.getByRole("link")).toHaveText([
+    "Overview",
+    ...expectedGroups.map(([heading]) => heading),
+  ]);
 
   for (const [heading, count] of expectedGroups) {
     const group = catalog.locator("[data-tool-group]").filter({
@@ -2202,40 +2539,90 @@ test("primary navigation reaches every top-level route", async ({ page }) => {
   );
 });
 
-test("Get started sidebar and pagination follow the onboarding journey", async ({
+test("legacy Concepts and Project routes redirect to canonical destinations", async ({
+  page,
+  request,
+}) => {
+  for (const [legacyRoute, canonicalRoute, heading] of [
+    ["/concepts/how-it-works/", "/guides/how-it-works/", "How it works"],
+    ["/project/", "/reference/", "Reference"],
+  ] as const) {
+    const redirectResponse = await request.get(legacyRoute, {
+      failOnStatusCode: false,
+    });
+    expect(redirectResponse.status()).toBe(200);
+    const redirectBody = await redirectResponse.text();
+    expect(redirectBody).toContain('http-equiv="refresh"');
+    expect(redirectBody).toContain(`content="0;url=${canonicalRoute}"`);
+    expect(redirectBody).toContain('name="robots" content="noindex"');
+
+    await page.goto(legacyRoute, { waitUntil: "networkidle" });
+    await expect(page).toHaveURL(
+      new RegExp(`${canonicalRoute.replaceAll("/", "\\/")}$`),
+    );
+    await expect(page.locator("main h1")).toHaveText(heading);
+  }
+});
+
+test("sidebar exposes exactly the requested three-group information architecture", async ({
   page,
 }) => {
   await gotoLoaded(page, "/get-started/");
   const sidebar = page.locator("#starlight__sidebar");
-  const group = sidebar
-    .locator("details")
-    .filter({
-      hasText: "Get startedInstall and runTrello API KeySet up your MCP client",
-    })
-    .first();
-  await expect(group.locator(":scope > summary")).toContainText("Get started");
-  await expect(group.locator("a")).toHaveText([
-    "Install and run",
-    "Trello API Key",
-    "Set up your MCP client",
-    "Docker Compose",
-    "Streamable HTTP",
-    "stdio",
-    "Compatibility",
-  ]);
-  expect(
-    await group
-      .locator("a")
-      .evaluateAll((links) => links.map((link) => link.getAttribute("href"))),
-  ).toEqual([
-    "/get-started/",
-    "/trello-api-key/",
-    "/clients/",
-    "/get-started/docker/",
-    "/get-started/http/",
-    "/get-started/stdio/",
-    "/clients/compatibility/",
-  ]);
+  const groups = sidebar.locator("ul.top-level > li > details");
+  const expectedGroups = [
+    {
+      label: "Get started",
+      items: [
+        ["Install and run", "/get-started/"],
+        ["Trello API Key", "/trello-api-key/"],
+        ["Set up your MCP client", "/clients/"],
+        ["Compatibility", "/clients/compatibility/"],
+        ["Docker Compose", "/get-started/docker/"],
+        ["Streamable HTTP", "/get-started/http/"],
+        ["stdio", "/get-started/stdio/"],
+      ],
+    },
+    {
+      label: "Guides",
+      items: [
+        ["How it works", "/guides/how-it-works/"],
+        ["Workflows", "/guides/workflows/"],
+        ["Security & Data", "/security/"],
+        ["Troubleshooting", "/guides/troubleshooting/"],
+        ["FAQ", "/faq/"],
+      ],
+    },
+    {
+      label: "Reference",
+      items: [
+        ["Overview", "/reference/"],
+        ["Configuration", "/reference/configuration/"],
+        ["Tool catalog", "/tools/"],
+        ["API coverage", "/tools/api-coverage/"],
+        ["Contributing", "/reference/contributing/"],
+        ["Reporting issues and support", "/reference/support/"],
+        ["Security policy", "/reference/security-policy/"],
+      ],
+    },
+  ] as const;
+
+  await expect(groups).toHaveCount(expectedGroups.length);
+  for (const [index, expectedGroup] of expectedGroups.entries()) {
+    const group = groups.nth(index);
+    await expect(group.locator(":scope > summary .large")).toHaveText(
+      expectedGroup.label,
+    );
+    const links = group.locator(":scope > ul > li > a");
+    await expect(links).toHaveText(expectedGroup.items.map(([label]) => label));
+    expect(
+      await links.evaluateAll((nodes) =>
+        nodes.map((node) => node.getAttribute("href")),
+      ),
+    ).toEqual(expectedGroup.items.map(([, href]) => href));
+  }
+  await expect(sidebar).not.toContainText("Concepts");
+  await expect(sidebar).not.toContainText("Project");
 
   const next = page.locator('footer a[rel="next"]');
   await expect(next).toHaveAttribute("href", "/trello-api-key/");
@@ -2243,6 +2630,16 @@ test("Get started sidebar and pagination follow the onboarding journey", async (
 
   await gotoLoaded(page, "/clients/");
   await expect(page.locator("main h1")).toHaveText("Set up your MCP client");
+  await expect(page.locator('footer a[rel="next"]')).toHaveAttribute(
+    "href",
+    "/clients/compatibility/",
+  );
+
+  await gotoLoaded(page, "/clients/compatibility/");
+  await expect(page.locator('footer a[rel="next"]')).toHaveAttribute(
+    "href",
+    "/get-started/docker/",
+  );
 
   await gotoLoaded(page, "/get-started/http/");
   await expect(page.locator('footer a[rel="prev"]')).toHaveAttribute(
@@ -2257,7 +2654,7 @@ test("Get started sidebar and pagination follow the onboarding journey", async (
   await gotoLoaded(page, "/get-started/stdio/");
   await expect(page.locator('footer a[rel="next"]')).toHaveAttribute(
     "href",
-    "/clients/compatibility/",
+    "/guides/how-it-works/",
   );
 });
 
@@ -2353,12 +2750,9 @@ test("site marks, reference hero styling, and theme palette load in both themes"
   await expect(heroMark).toBeVisible();
   await expect(heroMark).toHaveAttribute(
     "src",
-    "/favicon.svg?v=staggered-cards",
+    "/favicon.svg?v=full-bleed-split-card",
   );
-  await expect(heroMark).toHaveAttribute(
-    "alt",
-    "trello-mcp staggered-card mark",
-  );
+  await expect(heroMark).toHaveAttribute("alt", "trello-mcp split-card mark");
   await expect(heroMark).toHaveAttribute("width", "400");
   await expect(heroMark).toHaveAttribute("height", "400");
   const [heroMarkBox, heroTitleBox] = await Promise.all([
@@ -2398,7 +2792,7 @@ test("site marks, reference hero styling, and theme palette load in both themes"
     ]);
   expect(heroTitleMetrics.fontSize).toBe("64px");
   expect(heroTitleMetrics.lineCount).toBe(2);
-  expect(heroTaglineMetrics).toBe(2);
+  expect(heroTaglineMetrics).toBe(3);
   expect(Number.parseFloat(primaryButtonRadius)).toBeGreaterThan(1_000);
 
   const markSource = await mark.getAttribute("src");
@@ -2412,7 +2806,7 @@ test("site marks, reference hero styling, and theme palette load in both themes"
   const favicon = page.locator('link[rel="shortcut icon"]');
   await expect(favicon).toHaveAttribute(
     "href",
-    "/favicon.svg?v=staggered-cards",
+    "/favicon.svg?v=full-bleed-split-card",
   );
   const faviconHref = await favicon.getAttribute("href");
   const faviconResponse = await request.get(faviconHref ?? "", {
@@ -2420,22 +2814,25 @@ test("site marks, reference hero styling, and theme palette load in both themes"
   });
   expect(faviconResponse.status(), "Favicon must resolve").toBe(200);
   const faviconSource = (await faviconResponse.text()).toLowerCase();
-  expect(faviconSource).toContain("trello-mcp staggered-card mark");
-  expect(faviconSource).toContain("#146acb");
+  expect(faviconSource).toContain("trello-mcp split-card mark");
+  expect(faviconSource).toContain("#0052cc");
   expect(faviconSource).not.toContain("lineargradient");
-  expect(faviconSource.match(/<rect\b/g)).toHaveLength(4);
-  expect(faviconSource.match(/fill="#fff"/g)).toHaveLength(3);
+  expect(faviconSource.match(/<rect\b/g)).toHaveLength(3);
+  expect(faviconSource.match(/fill="#fff"/g)).toHaveLength(2);
   expect(faviconSource).toContain(
-    '<rect width="64" height="64" rx="14" fill="#146acb"',
+    '<rect width="64" height="64" rx="14" fill="#0052cc"',
   );
-  expect(faviconSource).toContain('x="14" y="15" width="29" height="9" rx="3"');
-  expect(faviconSource).toContain('x="21" y="28" width="29" height="9" rx="3"');
-  expect(faviconSource).toContain('x="14" y="41" width="23" height="9" rx="3"');
+  expect(faviconSource).toContain(
+    'x="11.43" y="11.43" width="18.29" height="28.57" rx="4.57"',
+  );
+  expect(faviconSource).toContain(
+    'x="34.29" y="24" width="18.29" height="28.57" rx="4.57"',
+  );
   expect(faviconSource).not.toContain("<path");
   expect(faviconSource).not.toContain("<circle");
 
   for (const [theme, expectedAccent] of [
-    ["light", "rgb(20, 106, 203)"],
+    ["light", "rgb(0, 82, 204)"],
     ["dark", "rgb(87, 157, 255)"],
   ] as const) {
     await test.step(theme, async () => {
@@ -2546,6 +2943,7 @@ test("all internal links and images resolve", async ({
   const base = new URL(baseURL ?? "http://127.0.0.1:4321");
   const internalFragments = new Set<string>();
   const internalUrls = new Set<string>();
+  const obsoletePaths = new Set(["/concepts/how-it-works/", "/project/"]);
 
   for (const route of publicRoutes) {
     await test.step(`collect ${route}`, async () => {
@@ -2559,6 +2957,10 @@ test("all internal links and images resolve", async ({
       for (const href of hrefs) {
         const url = new URL(href);
         if (url.origin === base.origin) {
+          expect(
+            obsoletePaths.has(url.pathname),
+            `${route} links to obsolete route ${url.pathname}`,
+          ).toBe(false);
           if (url.hash) internalFragments.add(url.toString());
           url.hash = "";
           internalUrls.add(url.toString());

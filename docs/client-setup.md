@@ -288,18 +288,18 @@ References:
 and
 [MCP configuration reference](https://code.visualstudio.com/docs/agents/reference/mcp-configuration).
 
-## OpenCode V2
+## OpenCode
 
-OpenCode V2 defines named servers under `mcp.servers`. V1 examples that put
-server names directly under `mcp`, or that use `enabled`, are stale. V2 connects
-servers by default and uses `disabled: true` to turn one off.
+OpenCode defines named servers under `mcp.servers`. Older examples that put
+server names directly under `mcp`, or that use `enabled`, are stale. OpenCode
+connects servers by default and uses `disabled: true` to turn one off.
 
 Choose one of these `opencode.json` configurations. For project scope, save it
 as `<project-root>/opencode.json` or `<project-root>/.opencode/opencode.json`.
 For global scope, use `~/.config/opencode/opencode.json`. OpenCode also accepts
 the corresponding `.jsonc` filenames.
 
-### OpenCode V2 over stdio
+### OpenCode over stdio
 
 ```json
 {
@@ -323,7 +323,7 @@ the corresponding `.jsonc` filenames.
 }
 ```
 
-### OpenCode V2 over Streamable HTTP
+### OpenCode over Streamable HTTP
 
 ```json
 {
@@ -345,13 +345,13 @@ the corresponding `.jsonc` filenames.
 
 Remove `headers` when HTTP bearer authentication is disabled.
 
-OpenCode's V2 documentation does not promise hot reload after direct config
+OpenCode's documentation does not promise hot reload after direct config
 edits, so relaunch it and run `opencode2 mcp list` to inspect connection status.
 Its default Code Mode groups MCP tools under the normalized server name; set
 `codemode: false` only if you deliberately want all MCP tools exposed
 individually to the model.
 
-Reference: [OpenCode V2 MCP server documentation](https://opencode.ai/v2/docs/mcp-servers).
+Reference: [OpenCode MCP server documentation](https://opencode.ai/v2/docs/mcp-servers).
 
 ## MCP Inspector and manual clients
 

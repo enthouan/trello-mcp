@@ -48,7 +48,7 @@ pass.
 | Claude Code | Yes, 2026-08-07: [MCP documentation](https://code.claude.com/docs/en/mcp) | Claude Code `2.1.212`; macOS; `stdio` and Streamable HTTP with bearer auth | Yes on both transports. | Yes. `/mcp` displayed all 77 tools for each temporary entry. | No. No Trello tool was called. | Start a new session if an active one does not reload configuration. Temporary entries were removed and the pre-test config was restored byte for byte. |
 | Codex CLI | Yes, 2026-08-07: [MCP documentation](https://learn.chatgpt.com/docs/extend/mcp) | Codex CLI `0.146.0` (Homebrew); macOS; `stdio` and Streamable HTTP with bearer auth | Yes on both transports through session-only configuration. | Yes. `/mcp` displayed all 77 tools for each entry. | No. No Trello tool was called. | The default asdf `codex` shim on this host had no configured version, so validation used the explicit Homebrew binary. Session-only configuration left the shared config unchanged. |
 | VS Code | Yes, 2026-08-09: [MCP server guide](https://code.visualstudio.com/docs/agent-customization/mcp-servers) and [configuration reference](https://code.visualstudio.com/docs/agents/reference/mcp-configuration) | Not exercised for this record; current `stdio` and Streamable HTTP configurations reviewed and syntax-checked | Not tested. | Not tested. | No. No Trello tool was called. | Use **MCP: List Servers** to start, restart, and inspect output. The documented password-input recipes target desktop VS Code; Agent Host does not forward servers that require interactive inputs. |
-| OpenCode V2 | Yes, 2026-08-07: [MCP servers](https://opencode.ai/v2/docs/mcp-servers) | Not installed; current `stdio` and Streamable HTTP configurations reviewed and syntax-checked | Not tested. | Not tested. | No. | Current V2 requires entries under `mcp.servers`, uses `disabled` rather than `enabled`, and groups MCP tools in Code Mode by default. Relaunch after config edits. |
+| OpenCode | Yes, 2026-08-07: [MCP servers](https://opencode.ai/v2/docs/mcp-servers) | Not installed; current `stdio` and Streamable HTTP configurations reviewed and syntax-checked | Not tested. | Not tested. | No. | The current configuration requires entries under `mcp.servers`, uses `disabled` rather than `enabled`, and groups MCP tools in Code Mode by default. Relaunch after config edits. |
 | MCP Inspector | Yes, 2026-08-07: [Inspector documentation](https://modelcontextprotocol.io/docs/tools/inspector) | `@modelcontextprotocol/inspector` `2.0.0`; Node.js `24.17.0`; `stdio` and Streamable HTTP with bearer auth | Yes on both transports. | Yes. `tools/list` returned exactly 77 tools on both transports. | No. No Trello tool was called. | No restart required. The guide uses an ignored, read-only Inspector config so credentials do not appear in process arguments. `--cli` must be the first Inspector argument. Version 2.0.0 requires Node.js `22.19.0` or newer. |
 
 ## Named-client test details
@@ -102,9 +102,9 @@ guide's `stdio` and Streamable HTTP JSON examples were syntax-checked. The
 password inputs, user-profile configuration, trust prompt, server commands, and
 Agent Host limitation therefore remain configuration evidence only.
 
-### OpenCode V2
+### OpenCode
 
-OpenCode V2 was not installed on the validation host. Its current official
+OpenCode was not installed on the validation host. Its current official
 documentation was reviewed, and every JSON example was syntax-checked. Direct
 connection and tool-discovery validation were not performed, so this record
 makes no client-compatibility claim beyond documentation and syntax review.
@@ -144,7 +144,7 @@ is not attributed to any named client and does not change the `No` entries in
 the table's **Live Trello workflow** column.
 
 When a disposable board and explicit opt-in are available, follow the
-[live validation instructions](/project/#live-validation). Never run
+[live validation instructions](/reference/#live-validation). Never run
 write-side validation against an ordinary board.
 
 ## Documentation and visual review

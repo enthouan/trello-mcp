@@ -20,8 +20,17 @@ const repositoryUrl = "https://github.com/enthouan/trello-mcp";
   <Pagination />
 
   <div class="project-footer">
-    <div class="project-footer__about">
+    <div class="project-footer__bar">
       <a class="project-footer__name" href={base}>trello-mcp</a>
+
+      <nav aria-label="Documentation links">
+        <a href={`${base}tools/`}>Tools</a>
+        <a href={`${base}security/`}>Security</a>
+        <a href={repositoryUrl} rel="external">GitHub</a>
+      </nav>
+    </div>
+
+    <div class="project-footer__about">
       <p>
         trello-mcp is an open-source project released under the MIT License and
         maintained by <a href="https://www.antoinemenard.com/" rel="external"
@@ -41,12 +50,6 @@ const repositoryUrl = "https://github.com/enthouan/trello-mcp";
         >{" "}documentation theme.
       </p>
     </div>
-
-    <nav aria-label="Project links">
-      <a href={`${base}tools/`}>Tools</a>
-      <a href={`${base}security/`}>Security</a>
-      <a href={repositoryUrl} rel="external">GitHub</a>
-    </nav>
   </div>
 </footer>
 
@@ -79,9 +82,16 @@ const repositoryUrl = "https://github.com/enthouan/trello-mcp";
       font-size: var(--sl-text-sm);
     }
 
+    .project-footer__bar {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.75rem 1.25rem;
+    }
+
     .project-footer__about {
       display: grid;
-      max-width: 46rem;
       gap: 0.4rem;
     }
 
@@ -106,12 +116,6 @@ const repositoryUrl = "https://github.com/enthouan/trello-mcp";
       align-items: start;
       flex-wrap: wrap;
       gap: 0.5rem 1.25rem;
-    }
-
-    @media (min-width: 50rem) {
-      .project-footer {
-        grid-template-columns: minmax(0, 1fr) auto;
-      }
     }
   }
 </style>

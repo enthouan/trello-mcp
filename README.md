@@ -201,7 +201,7 @@ Choose the transport by where the server runs:
 ![Transport chooser showing local stdio and service-oriented Streamable HTTP paths](docs/assets/client-setup/transport-chooser.svg)
 
 The [Set up your MCP client guide](docs/client-setup.md) has current, sanitized
-examples for Claude Desktop, Claude Code, Codex CLI, VS Code, OpenCode V2, MCP
+examples for Claude Desktop, Claude Code, Codex CLI, VS Code, OpenCode, MCP
 Inspector, and other manual clients. It also covers restart
 requirements, HTTP bearer support, secret handling, and tested limitations.
 

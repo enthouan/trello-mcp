@@ -1,11 +1,14 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import { allTools } from "../src/trello/tools.js";
 
 const toolsStartMarker = "<!-- tools:start -->";
 const toolsEndMarker = "<!-- tools:end -->";
 
 const paths = {
+  contributing: new URL("../CONTRIBUTING.md", import.meta.url),
   readme: new URL("../README.md", import.meta.url),
+  securityPolicy: new URL("../SECURITY.md", import.meta.url),
+  support: new URL("../SUPPORT.md", import.meta.url),
   apiCoverage: new URL("../docs/api-coverage.md", import.meta.url),
   clientCompatibility: new URL(
     "../docs/mcp-client-compatibility.md",
@@ -38,8 +41,24 @@ const paths = {
     "../website/src/content/docs/reference/configuration.mdx",
     import.meta.url,
   ),
+  siteContributing: new URL(
+    "../website/src/content/docs/reference/contributing.md",
+    import.meta.url,
+  ),
   siteHowItWorks: new URL(
+    "../website/src/content/docs/guides/how-it-works.mdx",
+    import.meta.url,
+  ),
+  siteLegacyHowItWorks: new URL(
     "../website/src/content/docs/concepts/how-it-works.mdx",
+    import.meta.url,
+  ),
+  siteSecurityPolicy: new URL(
+    "../website/src/content/docs/reference/security-policy.md",
+    import.meta.url,
+  ),
+  siteSupport: new URL(
+    "../website/src/content/docs/reference/support.md",
     import.meta.url,
   ),
   siteTroubleshooting: new URL(
@@ -69,6 +88,13 @@ type GeneratedFile = {
   label: string;
   path: URL;
 };
+
+const obsoleteGeneratedFiles = [
+  {
+    label: "website/src/content/docs/concepts/how-it-works.mdx",
+    path: paths.siteLegacyHowItWorks,
+  },
+] as const;
 
 const args = process.argv.slice(2);
 const checkMode = args.length === 1 && args[0] === "--check";
@@ -192,7 +218,7 @@ function starlightPage(
 const siteLinkRewrites = new Map([
   ["api-coverage.md", "/tools/api-coverage/"],
   ["configuration.md", "/reference/configuration/"],
-  ["how-it-works.md", "/concepts/how-it-works/"],
+  ["how-it-works.md", "/guides/how-it-works/"],
   ["troubleshooting.md", "/guides/troubleshooting/"],
   ["workflows.md", "/guides/workflows/"],
   ["mcp-client-compatibility.md", "/clients/compatibility/"],
@@ -209,10 +235,23 @@ const siteLinkRewrites = new Map([
   ["../README.md#environment", "/reference/configuration/"],
   ["../README.md#quick-start", "/get-started/"],
   ["../README.md#security-notes", "/security/"],
-  ["../SECURITY.md", "/security/"],
+  ["SECURITY.md", "/reference/security-policy/"],
+  ["./SECURITY.md", "/reference/security-policy/"],
+  ["CONTRIBUTING.md", "/reference/contributing/"],
+  ["./CONTRIBUTING.md", "/reference/contributing/"],
+  ["SUPPORT.md", "/reference/support/"],
+  ["./SUPPORT.md", "/reference/support/"],
+  ["PRIVACY.md", "https://github.com/enthouan/trello-mcp/blob/main/PRIVACY.md"],
   [
-    "../CONTRIBUTING.md",
-    "https://github.com/enthouan/trello-mcp/blob/main/CONTRIBUTING.md",
+    "./PRIVACY.md",
+    "https://github.com/enthouan/trello-mcp/blob/main/PRIVACY.md",
+  ],
+  ["../SECURITY.md", "/reference/security-policy/"],
+  ["../CONTRIBUTING.md", "/reference/contributing/"],
+  ["../SUPPORT.md", "/reference/support/"],
+  [
+    "../PRIVACY.md",
+    "https://github.com/enthouan/trello-mcp/blob/main/PRIVACY.md",
   ],
   [
     "../docker-compose.yml",
@@ -230,7 +269,7 @@ const siteLinkRewrites = new Map([
     "../README.md#option-b-build-locally-from-source",
     "/get-started/docker/#local-docker-build",
   ],
-  ["../README.md#live-trello-smoke-tests", "/project/#live-validation"],
+  ["../README.md#live-trello-smoke-tests", "/reference/#live-validation"],
   ["assets/client-setup/transport-chooser.svg", "/transport-chooser.svg"],
 ]);
 
@@ -258,7 +297,7 @@ function rewriteSiteLinks(
   }
 
   const unresolved = rewritten.match(
-    /\]\((?:\.\.\/(?:README|SECURITY|CONTRIBUTING)\.md|\.\.\/docker-compose(?:\.local)?\.yml|(?:\.\/)?(?:api-coverage|client-setup|configuration|how-it-works|mcp-client-compatibility|trello-api-key|troubleshooting|workflows)\.md|assets\/client-setup\/)[^)]*\)/,
+    /\]\((?:\.\.\/(?:README|SECURITY|CONTRIBUTING|SUPPORT|PRIVACY)\.md|(?:\.\/)?(?:SECURITY|CONTRIBUTING|SUPPORT|PRIVACY)\.md|\.\.\/docker-compose(?:\.local)?\.yml|(?:\.\/)?(?:api-coverage|client-setup|configuration|how-it-works|mcp-client-compatibility|trello-api-key|troubleshooting|workflows)\.md|assets\/client-setup\/)[^)]*\)/,
   );
   if (unresolved) {
     throw new Error(
@@ -464,9 +503,9 @@ function withClientTransportTabs(source: string, label: string): string {
       endMarker: "Run **MCP: List Servers**",
     },
     {
-      stdioHeading: "OpenCode V2 over stdio",
-      httpHeading: "OpenCode V2 over Streamable HTTP",
-      endMarker: "OpenCode's V2 documentation",
+      stdioHeading: "OpenCode over stdio",
+      httpHeading: "OpenCode over Streamable HTTP",
+      endMarker: "OpenCode's documentation",
     },
     {
       stdioHeading: "Inspect stdio",
@@ -667,6 +706,7 @@ async function readOptional(path: URL): Promise<string | undefined> {
 
 async function expectedFiles(): Promise<GeneratedFile[]> {
   const [
+    contributing,
     readme,
     apiCoverage,
     clientCompatibility,
@@ -674,11 +714,14 @@ async function expectedFiles(): Promise<GeneratedFile[]> {
     clientSetupTransportChooser,
     configuration,
     howItWorks,
+    securityPolicy,
     siteHome,
+    support,
     troubleshooting,
     trelloApiKey,
     workflows,
   ] = await Promise.all([
+    readFile(paths.contributing, "utf8"),
     readFile(paths.readme, "utf8"),
     readFile(paths.apiCoverage, "utf8"),
     readFile(paths.clientCompatibility, "utf8"),
@@ -686,7 +729,9 @@ async function expectedFiles(): Promise<GeneratedFile[]> {
     readOptional(paths.clientSetupTransportChooser),
     readFile(paths.configuration, "utf8"),
     readFile(paths.howItWorks, "utf8"),
+    readFile(paths.securityPolicy, "utf8"),
     readFile(paths.siteHome, "utf8"),
+    readFile(paths.support, "utf8"),
     readFile(paths.troubleshooting, "utf8"),
     readFile(paths.trelloApiKey, "utf8"),
     readFile(paths.workflows, "utf8"),
@@ -775,7 +820,7 @@ async function expectedFiles(): Promise<GeneratedFile[]> {
     },
     {
       path: paths.siteHowItWorks,
-      label: "website/src/content/docs/concepts/how-it-works.mdx",
+      label: "website/src/content/docs/guides/how-it-works.mdx",
       contents: starlightPage(
         "How it works",
         "Follow a tool call across the MCP client, trello-mcp, and the Trello REST API.",
@@ -838,6 +883,48 @@ async function expectedFiles(): Promise<GeneratedFile[]> {
       ),
     },
     {
+      path: paths.siteContributing,
+      label: "website/src/content/docs/reference/contributing.md",
+      contents: starlightPage(
+        "Contributing",
+        "Run the project checks, update canonical documentation, follow the Trello tool pattern, and prepare focused contributions safely.",
+        rewriteSiteLinks(
+          withoutDocumentTitle(contributing, "CONTRIBUTING.md"),
+          "CONTRIBUTING.md",
+          hasClientSetup,
+        ),
+        `${githubEditBaseUrl}/CONTRIBUTING.md`,
+      ),
+    },
+    {
+      path: paths.siteSupport,
+      label: "website/src/content/docs/reference/support.md",
+      contents: starlightPage(
+        "Reporting issues and support",
+        "Choose the right support channel and prepare a useful, sanitized trello-mcp bug report.",
+        rewriteSiteLinks(
+          withoutDocumentTitle(support, "SUPPORT.md"),
+          "SUPPORT.md",
+          hasClientSetup,
+        ),
+        `${githubEditBaseUrl}/SUPPORT.md`,
+      ),
+    },
+    {
+      path: paths.siteSecurityPolicy,
+      label: "website/src/content/docs/reference/security-policy.md",
+      contents: starlightPage(
+        "Security policy",
+        "Supported versions, private vulnerability reporting, sensitive data handling, and threat-model boundaries for trello-mcp.",
+        rewriteSiteLinks(
+          withoutDocumentTitle(securityPolicy, "SECURITY.md"),
+          "SECURITY.md",
+          hasClientSetup,
+        ),
+        `${githubEditBaseUrl}/SECURITY.md`,
+      ),
+    },
+    {
       path: paths.siteTools,
       label: "website/src/content/docs/tools/index.mdx",
       contents: starlightPage(
@@ -858,7 +945,6 @@ async function expectedFiles(): Promise<GeneratedFile[]> {
           "For supported and deferred Trello REST endpoint families, see [API coverage](/tools/api-coverage/).",
         ].join("\n"),
         false,
-        ["tableOfContents: false"],
       ),
     },
     {
@@ -900,6 +986,12 @@ async function checkFiles(files: GeneratedFile[]): Promise<void> {
     }
   }
 
+  for (const file of obsoleteGeneratedFiles) {
+    if ((await readOptional(file.path)) !== undefined) {
+      problems.push(`obsolete: ${file.label}`);
+    }
+  }
+
   if (problems.length === 0) {
     console.log("Generated documentation is current.");
     return;
@@ -922,6 +1014,15 @@ async function writeFiles(files: GeneratedFile[]): Promise<void> {
     await mkdir(new URL(".", file.path), { recursive: true });
     await writeFile(file.path, file.contents);
     console.log(`updated: ${file.label}`);
+  }
+
+  for (const file of obsoleteGeneratedFiles) {
+    try {
+      await unlink(file.path);
+      console.log(`removed: ${file.label}`);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
   }
 }
 

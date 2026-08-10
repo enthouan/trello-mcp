@@ -3,7 +3,7 @@ export type ClientKey =
   | "claude-code"
   | "claude-desktop"
   | "vscode"
-  | "opencode-v2";
+  | "opencode";
 
 export type ClientIcon = "openai" | "claude" | "vscode" | "opencode";
 
@@ -161,11 +161,11 @@ TRANSPORT = "stdio"`,
       "https://code.visualstudio.com/docs/agents/reference/mcp-configuration",
   },
   {
-    key: "opencode-v2",
+    key: "opencode",
     icon: "opencode",
     label: "OpenCode",
     description:
-      "OpenCode V2 defines local servers under mcp.servers and can read Trello credentials from the environment instead of a tracked project file.",
+      "OpenCode defines local servers under mcp.servers and can read Trello credentials from the environment instead of a tracked project file.",
     configLocation:
       "Save this as opencode.json in the project or ~/.config/opencode/opencode.json for global use.",
     configTitle: "opencode.json",
@@ -190,10 +190,10 @@ TRANSPORT = "stdio"`,
   }
 }`,
     reload:
-      "Relaunch OpenCode and run opencode2 mcp list. OpenCode V2 does not currently promise hot reload after direct configuration edits.",
+      "Relaunch OpenCode and run opencode2 mcp list. OpenCode does not currently promise hot reload after direct configuration edits.",
     secretNote:
       "Keep the environment that supplies TRELLO_API_KEY and TRELLO_TOKEN private. This recipe was documentation-reviewed and syntax-checked, not directly run.",
-    docsLabel: "OpenCode V2 MCP documentation",
+    docsLabel: "OpenCode MCP documentation",
     docsUrl: "https://opencode.ai/v2/docs/mcp-servers",
   },
 ] as const satisfies readonly ClientSetup[];

@@ -1,12 +1,15 @@
 :root {
-  --trello-mcp-blue: #146acb;
+  --trello-mcp-blue: #0052cc;
   --trello-mcp-button-hover-ring: #579dff;
+  --trello-mcp-button-hover-shadow: rgb(87 157 255 / 24%);
   --sl-color-accent-low: #082145;
   --sl-color-accent: #579dff;
   --sl-color-accent-high: #cce0ff;
 }
 
 :root[data-theme="light"] {
+  --trello-mcp-button-hover-ring: #0052cc;
+  --trello-mcp-button-hover-shadow: rgb(9 50 108 / 28%);
   --sl-color-accent-high: #09326c;
   --sl-color-accent: var(--trello-mcp-blue);
   --sl-color-accent-low: #e9f2ff;
@@ -17,6 +20,11 @@
 
 :root[data-theme="light"] .sl-markdown-content a code {
   background-color: var(--sl-color-accent-low);
+}
+
+.sl-markdown-content :is(p, li, dd, td) a:hover,
+.project-footer :is(p, nav) a:hover {
+  text-decoration: none;
 }
 
 html {
@@ -61,7 +69,10 @@ html[data-has-hero] .hero {
 }
 
 .sl-link-button:is(.primary, .secondary):hover {
-  box-shadow: 0 0 0 2px var(--trello-mcp-button-hover-ring);
+  box-shadow:
+    0 0 0 2px var(--sl-color-black),
+    0 0 0 5px var(--trello-mcp-button-hover-ring),
+    0 8px 22px var(--trello-mcp-button-hover-shadow);
 }
 
 [data-github-action] {
@@ -73,7 +84,6 @@ html[data-has-hero] .hero {
 [data-github-action]:hover {
   border-color: #000000;
   color: #ffffff;
-  background: #000000;
 }
 
 :root:not([data-theme="light"]) [data-github-action] {
@@ -148,7 +158,7 @@ html[data-has-hero] .card-grid:first-of-type > .card:first-child {
   --client-heading-icon: url("/client-icons/vscode.svg");
 }
 
-.sl-markdown-content h2#opencode-v2 {
+.sl-markdown-content h2#opencode {
   --client-heading-icon: url("/client-icons/opencode.svg");
 }
 
@@ -162,7 +172,7 @@ html[data-has-hero] .card-grid:first-of-type > .card:first-child {
     #claude-code,
     #codex,
     #vs-code,
-    #opencode-v2,
+    #opencode,
     #mcp-inspector-and-manual-clients
   )::before {
   display: inline-block;
