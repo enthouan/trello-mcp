@@ -127,7 +127,7 @@ The default `docker-compose.yml` uses:
 ghcr.io/enthouan/trello-mcp:latest
 ```
 
-Docker Compose values such as image tag, host bind IP, host port, and network name can be overridden with environment variables or the `.env` file. The compose files document their defaults at the top; for example, `TRELLO_MCP_IMAGE_TAG` defaults to the `latest` tag in `docker-compose.yml` (`latest` follows the `main` branch, and release tags such as `0.4` and `0.4.1` are available for versioned deployments), `TRELLO_MCP_HOST_BIND_IP` defaults to `127.0.0.1` for local-only access, `TRELLO_MCP_HOST_PORT` defaults to `3000` and maps that host port to the container's fixed internal `3000` listener, while `TRELLO_MCP_NETWORK` defaults to `trello-mcp_network`. Set `TRELLO_MCP_HOST_BIND_IP=0.0.0.0` only when you intentionally want Docker to publish the service on all host interfaces, such as for LAN access.
+Docker Compose values such as image tag, host bind IP, host port, and network name can be overridden with environment variables or the `.env` file. The compose files document their defaults at the top; for example, `TRELLO_MCP_IMAGE_TAG` defaults to the `latest` tag in `docker-compose.yml` (`latest` follows the `main` branch, and release tags such as `X.Y` and `X.Y.Z` are available for versioned deployments), `TRELLO_MCP_HOST_BIND_IP` defaults to `127.0.0.1` for local-only access, `TRELLO_MCP_HOST_PORT` defaults to `3000` and maps that host port to the container's fixed internal `3000` listener, while `TRELLO_MCP_NETWORK` defaults to `trello-mcp_network`. Set `TRELLO_MCP_HOST_BIND_IP=0.0.0.0` only when you intentionally want Docker to publish the service on all host interfaces, such as for LAN access.
 
 Set `MCP_AUTH_TOKEN` to require `Authorization: Bearer <token>` on HTTP MCP requests to `/mcp`. Leave it unset for the default unauthenticated local behavior. Health and readiness endpoints remain unauthenticated for container and reverse-proxy checks.
 
@@ -139,8 +139,8 @@ image tags use these conventions:
 | Tag | Use case |
 | --- | --- |
 | `latest` | Follows the current `main` branch build. Use it when you intentionally want the newest main-branch image. |
-| `X.Y` | Follows the newest patch release in a minor line, such as `0.4` moving to the image built from the latest `v0.4.Z` tag. |
-| `X.Y.Z` | Pins to one exact release, such as `0.4.1`. Use this for the most reproducible deployments. |
+| `X.Y` | Follows the newest patch release in a minor line, moving to the image built from the latest matching `vX.Y.Z` tag. |
+| `X.Y.Z` | Pins to one exact release. Use this for the most reproducible deployments. |
 | `sha-<commit>` | Pins to one exact commit image from the release workflow. Use this for debugging or audit trails. |
 
 You can also run the published image directly without Compose:

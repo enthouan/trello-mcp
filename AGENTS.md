@@ -267,6 +267,7 @@ If changing CI:
 
 - Avoid dependency churn.
 - Keep top-level dependency ranges pinned to exact versions for release reproducibility.
+- Before upgrading TypeScript to 7, confirm that the current `@astrojs/check` peer range includes it and run `corepack pnpm site:check`; `@astrojs/check@0.9.10` currently requires TypeScript 5 or 6.
 - If a dependency update is required, update and commit `pnpm-lock.yaml`.
 - Be extra cautious with `@modelcontextprotocol/sdk` and TypeScript updates because SDK declaration changes can affect transport and tool typing.
 

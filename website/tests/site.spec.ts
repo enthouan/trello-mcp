@@ -679,7 +679,7 @@ test("README port publishing and OCI metadata stay on the documented safe defaul
     readme.match(/docker run --rm -p 127\.0\.0\.1:3000:3000/g),
   ).toHaveLength(2);
   expect(releaseWorkflow).toContain(
-    "org.opencontainers.image.url=https://trello-mcp.com",
+    `org.opencontainers.image.url=\${{ github.server_url }}/\${{ github.repository }}`,
   );
   expect(releaseWorkflow).not.toContain("trello-mcp.antoinemenard.com");
 });
@@ -1071,7 +1071,7 @@ test("homepage uses descriptive SEO and complete social metadata", async ({
   expect(socialSource).toContain("Self-hosted, auditable Trello automation.");
   expect(socialSource).toContain("Independent community project");
   expect(socialSource).not.toContain("trello-mcp.com");
-  expect(socialSource).toContain("--og-accent: #0052cc;");
+  expect(socialSource).toContain("--og-accent: #146acb;");
   expect(socialSource).toContain('<svg viewBox="0 0 64 64"');
   expect(socialSource).not.toContain("<img");
 
@@ -2301,9 +2301,12 @@ test("site marks, reference hero styling, and theme palette load in both themes"
   await expect(heroMark).toBeVisible();
   await expect(heroMark).toHaveAttribute(
     "src",
-    "/favicon.svg?v=full-bleed-split-card",
+    "/favicon.svg?v=staggered-cards",
   );
-  await expect(heroMark).toHaveAttribute("alt", "trello-mcp split-card mark");
+  await expect(heroMark).toHaveAttribute(
+    "alt",
+    "trello-mcp staggered-card mark",
+  );
   await expect(heroMark).toHaveAttribute("width", "400");
   await expect(heroMark).toHaveAttribute("height", "400");
   const [heroMarkBox, heroTitleBox] = await Promise.all([
@@ -2357,7 +2360,7 @@ test("site marks, reference hero styling, and theme palette load in both themes"
   const favicon = page.locator('link[rel="shortcut icon"]');
   await expect(favicon).toHaveAttribute(
     "href",
-    "/favicon.svg?v=full-bleed-split-card",
+    "/favicon.svg?v=staggered-cards",
   );
   const faviconHref = await favicon.getAttribute("href");
   const faviconResponse = await request.get(faviconHref ?? "", {
@@ -2365,25 +2368,22 @@ test("site marks, reference hero styling, and theme palette load in both themes"
   });
   expect(faviconResponse.status(), "Favicon must resolve").toBe(200);
   const faviconSource = (await faviconResponse.text()).toLowerCase();
-  expect(faviconSource).toContain("trello-mcp split-card mark");
-  expect(faviconSource).toContain("#0052cc");
+  expect(faviconSource).toContain("trello-mcp staggered-card mark");
+  expect(faviconSource).toContain("#146acb");
   expect(faviconSource).not.toContain("lineargradient");
-  expect(faviconSource.match(/<rect\b/g)).toHaveLength(3);
-  expect(faviconSource.match(/fill="#fff"/g)).toHaveLength(2);
+  expect(faviconSource.match(/<rect\b/g)).toHaveLength(4);
+  expect(faviconSource.match(/fill="#fff"/g)).toHaveLength(3);
   expect(faviconSource).toContain(
-    '<rect width="64" height="64" rx="14" fill="#0052cc"',
+    '<rect width="64" height="64" rx="14" fill="#146acb"',
   );
-  expect(faviconSource).toContain(
-    'x="11.43" y="11.43" width="18.29" height="28.57" rx="4.57"',
-  );
-  expect(faviconSource).toContain(
-    'x="34.29" y="24" width="18.29" height="28.57" rx="4.57"',
-  );
+  expect(faviconSource).toContain('x="14" y="15" width="29" height="9" rx="3"');
+  expect(faviconSource).toContain('x="21" y="28" width="29" height="9" rx="3"');
+  expect(faviconSource).toContain('x="14" y="41" width="23" height="9" rx="3"');
   expect(faviconSource).not.toContain("<path");
   expect(faviconSource).not.toContain("<circle");
 
   for (const [theme, expectedAccent] of [
-    ["light", "rgb(0, 82, 204)"],
+    ["light", "rgb(20, 106, 203)"],
     ["dark", "rgb(87, 157, 255)"],
   ] as const) {
     await test.step(theme, async () => {

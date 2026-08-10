@@ -55,7 +55,7 @@ export default defineConfig({
       title: "trello-mcp",
       description:
         "Documentation for trello-mcp, a self-hosted and auditable Model Context Protocol server for broad Trello automation.",
-      favicon: "/favicon.svg?v=full-bleed-split-card",
+      favicon: "/favicon.svg?v=staggered-cards",
       logo: {
         src: "./public/favicon.svg",
         alt: "",

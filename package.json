@@ -27,7 +27,7 @@
     "site:og:check": "tsx website/scripts/render-og-image.ts --check",
     "site:preview": "ASTRO_PREVIEW_BACKGROUND=0 astro preview --root website",
     "site:test": "playwright test --config website/playwright.config.ts",
-    "site:visual": "VISUAL_QA=1 playwright test --config website/playwright.config.ts website/tests/visual.spec.ts",
+    "site:visual": "playwright test --config website/playwright.config.ts website/tests/visual.spec.ts",
     "site:lighthouse": "tsx website/scripts/lighthouse.ts",
     "verify": "tsc --noEmit && biome check . && tsc -p tsconfig.build.json && vitest run",
     "verify:coverage": "tsc --noEmit && biome check . && tsc -p tsconfig.build.json && vitest run --coverage",

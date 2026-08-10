@@ -1,5 +1,5 @@
 :root {
-  --trello-mcp-blue: #0052cc;
+  --trello-mcp-blue: #146acb;
   --trello-mcp-button-hover-ring: #579dff;
   --sl-color-accent-low: #082145;
   --sl-color-accent: #579dff;
@@ -13,6 +13,10 @@
   --sl-color-gray-6: #e2eaf5;
   --sl-color-gray-7: #f1f6ff;
   --sl-color-black: #f8fbff;
+}
+
+:root[data-theme="light"] .sl-markdown-content a code {
+  background-color: var(--sl-color-accent-low);
 }
 
 html {

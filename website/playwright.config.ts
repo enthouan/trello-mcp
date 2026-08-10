@@ -9,10 +9,13 @@ const baseURL = (process.env.PLAYWRIGHT_BASE_URL ?? localBaseUrl).replace(
   "",
 );
 const repositoryRoot = fileURLToPath(new URL("..", import.meta.url));
+const visualQa =
+  process.env.VISUAL_QA === "1" ||
+  process.argv.some((argument) => argument.endsWith("visual.spec.ts"));
 
 export default defineConfig({
   testDir: "./tests",
-  testIgnore: process.env.VISUAL_QA === "1" ? [] : [/visual\.spec\.ts$/],
+  testIgnore: visualQa ? [] : [/visual\.spec\.ts$/],
   outputDir: "./test-results",
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),

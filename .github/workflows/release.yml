@@ -47,7 +47,7 @@ jobs:
             org.opencontainers.image.title=trello-mcp
             org.opencontainers.image.description=Self-hostable MCP server for Trello, built for LLM clients and local workflows.
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
-            org.opencontainers.image.url=https://trello-mcp.com
+            org.opencontainers.image.url=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.licenses=MIT
             io.github.actions.run.url=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

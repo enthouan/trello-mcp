@@ -32,11 +32,6 @@ const viewports = [
 ] as const;
 
 test.describe("responsive visual QA matrix", () => {
-  test.skip(
-    process.env.VISUAL_QA !== "1",
-    "Run with `corepack pnpm site:visual`.",
-  );
-
   for (const viewport of viewports) {
     for (const theme of ["light", "dark"] as const) {
       for (const route of routes) {
@@ -91,11 +86,6 @@ test.describe("responsive visual QA matrix", () => {
 });
 
 test.describe("footer visual QA", () => {
-  test.skip(
-    process.env.VISUAL_QA !== "1",
-    "Run with `corepack pnpm site:visual`.",
-  );
-
   for (const viewport of [viewports[0], viewports[4]] as const) {
     for (const theme of ["light", "dark"] as const) {
       test(`footer · ${theme} · ${viewport.name}`, async ({
