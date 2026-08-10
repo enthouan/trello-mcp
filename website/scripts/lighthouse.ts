@@ -1,9 +1,9 @@
-import { type ChildProcess, spawn } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import { resolve } from "node:path";
 import { chromium } from "@playwright/test";
-import { launch } from "chrome-launcher";
+import { type PreviewServer, preview as startAstroPreview } from "astro";
+import { type LaunchedChrome, launch } from "chrome-launcher";
 import lighthouse, { type Flags } from "lighthouse";
 import { throttling, userAgents } from "lighthouse/core/config/constants.js";
 
@@ -41,16 +41,12 @@ const minimumScores = {
   seo: 1,
 } as const;
 
-function startPreview(): ChildProcess {
-  return spawn(
-    "corepack",
-    ["pnpm", "site:preview", "--host", host, "--port", String(port)],
-    {
-      cwd: resolve("."),
-      env: process.env,
-      stdio: ["ignore", "pipe", "pipe"],
-    },
-  );
+function startPreview(): Promise<PreviewServer> {
+  return startAstroPreview({
+    logLevel: "silent",
+    root: resolve("website"),
+    server: { host, port },
+  });
 }
 
 async function assertPreviewPortAvailable() {
@@ -73,19 +69,14 @@ async function assertPreviewPortAvailable() {
   });
 }
 
-async function waitForServer(url: string, preview?: ChildProcess) {
+async function waitForServer(url: string) {
   const deadline = Date.now() + 30_000;
   let lastError = "preview did not respond";
 
   while (Date.now() < deadline) {
-    if (preview?.exitCode !== null && preview?.exitCode !== undefined) {
-      throw new Error(
-        `Site preview exited before Lighthouse started (code ${preview.exitCode}).`,
-      );
-    }
-
     try {
       const response = await fetch(url);
+      await response.body?.cancel();
       if (response.ok) return;
       lastError = `${response.status} ${response.statusText}`;
     } catch (error) {
@@ -98,63 +89,82 @@ async function waitForServer(url: string, preview?: ChildProcess) {
   throw new Error(`Timed out waiting for ${url}: ${lastError}`);
 }
 
-async function stopPreview(preview?: ChildProcess) {
-  if (!preview || preview.exitCode !== null) return;
-  preview.kill("SIGTERM");
-  await new Promise<void>((resolveExit) => {
-    const timeout = setTimeout(() => {
-      preview.kill("SIGKILL");
-      resolveExit();
-    }, 5_000);
-    preview.once("exit", () => {
+async function stopChrome(chrome?: LaunchedChrome) {
+  if (!chrome) return;
+  const chromeProcess = chrome.process;
+
+  if (chromeProcess.exitCode !== null || chromeProcess.signalCode !== null) {
+    chrome.kill();
+    return;
+  }
+
+  await new Promise<void>((resolveExit, rejectExit) => {
+    const onClose = () => {
       clearTimeout(timeout);
       resolveExit();
-    });
+    };
+    const timeout = setTimeout(() => {
+      chromeProcess.off("close", onClose);
+      chromeProcess.unref();
+      rejectExit(
+        new Error(
+          `Chrome process ${chrome.pid} did not close after 5 seconds.`,
+        ),
+      );
+    }, 5_000);
+    chromeProcess.once("close", onClose);
+    chrome.kill();
   });
 }
 
-async function auditRoute(url: string) {
-  const chrome = await launch({
-    chromeFlags: ["--headless=new", "--no-sandbox", "--disable-dev-shm-usage"],
-    chromePath: chromium.executablePath(),
-  });
+async function stopPreview(preview?: PreviewServer) {
+  await preview?.stop();
+}
 
-  try {
-    const flags: Flags = {
-      disableStorageReset: false,
-      emulatedUserAgent: userAgents.desktop,
-      formFactor: "desktop",
-      logLevel: "error",
-      onlyCategories: Object.keys(minimumScores),
-      output: "html",
-      port: chrome.port,
-      screenEmulation: {
-        deviceScaleFactor: 1,
-        disabled: false,
-        height: 900,
-        mobile: false,
-        width: 1440,
-      },
-      throttling: throttling.desktopDense4G,
-      throttlingMethod: "simulate",
-    };
+async function auditRoute(url: string, chromePort: number) {
+  const flags: Flags = {
+    disableStorageReset: false,
+    emulatedUserAgent: userAgents.desktop,
+    formFactor: "desktop",
+    logLevel: "error",
+    onlyCategories: Object.keys(minimumScores),
+    output: "html",
+    port: chromePort,
+    screenEmulation: {
+      deviceScaleFactor: 1,
+      disabled: false,
+      height: 900,
+      mobile: false,
+      width: 1440,
+    },
+    throttling: throttling.desktopDense4G,
+    throttlingMethod: "simulate",
+  };
 
-    return await lighthouse(url, flags);
-  } finally {
-    chrome.kill();
-  }
+  return lighthouse(url, flags);
 }
 
 async function main() {
   await mkdir(reportDirectory, { recursive: true });
   if (!configuredBaseUrl) await assertPreviewPortAvailable();
-  const preview = configuredBaseUrl ? undefined : startPreview();
-
-  preview?.stdout?.on("data", () => undefined);
-  preview?.stderr?.on("data", (chunk: Buffer) => process.stderr.write(chunk));
+  const preview = configuredBaseUrl ? undefined : await startPreview();
+  let chrome: LaunchedChrome | undefined;
 
   try {
-    await waitForServer(baseUrl, preview);
+    if (preview && preview.port !== port) {
+      throw new Error(
+        `Astro preview started on port ${preview.port}, expected ${port}.`,
+      );
+    }
+    await waitForServer(baseUrl);
+    chrome = await launch({
+      chromeFlags: [
+        "--headless=new",
+        "--no-sandbox",
+        "--disable-dev-shm-usage",
+      ],
+      chromePath: chromium.executablePath(),
+    });
     const failures: string[] = [];
     const summaries: Array<{
       route: string;
@@ -166,7 +176,7 @@ async function main() {
         route.path.replace(/^\//, ""),
         `${baseUrl}/`,
       ).toString();
-      const result = await auditRoute(url);
+      const result = await auditRoute(url, chrome.port);
       if (!result) throw new Error(`Lighthouse returned no result for ${url}.`);
 
       const htmlReport = Array.isArray(result.report)
@@ -215,7 +225,11 @@ async function main() {
       );
     }
   } finally {
-    await stopPreview(preview);
+    try {
+      await stopChrome(chrome);
+    } finally {
+      await stopPreview(preview);
+    }
   }
 }
 
