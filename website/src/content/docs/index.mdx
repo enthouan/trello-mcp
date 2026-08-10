@@ -147,7 +147,7 @@ Create a [Trello API key and token](/trello-api-key/), then choose the path that
     cd trello-mcp
     cp .env.example .env
     # Add TRELLO_API_KEY and TRELLO_TOKEN to the ignored .env file.
-    docker compose up -d
+    docker compose up -d --wait --wait-timeout 120
     ```
 
     Point a local Streamable HTTP client to:

@@ -118,7 +118,7 @@ TRELLO_MCP_NETWORK=trello-mcp_network
 Start the published image:
 
 ```bash
-docker compose up -d
+docker compose up -d --wait --wait-timeout 120
 ```
 
 The default `docker-compose.yml` uses:
@@ -167,7 +167,7 @@ cp .env.example .env
 Edit `.env` with your Trello credentials, then build and run locally:
 
 ```bash
-docker compose -f docker-compose.local.yml up --build
+docker compose -f docker-compose.local.yml up --build -d --wait --wait-timeout 120
 ```
 
 This uses `docker-compose.local.yml`, which builds from the local `Dockerfile` and tags the image as `trello-mcp:local`.

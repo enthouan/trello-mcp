@@ -23,10 +23,10 @@ cp .env.example .env
 \${EDITOR:-vi} .env
 grep -Eq '^TRELLO_API_KEY=.+$' .env && ! grep -Eq '^TRELLO_API_KEY=replace-me$' .env || { echo 'Set TRELLO_API_KEY to a non-placeholder value in .env before starting.' >&2; exit 1; }
 grep -Eq '^TRELLO_TOKEN=.+$' .env && ! grep -Eq '^TRELLO_TOKEN=replace-me$' .env || { echo 'Set TRELLO_TOKEN to a non-placeholder value in .env before starting.' >&2; exit 1; }
-docker compose up -d
+docker compose up -d --wait --wait-timeout 120
 docker compose ps
-curl http://127.0.0.1:3000/healthz
-curl http://127.0.0.1:3000/readyz`,
+curl -fsS http://127.0.0.1:3000/healthz
+curl -fsS http://127.0.0.1:3000/readyz`,
   },
   {
     key: "http",
@@ -41,9 +41,9 @@ cp .env.example .env
 \${EDITOR:-vi} .env
 grep -Eq '^TRELLO_API_KEY=.+$' .env && ! grep -Eq '^TRELLO_API_KEY=replace-me$' .env || { echo 'Set TRELLO_API_KEY to a non-placeholder value in .env before starting.' >&2; exit 1; }
 grep -Eq '^TRELLO_TOKEN=.+$' .env && ! grep -Eq '^TRELLO_TOKEN=replace-me$' .env || { echo 'Set TRELLO_TOKEN to a non-placeholder value in .env before starting.' >&2; exit 1; }
-docker compose -f docker-compose.local.yml up --build -d
-curl http://127.0.0.1:3000/healthz
-curl http://127.0.0.1:3000/readyz`,
+docker compose -f docker-compose.local.yml up --build -d --wait --wait-timeout 120
+curl -fsS http://127.0.0.1:3000/healthz
+curl -fsS http://127.0.0.1:3000/readyz`,
   },
   {
     key: "stdio",

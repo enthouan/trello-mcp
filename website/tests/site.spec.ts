@@ -666,23 +666,35 @@ test("installation guidance names the image, recommends reproducible tags, and l
 });
 
 test("README publishing, local QA, and OCI metadata stay on the documented safe defaults", async () => {
-  const [readme, releaseWorkflow, contributing] = await Promise.all([
-    readFile(new URL("../../README.md", import.meta.url), "utf8"),
-    readFile(
-      new URL("../../.github/workflows/release.yml", import.meta.url),
-      "utf8",
-    ),
-    readFile(new URL("../../CONTRIBUTING.md", import.meta.url), "utf8"),
-  ]);
+  const [readme, releaseWorkflow, buildWorkflow, contributing] =
+    await Promise.all([
+      readFile(new URL("../../README.md", import.meta.url), "utf8"),
+      readFile(
+        new URL("../../.github/workflows/release.yml", import.meta.url),
+        "utf8",
+      ),
+      readFile(
+        new URL("../../.github/workflows/build-and-test.yml", import.meta.url),
+        "utf8",
+      ),
+      readFile(new URL("../../CONTRIBUTING.md", import.meta.url), "utf8"),
+    ]);
 
   expect(readme).not.toContain("docker run --rm -p 3000:3000");
   expect(
     readme.match(/docker run --rm -p 127\.0\.0\.1:3000:3000/g),
   ).toHaveLength(2);
+  expect(readme).toContain("docker compose up -d --wait --wait-timeout 120");
+  expect(readme).toContain(
+    "docker compose -f docker-compose.local.yml up --build -d --wait --wait-timeout 120",
+  );
   expect(releaseWorkflow).toContain(
     `org.opencontainers.image.url=\${{ github.server_url }}/\${{ github.repository }}`,
   );
   expect(releaseWorkflow).not.toContain("trello-mcp.antoinemenard.com");
+  expect(
+    buildWorkflow.match(/actions\/checkout@v7\n\s+with:\n\s+fetch-depth: 0/g),
+  ).toHaveLength(2);
   expect(contributing).toContain(
     [
       "corepack pnpm site:build",
@@ -848,7 +860,9 @@ test("onboarding uses native client and installation tabs", async ({
         "TRELLO_TOKEN=replace-me",
         "Set TRELLO_API_KEY to a non-placeholder value",
         "Set TRELLO_TOKEN to a non-placeholder value",
-        "docker compose up -d",
+        "docker compose up -d --wait --wait-timeout 120",
+        "curl -fsS http://127.0.0.1:3000/healthz",
+        "curl -fsS http://127.0.0.1:3000/readyz",
       ],
     ],
     [
@@ -859,7 +873,9 @@ test("onboarding uses native client and installation tabs", async ({
         "TRELLO_TOKEN=replace-me",
         "Set TRELLO_API_KEY to a non-placeholder value",
         "Set TRELLO_TOKEN to a non-placeholder value",
-        "docker compose -f docker-compose.local.yml up --build -d",
+        "docker compose -f docker-compose.local.yml up --build -d --wait --wait-timeout 120",
+        "curl -fsS http://127.0.0.1:3000/healthz",
+        "curl -fsS http://127.0.0.1:3000/readyz",
       ],
     ],
     ["stdio", "/get-started/stdio/", ['TRANSPORT": "stdio']],

@@ -21,7 +21,7 @@ Use the operator Compose file to run the published container image. The applicat
 
 3. **Choose an image tag.** Set `TRELLO_MCP_IMAGE_TAG` to an exact published `X.Y.Z` release for a reproducible deployment. Use `latest` only when you intentionally want the newest image built from `main`.
 
-4. **Start and verify the process.** Run `docker compose up -d`, inspect `docker compose ps`, then request both health endpoints on loopback.
+4. **Start and verify the process.** Run `docker compose up -d --wait --wait-timeout 120`, inspect `docker compose ps`, then request both health endpoints on loopback. The health-aware wait prevents verification from racing a cold image pull or container startup.
 
 </Steps>
 
@@ -51,10 +51,10 @@ Health and readiness stay unauthenticated for orchestration checks. Do not expos
 To run Streamable HTTP from the checked-out source instead of the GHCR image, use the local Compose file:
 
 ```bash
-docker compose -f docker-compose.local.yml up --build
+docker compose -f docker-compose.local.yml up --build -d --wait --wait-timeout 120
 ```
 
-This builds the repository's `Dockerfile` as `trello-mcp:local` and keeps the host publication on `127.0.0.1:3000` by default. Connect the MCP client to `http://127.0.0.1:3000/mcp`.
+This builds the repository's `Dockerfile` as `trello-mcp:local`, waits up to two minutes for the configured health check, and keeps the host publication on `127.0.0.1:3000` by default. Connect the MCP client to `http://127.0.0.1:3000/mcp`.
 
 ## Verify through MCP
 
