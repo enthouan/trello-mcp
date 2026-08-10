@@ -15,6 +15,7 @@ corepack pnpm build
 corepack pnpm docs:check
 corepack pnpm site:check
 corepack pnpm site:build
+corepack pnpm exec playwright install --with-deps chromium webkit
 corepack pnpm site:test
 corepack pnpm site:lighthouse
 ```

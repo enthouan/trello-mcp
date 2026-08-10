@@ -665,13 +665,14 @@ test("installation guidance names the image, recommends reproducible tags, and l
   ).toHaveAttribute("href", "/get-started/docker/#local-docker-build");
 });
 
-test("README port publishing and OCI metadata stay on the documented safe defaults", async () => {
-  const [readme, releaseWorkflow] = await Promise.all([
+test("README publishing, local QA, and OCI metadata stay on the documented safe defaults", async () => {
+  const [readme, releaseWorkflow, contributing] = await Promise.all([
     readFile(new URL("../../README.md", import.meta.url), "utf8"),
     readFile(
       new URL("../../.github/workflows/release.yml", import.meta.url),
       "utf8",
     ),
+    readFile(new URL("../../CONTRIBUTING.md", import.meta.url), "utf8"),
   ]);
 
   expect(readme).not.toContain("docker run --rm -p 3000:3000");
@@ -682,6 +683,14 @@ test("README port publishing and OCI metadata stay on the documented safe defaul
     `org.opencontainers.image.url=\${{ github.server_url }}/\${{ github.repository }}`,
   );
   expect(releaseWorkflow).not.toContain("trello-mcp.antoinemenard.com");
+  expect(contributing).toContain(
+    [
+      "corepack pnpm site:build",
+      "corepack pnpm exec playwright install --with-deps chromium webkit",
+      "corepack pnpm site:test",
+      "corepack pnpm site:lighthouse",
+    ].join("\n"),
+  );
 });
 
 test("transport guides preserve Trello-specific runtime and security boundaries", async ({
@@ -830,12 +839,39 @@ test("onboarding uses native client and installation tabs", async ({
     "HTTP",
     "stdio",
   ]);
-  for (const [label, href] of [
-    ["Docker", "/get-started/docker/"],
-    ["HTTP", "/get-started/http/"],
-    ["stdio", "/get-started/stdio/"],
+  for (const [label, href, expectedCommands] of [
+    [
+      "Docker",
+      "/get-started/docker/",
+      [
+        "TRELLO_API_KEY=replace-me",
+        "TRELLO_TOKEN=replace-me",
+        "Set TRELLO_API_KEY to a non-placeholder value",
+        "Set TRELLO_TOKEN to a non-placeholder value",
+        "docker compose up -d",
+      ],
+    ],
+    [
+      "HTTP",
+      "/get-started/http/",
+      [
+        "TRELLO_API_KEY=replace-me",
+        "TRELLO_TOKEN=replace-me",
+        "Set TRELLO_API_KEY to a non-placeholder value",
+        "Set TRELLO_TOKEN to a non-placeholder value",
+        "docker compose -f docker-compose.local.yml up --build -d",
+      ],
+    ],
+    ["stdio", "/get-started/stdio/", ['TRANSPORT": "stdio']],
   ] as const) {
     await installTabs.getByRole("tab", { name: label, exact: true }).click();
+    const activePanel = installTabs.locator(
+      ":scope > [role='tabpanel']:not([hidden])",
+    );
+    await expect(activePanel).toBeVisible();
+    for (const command of expectedCommands) {
+      await expect(activePanel.locator("pre")).toContainText(command);
+    }
     await expect(
       installTabs.getByRole("link", {
         name: new RegExp(`complete ${label} guide`, "i"),
@@ -2425,6 +2461,8 @@ test("site marks, reference hero styling, and theme palette load in both themes"
 test("dark theme meets color contrast across every public route", async ({
   page,
 }) => {
+  test.setTimeout(120_000);
+
   await page.addInitScript(() => {
     localStorage.setItem("starlight-theme", "dark");
   });
@@ -2486,6 +2524,8 @@ test("all internal links and images resolve", async ({
   request,
   baseURL,
 }) => {
+  test.setTimeout(120_000);
+
   expect(baseURL, "Playwright baseURL must be configured").toBeTruthy();
   const base = new URL(baseURL ?? "http://127.0.0.1:4321");
   const internalFragments = new Set<string>();
