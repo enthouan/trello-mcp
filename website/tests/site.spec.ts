@@ -772,6 +772,17 @@ test("installation guidance names the image, recommends reproducible tags, and l
       hasText: "Select-String -Path .env -Pattern '^TRELLO_MCP_IMAGE_TAG=",
     }),
   ).toBeVisible();
+  const publishedPowerShell = main
+    .locator('pre[data-language="powershell"]')
+    .filter({
+      hasText: "docker compose up -d --wait --wait-timeout 120",
+    });
+  await expect(publishedPowerShell).toContainText(
+    "^TRELLO_API_KEY=(?!replace-me$).+$",
+  );
+  await expect(publishedPowerShell).toContainText(
+    "^TRELLO_TOKEN=(?!replace-me$).+$",
+  );
   await expect(
     main.getByRole("heading", { name: "Windows PowerShell", exact: true }),
   ).toBeVisible();
@@ -794,6 +805,20 @@ test("installation guidance names the image, recommends reproducible tags, and l
     ).toBeVisible();
   }
   await expect(main).not.toContainText("http://localhost:3000");
+
+  await gotoLoaded(page, "/getting-started/http/");
+  const sourceBuildPowerShell = page
+    .locator('main pre[data-language="powershell"]')
+    .filter({
+      hasText:
+        "docker compose -f docker-compose.local.yml up --build -d --wait --wait-timeout 120",
+    });
+  await expect(sourceBuildPowerShell).toContainText(
+    "^TRELLO_API_KEY=(?!replace-me$).+$",
+  );
+  await expect(sourceBuildPowerShell).toContainText(
+    "^TRELLO_TOKEN=(?!replace-me$).+$",
+  );
 
   await gotoLoaded(page, "/getting-started/clients/");
   await expect(

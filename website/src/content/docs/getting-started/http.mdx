@@ -33,6 +33,12 @@ Set-Location trello-mcp
 Copy-Item .env.example .env
 # Set TRELLO_API_KEY and TRELLO_TOKEN in .env
 notepad .env
+if (-not (Select-String -Path .env -Pattern '^TRELLO_API_KEY=(?!replace-me$).+$' -Quiet)) {
+  throw 'Set TRELLO_API_KEY to a non-placeholder value in .env before starting.'
+}
+if (-not (Select-String -Path .env -Pattern '^TRELLO_TOKEN=(?!replace-me$).+$' -Quiet)) {
+  throw 'Set TRELLO_TOKEN to a non-placeholder value in .env before starting.'
+}
 docker compose -f docker-compose.local.yml up --build -d --wait --wait-timeout 120
 Invoke-RestMethod http://127.0.0.1:3000/healthz
 Invoke-RestMethod http://127.0.0.1:3000/readyz
