@@ -53,7 +53,7 @@ h6 {
   select,
   summary,
   table[tabindex],
-  [data-transport-chooser-scroll]
+  [data-request-flow-scroll]
 ):focus-visible {
   outline: 3px solid var(--sl-color-accent);
   outline-offset: 3px;
@@ -101,26 +101,26 @@ html[data-has-hero] .card-grid:first-of-type > .card:first-child {
 
 .sl-link-card a[data-client-icon="claude"],
 [data-client-setups] [role="tab"][data-client-icon="claude"] {
-  --client-card-icon: url("/client-icons/claude.svg");
+  --client-card-icon: var(--client-icon-claude);
 }
 
 .sl-link-card a[data-client-icon="openai"],
 [data-client-setups] [role="tab"][data-client-icon="openai"] {
-  --client-card-icon: url("/client-icons/openai.svg");
+  --client-card-icon: var(--client-icon-openai);
 }
 
 .sl-link-card a[data-client-icon="vscode"],
 [data-client-setups] [role="tab"][data-client-icon="vscode"] {
-  --client-card-icon: url("/client-icons/vscode.svg");
+  --client-card-icon: var(--client-icon-vscode);
 }
 
 .sl-link-card a[data-client-icon="opencode"],
 [data-client-setups] [role="tab"][data-client-icon="opencode"] {
-  --client-card-icon: url("/client-icons/opencode.svg");
+  --client-card-icon: var(--client-icon-opencode);
 }
 
 .sl-link-card a[data-client-icon="evidence"] {
-  --client-card-icon: url("/client-icons/evidence.svg");
+  --client-card-icon: var(--client-icon-evidence);
 }
 
 .sl-link-card a[data-client-icon] .title {
@@ -147,23 +147,23 @@ html[data-has-hero] .card-grid:first-of-type > .card:first-child {
 }
 
 .sl-markdown-content h2:is(#claude-desktop, #claude-code) {
-  --client-heading-icon: url("/client-icons/claude.svg");
+  --client-heading-icon: var(--client-icon-claude);
 }
 
 .sl-markdown-content h2#codex {
-  --client-heading-icon: url("/client-icons/openai.svg");
+  --client-heading-icon: var(--client-icon-openai);
 }
 
 .sl-markdown-content h2#vs-code {
-  --client-heading-icon: url("/client-icons/vscode.svg");
+  --client-heading-icon: var(--client-icon-vscode);
 }
 
 .sl-markdown-content h2#opencode {
-  --client-heading-icon: url("/client-icons/opencode.svg");
+  --client-heading-icon: var(--client-icon-opencode);
 }
 
 .sl-markdown-content h2#mcp-inspector-and-manual-clients {
-  --client-heading-icon: url("/client-icons/inspector.svg");
+  --client-heading-icon: var(--client-icon-inspector);
 }
 
 .sl-markdown-content
@@ -208,44 +208,6 @@ html[data-has-hero] .card-grid:first-of-type > .card:first-child {
 
 .sl-markdown-content {
   overflow-wrap: anywhere;
-}
-
-.transport-chooser {
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  margin-inline: 0;
-}
-
-.transport-chooser__viewport {
-  width: 100%;
-  max-width: 100%;
-  overflow-x: auto;
-  overscroll-behavior-inline: contain;
-  border: 1px solid var(--sl-color-gray-5);
-  border-radius: 8px;
-}
-
-.transport-chooser__viewport img {
-  display: block;
-  width: 64rem;
-  min-width: 64rem;
-  max-width: none;
-  height: auto;
-  margin: 0;
-}
-
-.transport-chooser figcaption {
-  margin-block-start: 0.625rem;
-  color: var(--sl-color-gray-2);
-  font-size: var(--sl-text-sm);
-}
-
-@media (min-width: 64rem) {
-  .transport-chooser__viewport img {
-    width: 100%;
-    min-width: 0;
-  }
 }
 
 .sl-markdown-content table {

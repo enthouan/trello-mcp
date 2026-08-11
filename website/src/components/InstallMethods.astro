@@ -8,19 +8,19 @@ const base = import.meta.env.BASE_URL.endsWith("/")
   ? import.meta.env.BASE_URL
   : `${import.meta.env.BASE_URL}/`;
 // biome-ignore lint/correctness/noUnusedVariables: referenced from the Astro template
-const guideRoot = `${base}get-started/`;
+const guideRoot = `${base}getting-started/`;
 ---
 
 <div class="install-methods" data-install-methods>
   <Tabs syncKey="install-method">
-    <TabItem label="Docker">
+    <TabItem label="Local stdio">
+      <InstallMethod method="stdio" showGuideLink />
+    </TabItem>
+    <TabItem label="HTTP · published image">
       <InstallMethod method="docker" showGuideLink />
     </TabItem>
-    <TabItem label="HTTP">
+    <TabItem label="HTTP · source build">
       <InstallMethod method="http" showGuideLink />
-    </TabItem>
-    <TabItem label="stdio">
-      <InstallMethod method="stdio" showGuideLink />
     </TabItem>
   </Tabs>
   <noscript>
@@ -30,9 +30,9 @@ const guideRoot = `${base}get-started/`;
       }
     </style>
     <nav aria-label="Installation guides without JavaScript">
-      JavaScript is disabled. Open the <a href={`${guideRoot}docker/`}>Docker</a>,{" "}
-      <a href={`${guideRoot}http/`}>HTTP</a>, or <a href={`${guideRoot}stdio/`}>stdio</a> guide to
-      read every setup method.
+      JavaScript is disabled. Open the <a href={`${guideRoot}stdio/`}>local stdio</a>,{" "}
+      <a href={`${guideRoot}docker/`}>published-image HTTP</a>, or{" "}
+      <a href={`${guideRoot}http/`}>source-built HTTP</a> guide to read every setup method.
     </nav>
   </noscript>
 </div>

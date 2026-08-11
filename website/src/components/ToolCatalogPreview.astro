@@ -26,7 +26,7 @@ import { CATEGORY_ENTRIES, TOOL_COUNT } from "../data/tool-catalog.js";
         CATEGORY_ENTRIES.map(({ category, label, tools }) => (
           <div data-catalog-preview-row data-category={category}>
             <dt>
-              <a href={`/tools/#tool-group-${category}`}>{label}</a>
+              <a href={`/reference/tools/#tool-group-${category}`}>{label}</a>
             </dt>
             <dd>
               <strong>{tools.length}</strong>{" "}

@@ -4,7 +4,7 @@ A self-hostable [Model Context Protocol](https://modelcontextprotocol.io/) serve
 
 The project is intentionally self-hostable and reusable. Contributions, adaptations, and focused issue reports are welcome.
 
-The roadmap is, of course, tracked on Trello, and `trello-mcp` helps keep it up to date: [trello-mcp roadmap](https://trello.com/b/GnKmvuHz/trello-mcp).
+The roadmap is, of course, tracked on Trello, and `trello-mcp` helps keep it up to date: [trello-mcp roadmap](https://trello.com/b/GnKmvuHz/trello-mcp-enthouan-trello-mcp).
 
 ## Disclaimer
 
@@ -197,8 +197,6 @@ Choose the transport by where the server runs:
 | --- | --- | --- |
 | A built clone and the MCP client are on the same machine | `stdio` | A local command plus Trello credentials in the child-process environment |
 | The server runs in Docker, behind a reverse proxy, or on another host | Streamable HTTP | An `/mcp` URL plus an optional bearer token; Trello credentials stay on the server |
-
-![Transport chooser showing local stdio and service-oriented Streamable HTTP paths](docs/assets/client-setup/transport-chooser.svg)
 
 The [Set up your MCP client guide](docs/client-setup.md) has current, sanitized
 examples for Claude Desktop, Claude Code, Codex CLI, VS Code, OpenCode, MCP

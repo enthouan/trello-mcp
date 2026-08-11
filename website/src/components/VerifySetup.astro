@@ -2,7 +2,11 @@
 // biome-ignore lint/correctness/noUnusedImports: referenced from the Astro template
 import { Aside, Code } from "@astrojs/starlight/components";
 // biome-ignore lint/correctness/noUnusedImports: referenced from the Astro template
-import { VERIFY_EXPECTED, VERIFY_PROMPT } from "../data/clients.js";
+import {
+  VERIFY_EXAMPLE,
+  VERIFY_EXPECTED,
+  VERIFY_PROMPT,
+} from "../data/clients.js";
 
 interface Props {
   headingId?: string;
@@ -18,5 +22,6 @@ const { headingId = "verify-setup" } = Astro.props;
   <Code code={VERIFY_PROMPT} lang="text" meta='title="Read-only verification prompt"' />
   <Aside type="tip" title="Expected result">
     <p>{VERIFY_EXPECTED}</p>
+    <Code code={VERIFY_EXAMPLE} lang="json" meta='title="Sanitized example response"' />
   </Aside>
 </section>

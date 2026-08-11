@@ -1,19 +1,10 @@
 import type { APIRoute } from "astro";
+import { CANONICAL_WEBSITE_URL } from "../data/publication.js";
 
 export const prerender = true;
 
-export const GET: APIRoute = ({ site }) => {
-  if (!site) {
-    throw new Error("Astro.site must be configured to generate robots.txt.");
-  }
-
-  const sitemapUrl = new URL("sitemap-index.xml", site);
-  const body = [
-    "User-agent: *",
-    "Allow: /",
-    `Sitemap: ${sitemapUrl.href}`,
-    "",
-  ].join("\n");
+export const GET: APIRoute = () => {
+  const body = `User-agent: *\nAllow: /\n\nSitemap: ${new URL("sitemap-index.xml", CANONICAL_WEBSITE_URL).href}\n`;
 
   return new Response(body, {
     headers: {

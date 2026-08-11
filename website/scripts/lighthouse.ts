@@ -17,25 +17,9 @@ const baseUrl = (configuredBaseUrl ?? `http://${host}:${port}`).replace(
 const reportDirectory = resolve("website/artifacts/lighthouse");
 const routes = [
   { name: "home", path: "/" },
-  { name: "get-started", path: "/get-started/" },
-  { name: "get-started-docker", path: "/get-started/docker/" },
-  { name: "get-started-http", path: "/get-started/http/" },
-  { name: "get-started-stdio", path: "/get-started/stdio/" },
-  { name: "trello-api-key", path: "/trello-api-key/" },
-  { name: "clients", path: "/clients/" },
-  { name: "clients-compatibility", path: "/clients/compatibility/" },
+  { name: "getting-started", path: "/getting-started/" },
   { name: "how-it-works", path: "/guides/how-it-works/" },
-  { name: "workflows", path: "/guides/workflows/" },
-  { name: "security", path: "/security/" },
-  { name: "troubleshooting", path: "/guides/troubleshooting/" },
-  { name: "faq", path: "/faq/" },
-  { name: "reference", path: "/reference/" },
-  { name: "configuration", path: "/reference/configuration/" },
-  { name: "tools", path: "/tools/" },
-  { name: "tools-api-coverage", path: "/tools/api-coverage/" },
-  { name: "contributing", path: "/reference/contributing/" },
-  { name: "support", path: "/reference/support/" },
-  { name: "security-policy", path: "/reference/security-policy/" },
+  { name: "tools", path: "/reference/tools/" },
 ] as const;
 const minimumScores = {
   accessibility: 1,

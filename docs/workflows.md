@@ -12,7 +12,7 @@ result afterward.
 
 The examples assume that `trello-mcp` is already connected. Follow
 [Set up your MCP client](client-setup.md) first if the tools are not visible, or
-[Trello API Key](trello-api-key.md) if the credentials are not configured.
+[Trello API key](trello-api-key.md) if the credentials are not configured.
 
 ## The five-stage pattern
 
@@ -211,20 +211,21 @@ that escape through `..` or symlinks. Local uploads remain disabled when the
 root is unset. `card_attachment_delete` removes an attachment from the card and
 should be reserved for an explicit request naming the attachment.
 
-## Safety boundaries to keep visible
-
-- Trello permissions determine which reads and writes succeed. Run
-  `auth_whoami` and `auth_token_info` when the authenticated account or token
-  scope is uncertain.
-- Prefer a fresh read immediately before and after a write. Another member or
-  automation can change the same board between calls.
-- Prefer archive tools for recoverable cleanup. Card, label, checklist,
-  checklist-item, comment, and attachment deletion tools do not provide a
-  server-side undo.
-- Keep searches, card collections, and action histories narrow. Pagination or a
-  response-size limit is part of the result and should be disclosed.
-- Never paste Trello credentials or an HTTP bearer token into a workflow prompt.
-  They belong in the server or client environment described in
-  [Set up your MCP client](client-setup.md).
-- Review the [API Coverage](api-coverage.md) page when a prompt assumes a Trello
-  capability that may not be exposed as a tool.
+> **Keep the safety boundary visible.** Treat each workflow as a sequence of
+> scoped calls across a shared Trello account.
+>
+> - Trello permissions determine which reads and writes succeed. Run
+>   `auth_whoami` and `auth_token_info` when the authenticated account or token
+>   scope is uncertain.
+> - Prefer a fresh read immediately before and after a write. Another member or
+>   automation can change the same board between calls.
+> - Prefer archive tools for recoverable cleanup. Card, label, checklist,
+>   checklist-item, comment, and attachment deletion tools do not provide a
+>   server-side undo.
+> - Keep searches, card collections, and action histories narrow. Pagination or
+>   a response-size limit is part of the result and should be disclosed.
+> - Never paste Trello credentials or an HTTP bearer token into a workflow
+>   prompt. They belong in the server or client environment described in
+>   [Set up your MCP client](client-setup.md).
+> - Review the [API Coverage](api-coverage.md) page when a prompt assumes a
+>   Trello capability that may not be exposed as a tool.

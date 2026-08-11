@@ -5,27 +5,7 @@ client chooses a tool and supplies structured inputs; the server validates that
 call, performs the corresponding Trello request, parses the response with the
 tool's configured schema, and returns JSON to the client.
 
-```text
-MCP client
-    |
-    | stdio or sessionful Streamable HTTP
-    v
-trello-mcp transport -> registered tool -> validated input
-                                           |
-                                           v
-                                  shared Trello client
-                                  rate limit + 429 retry
-                                           |
-                                           | API key + token
-                                           v
-                                    Trello REST API
-                                           |
-                                           v
-                                    parsed JSON result
-                                           |
-                                           v
-                                      MCP client
-```
+![Diagram showing an MCP client sending a typed tool call to trello-mcp over local stdio or sessionful Streamable HTTP. trello-mcp reads Trello credentials only at the REST API boundary, validates the response, and returns a result while Trello remains the source of truth.](assets/how-it-works/request-flow.svg)
 
 The server does not maintain a second copy of boards, cards, or activity. Trello
 remains the source of truth for persistent data and access control.
@@ -76,6 +56,37 @@ There is no cross-tool transaction. If a workflow needs several mutations, each
 successful call is already persisted in Trello before the next call begins.
 Clients should use the discover, inspect, propose, approve, and verify sequence
 described in [Trello Workflows](workflows.md).
+
+## Who owns what
+
+### MCP client
+
+Receives your request, chooses a tool, supplies its typed arguments, owns any
+approval prompt, and decides how results are presented to you or a model.
+
+### trello-mcp
+
+Validates configuration and tool inputs, applies local pacing and bounded 429
+retries, calls Trello, parses the response, and returns a JSON-serializable MCP
+result with safely redacted diagnostics.
+
+### Trello
+
+Owns Workspaces, boards, lists, cards, activity, persistent state, and access
+control. The configured member and token determine which reads and writes
+succeed.
+
+## Choose the process boundary
+
+| Shape | Process and network boundary | Best fit |
+| --- | --- | --- |
+| Local `stdio` | The MCP client launches a child process. No HTTP listener opens. | One local desktop or command-line client. |
+| Direct Node.js — Streamable HTTP | A persistent process listens on the configured port. A firewall, container publisher, or reverse proxy controls reachability. | A service deployment whose network boundary you manage explicitly. |
+| Docker Compose — Streamable HTTP | The container listens internally on `0.0.0.0:3000`; Docker publishes it on host loopback by default. | Local or operator-managed deployments shared by HTTP-capable clients. |
+
+All three expose the same tool catalog. The choice changes how a client reaches
+the server and where credentials live, not which Trello operations are
+available.
 
 ## Transport boundaries
 
@@ -170,7 +181,7 @@ Trello token. Every accepted client call uses the same server-side Trello
 credentials. Use `auth_whoami` and `auth_token_info` to inspect that identity,
 token expiry, and token permissions without making a write.
 
-Follow [Trello API Key](trello-api-key.md) for credential creation and rotation.
+Follow [Trello API key](trello-api-key.md) for credential creation and rotation.
 
 ## Validation and error handling
 

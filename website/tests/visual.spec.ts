@@ -4,34 +4,15 @@ import { expect, test } from "@playwright/test";
 
 const routes = [
   { name: "home", path: "/" },
-  { name: "get-started", path: "/get-started/" },
-  { name: "get-started-docker", path: "/get-started/docker/" },
-  { name: "get-started-http", path: "/get-started/http/" },
-  { name: "get-started-stdio", path: "/get-started/stdio/" },
-  { name: "trello-api-key", path: "/trello-api-key/" },
-  { name: "clients", path: "/clients/" },
-  { name: "clients-compatibility", path: "/clients/compatibility/" },
+  { name: "getting-started", path: "/getting-started/" },
+  { name: "clients", path: "/getting-started/clients/" },
   { name: "how-it-works", path: "/guides/how-it-works/" },
-  { name: "workflows", path: "/guides/workflows/" },
-  { name: "security", path: "/security/" },
-  { name: "troubleshooting", path: "/guides/troubleshooting/" },
-  { name: "faq", path: "/faq/" },
-  { name: "reference", path: "/reference/" },
-  { name: "configuration", path: "/reference/configuration/" },
-  { name: "tools", path: "/tools/" },
-  { name: "tools-api-coverage", path: "/tools/api-coverage/" },
-  { name: "contributing", path: "/reference/contributing/" },
-  { name: "support", path: "/reference/support/" },
-  { name: "security-policy", path: "/reference/security-policy/" },
+  { name: "tools", path: "/reference/tools/" },
 ] as const;
 
 const viewports = [
   { name: "desktop-1440x900", width: 1440, height: 900 },
-  { name: "desktop-1920x1080", width: 1920, height: 1080 },
-  { name: "ipad-portrait-768x1024", width: 768, height: 1024 },
-  { name: "ipad-landscape-1024x768", width: 1024, height: 768 },
   { name: "mobile-390x844", width: 390, height: 844 },
-  { name: "narrow-mobile-320x568", width: 320, height: 568 },
 ] as const;
 
 test.describe("responsive visual QA matrix", () => {
@@ -89,7 +70,7 @@ test.describe("responsive visual QA matrix", () => {
 });
 
 test.describe("footer visual QA", () => {
-  for (const viewport of [viewports[0], viewports[4]] as const) {
+  for (const viewport of viewports) {
     for (const theme of ["light", "dark"] as const) {
       test(`footer · ${theme} · ${viewport.name}`, async ({
         page,

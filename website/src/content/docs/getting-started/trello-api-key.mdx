@@ -1,7 +1,6 @@
 ---
-title: "Trello API Key"
+title: "Trello API key"
 description: "Create a Trello app, generate an API key, authorize a token, store both credentials safely, and verify them with trello-mcp."
-editUrl: "https://github.com/enthouan/trello-mcp/edit/main/docs/trello-api-key.md"
 ---
 
 import {
@@ -34,11 +33,12 @@ call apps "Power-Ups," but the current developer portal labels this area
   or pull requests.
 
 :::caution[The token is broad account access]
-Trello says a generated token can read
-and change resources allowed by its consent screen and remains active until it
-is disabled. It can also reach boards and Workspaces the member gains access
-to later. Treat the token like a password and use a dedicated Trello member
-when you need a narrower boundary.
+Trello tokens can be issued for one
+hour, one day, 30 days, or without a scheduled expiration. A token remains
+usable until it expires or is revoked, and it can reach boards and Workspaces
+the member gains access to later when those resources fall within the granted
+scope. Treat the token like a password and use a dedicated Trello member when
+you need a narrower boundary.
 :::
 
 ## Create the credentials
@@ -99,7 +99,7 @@ when you need a narrower boundary.
 
    For local `stdio`, the same two environment variables can instead live in a
    protected MCP client configuration. Continue with
-   [Set up your MCP client](/clients/) after creating the credentials.
+   [Set up your MCP client](/getting-started/clients/) after creating the credentials.
 
 7. **Verify without changing Trello data.**
 
@@ -174,6 +174,6 @@ screen is blocked.
 
 ## Continue setup
 
-- [Run and verify trello-mcp](/get-started/).
-- [Connect an MCP client](/clients/).
+- [Run and verify trello-mcp](/getting-started/).
+- [Connect an MCP client](/getting-started/clients/).
 - [Review the security boundary](/reference/security-policy/).

@@ -1,0 +1,152 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="620" viewBox="0 0 1200 620" role="img" aria-labelledby="title description">
+  <title id="title">How a trello-mcp tool call travels</title>
+  <desc id="description">An MCP client sends a typed tool call to trello-mcp over local stdio or sessionful Streamable HTTP. trello-mcp validates the input, reads the Trello API key and token from its environment, calls the Trello REST API, validates the response, and returns a result. Trello remains the source of truth.</desc>
+  <defs>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --flow-canvas: #f8fbff;
+        --flow-title: #172b4d;
+        --flow-copy: #44546f;
+        --flow-client-panel: #e9f2ff;
+        --flow-client-stroke: #0c66e4;
+        --flow-client-badge: #cce0ff;
+        --flow-client-accent: #0052cc;
+        --flow-server-panel: #f1f6ff;
+        --flow-server-stroke: #579dff;
+        --flow-server-badge: #deebff;
+        --flow-server-accent: #0747a6;
+        --flow-api-panel: #e3fcef;
+        --flow-api-stroke: #22a06b;
+        --flow-api-badge: #baf3db;
+        --flow-api-accent: #216e4e;
+        --flow-detail: #ffffff;
+        --flow-detail-stroke: #b7c7d9;
+        --flow-request: #0c66e4;
+        --flow-result: #626f86;
+        --flow-footer: #09326c;
+        --flow-footer-copy: #ffffff;
+      }
+      text { font-family: Arial, Helvetica, sans-serif; }
+      .canvas { fill: var(--flow-canvas); }
+      .title { font-size: 30px; font-weight: 700; fill: var(--flow-title); }
+      .subtitle { font-size: 16px; font-weight: 400; fill: var(--flow-copy); }
+      .eyebrow { font-size: 14px; font-weight: 700; letter-spacing: 0.04em; }
+      .node-title { font-size: 24px; font-weight: 700; fill: var(--flow-title); }
+      .node-copy { font-size: 16px; font-weight: 500; fill: var(--flow-copy); }
+      .detail-title { font-size: 15px; font-weight: 700; fill: var(--flow-title); }
+      .detail-copy { font-size: 14px; font-weight: 500; fill: var(--flow-copy); }
+      .arrow-label { font-size: 13px; font-weight: 700; letter-spacing: 0.01em; }
+      .arrow-request { fill: var(--flow-request); }
+      .arrow-result { fill: var(--flow-result); }
+      .section-label { font-size: 15px; font-weight: 700; letter-spacing: 0.04em; fill: var(--flow-copy); }
+      .client-panel { fill: var(--flow-client-panel); stroke: var(--flow-client-stroke); }
+      .client-badge { fill: var(--flow-client-badge); }
+      .client-accent { fill: var(--flow-client-accent); }
+      .server-panel { fill: var(--flow-server-panel); stroke: var(--flow-server-stroke); }
+      .server-badge { fill: var(--flow-server-badge); }
+      .server-accent { fill: var(--flow-server-accent); }
+      .api-panel { fill: var(--flow-api-panel); stroke: var(--flow-api-stroke); }
+      .api-badge { fill: var(--flow-api-badge); }
+      .api-accent { fill: var(--flow-api-accent); }
+      .detail-box, .credential-card { fill: var(--flow-detail); stroke: var(--flow-detail-stroke); }
+      .request-arrow { fill: var(--flow-request); }
+      .result-arrow { fill: var(--flow-result); }
+      .footer-band { fill: var(--flow-footer); }
+      .footer-copy { font-size: 14px; font-weight: 700; fill: var(--flow-footer-copy); }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --flow-canvas: #0c1624;
+          --flow-title: #eef6ff;
+          --flow-copy: #b6c2cf;
+          --flow-client-panel: #102a4d;
+          --flow-client-stroke: #579dff;
+          --flow-client-badge: #193f70;
+          --flow-client-accent: #cce0ff;
+          --flow-server-panel: #172554;
+          --flow-server-stroke: #85b8ff;
+          --flow-server-badge: #20366f;
+          --flow-server-accent: #d6e4ff;
+          --flow-api-panel: #10352b;
+          --flow-api-stroke: #4bce97;
+          --flow-api-badge: #164b3d;
+          --flow-api-accent: #baf3db;
+          --flow-detail: #172233;
+          --flow-detail-stroke: #44546f;
+          --flow-request: #85b8ff;
+          --flow-result: #9fadbc;
+          --flow-footer: #1c3b66;
+          --flow-footer-copy: #deebff;
+        }
+      }
+    </style>
+  </defs>
+
+  <rect class="canvas" width="1200" height="620" rx="10" />
+  <text x="45" y="58" class="title">How a trello-mcp tool call travels</text>
+  <text x="45" y="88" class="subtitle">The client, your server, and Trello each own a different part of the trust boundary.</text>
+
+  <rect class="client-panel" x="45" y="125" width="300" height="275" rx="12" stroke-width="2" />
+  <rect class="client-badge" x="69" y="149" width="112" height="30" rx="5" />
+  <text x="125" y="170" text-anchor="middle" class="eyebrow client-accent">CLIENT</text>
+  <text x="69" y="220" class="node-title">MCP client</text>
+  <text x="69" y="255" class="node-copy">Prompt, approvals, and</text>
+  <text x="69" y="281" class="node-copy">presentation of tool results</text>
+  <rect class="detail-box" x="69" y="316" width="252" height="60" rx="8" />
+  <text x="85" y="341" class="detail-title">Transport</text>
+  <text x="85" y="363" class="detail-copy">Local stdio · Sessionful HTTP</text>
+
+  <rect class="server-panel" x="450" y="125" width="300" height="275" rx="12" stroke-width="2" />
+  <rect class="server-badge" x="474" y="149" width="126" height="30" rx="5" />
+  <text x="537" y="170" text-anchor="middle" class="eyebrow server-accent">YOUR HOST</text>
+  <text x="474" y="220" class="node-title">trello-mcp</text>
+  <text x="474" y="255" class="node-copy">Typed tools, validation,</text>
+  <text x="474" y="281" class="node-copy">pacing, and bounded retries</text>
+  <rect class="detail-box" x="474" y="316" width="252" height="60" rx="8" />
+  <text x="490" y="341" class="detail-title">Process boundary</text>
+  <text x="490" y="363" class="detail-copy">Secrets stay in the environment</text>
+
+  <rect class="api-panel" x="855" y="125" width="300" height="275" rx="12" stroke-width="2" />
+  <rect class="api-badge" x="879" y="149" width="112" height="30" rx="5" />
+  <text x="935" y="170" text-anchor="middle" class="eyebrow api-accent">TRELLO</text>
+  <text x="879" y="220" class="node-title">Trello REST API</text>
+  <text x="879" y="255" class="node-copy">Boards, cards, activity,</text>
+  <text x="879" y="281" class="node-copy">permissions, and persistence</text>
+  <rect class="detail-box" x="879" y="316" width="252" height="60" rx="8" />
+  <text x="895" y="341" class="detail-title">Source of truth</text>
+  <text x="895" y="363" class="detail-copy">Workspaces · boards · cards</text>
+
+  <path d="M356.5,243.5 H432 V239 L444,245 L432,251 V246.5 H356.5 Q353.5,245 356.5,243.5 Z" class="request-arrow" />
+  <text x="397.5" y="224" text-anchor="middle" class="arrow-label arrow-request">Tool call</text>
+  <path d="M438.5,293.5 H363 V289 L351,295 L363,301 V296.5 H438.5 Q441.5,295 438.5,293.5 Z" class="result-arrow" />
+  <text x="397.5" y="321" text-anchor="middle" class="arrow-label arrow-result">Tool result</text>
+
+  <path d="M761.5,243.5 H837 V239 L849,245 L837,251 V246.5 H761.5 Q758.5,245 761.5,243.5 Z" class="request-arrow" />
+  <text x="802.5" y="224" text-anchor="middle" class="arrow-label arrow-request">REST request</text>
+  <path d="M843.5,293.5 H768 V289 L756,295 L768,301 V296.5 H843.5 Q846.5,295 843.5,293.5 Z" class="result-arrow" />
+  <text x="802.5" y="321" text-anchor="middle" class="arrow-label arrow-result">REST response</text>
+
+  <text x="45" y="435" class="section-label">CREDENTIAL BOUNDARIES</text>
+
+  <rect class="credential-card" x="45" y="455" width="300" height="88" rx="9" />
+  <circle class="client-accent" cx="69" cy="480" r="7" />
+  <text x="87" y="485" class="detail-title">MCP client</text>
+  <text x="69" y="511" class="detail-copy">HTTP: sends MCP_AUTH_TOKEN</text>
+  <text x="69" y="531" class="detail-copy">stdio: sends no MCP bearer token</text>
+
+  <rect class="credential-card" x="450" y="455" width="300" height="88" rx="9" />
+  <circle class="server-accent" cx="474" cy="480" r="7" />
+  <text x="492" y="485" class="detail-title">Server environment</text>
+  <text x="474" y="511" class="detail-copy">checks MCP_AUTH_TOKEN when set</text>
+  <text x="474" y="531" class="detail-copy">holds Trello API key + token</text>
+
+  <rect class="credential-card" x="855" y="455" width="300" height="88" rx="9" />
+  <circle class="api-accent" cx="879" cy="480" r="7" />
+  <text x="897" y="485" class="detail-title">Trello REST API</text>
+  <text x="879" y="511" class="detail-copy">receives API key + token on calls</text>
+  <text x="879" y="531" class="detail-copy">owns persistent Trello data</text>
+
+  <rect class="footer-band" x="205" y="570" width="790" height="34" rx="8" />
+  <text x="600" y="592" text-anchor="middle" class="footer-copy">trello-mcp keeps Trello credentials out of MCP requests and results</text>
+</svg>

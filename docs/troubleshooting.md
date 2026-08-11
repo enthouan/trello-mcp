@@ -271,7 +271,7 @@ This is a tool-call error from Trello, not the optional HTTP MCP bearer check.
   configured as `TRELLO_API_KEY`.
 - Restart the process or container after replacing either value.
 - If the token was revoked, expired, exposed, or belongs to the wrong member,
-  replace it using [Trello API Key](trello-api-key.md).
+  replace it using [Trello API key](trello-api-key.md).
 - Once authentication works, call the read-only `auth_whoami` and
   `auth_token_info` tools to confirm the member, expiration, and permissions.
 

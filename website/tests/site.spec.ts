@@ -6,6 +6,10 @@ const DISCLAIMER =
   "trello-mcp is an independent, community-maintained project. It is not an official Trello or Atlassian product, service, or MCP implementation, and it is not affiliated with, endorsed by, or sponsored by Trello or Atlassian.";
 const DEVELOPER_URL = "https://www.antoinemenard.com/";
 const OFFICIAL_ENDPOINT = "https://mcp.trello.com/v1";
+const ROADMAP_URL =
+  "https://trello.com/b/GnKmvuHz/trello-mcp-enthouan-trello-mcp";
+const CANONICAL_WEBSITE_URL = "https://trello-mcp.com/";
+const CANONICAL_WEBSITE_ORIGIN = new URL(CANONICAL_WEBSITE_URL).origin;
 const FOOTER_ATTRIBUTION =
   "trello-mcp is an open-source project released under the MIT License and maintained by Antoine Ménard.";
 const FOOTER_DISCLAIMER =
@@ -13,8 +17,14 @@ const FOOTER_DISCLAIMER =
 const HERO_TITLE = "Manage Trello from your MCP client.";
 const HERO_TAGLINE =
   "A self-hosted Model Context Protocol (MCP) server for existing Trello users. Find cards, organize lists, manage checklists, and coordinate projects from a server you run.";
-const TRANSPORT_CHOOSER_ALT =
-  "Transport chooser showing local stdio and service-oriented Streamable HTTP paths";
+const CLIENT_ICON_SOURCES = {
+  claude: ["fab", "claude"],
+  evidence: ["fas", "clipboard-check"],
+  inspector: ["fas", "magnifying-glass"],
+  openai: ["fab", "openai"],
+  opencode: ["fas", "robot"],
+  vscode: ["fas", "code"],
+} as const;
 const CATALOG_PREVIEW_CATEGORIES = [
   [
     "credentials",
@@ -118,24 +128,25 @@ const CATALOG_PREVIEW_CATEGORIES = [
 
 const publicRoutes = [
   "/",
-  "/get-started/",
-  "/get-started/docker/",
-  "/get-started/http/",
-  "/get-started/stdio/",
-  "/trello-api-key/",
-  "/clients/",
-  "/clients/compatibility/",
+  "/getting-started/",
+  "/getting-started/docker/",
+  "/getting-started/http/",
+  "/getting-started/stdio/",
+  "/getting-started/trello-api-key/",
+  "/getting-started/clients/",
+  "/getting-started/compatibility/",
   "/guides/how-it-works/",
   "/guides/workflows/",
-  "/security/",
+  "/guides/security/",
+  "/guides/operations/",
   "/guides/troubleshooting/",
-  "/faq/",
+  "/guides/faq/",
   "/reference/",
   "/reference/configuration/",
-  "/tools/",
-  "/tools/api-coverage/",
+  "/reference/tools/",
+  "/reference/api-coverage/",
   "/reference/contributing/",
-  "/reference/support/",
+  "/reference/reporting-issues/",
   "/reference/security-policy/",
   "/404.html",
 ] as const;
@@ -146,37 +157,37 @@ const publicDocumentMetadata = {
     description:
       "A self-hosted, auditable Model Context Protocol server for broad Trello automation.",
   },
-  "/get-started/": {
+  "/getting-started/": {
     title: "Install and run",
     description:
-      "Connect your MCP client first, then choose a trello-mcp deployment shape when you need one.",
+      "Create Trello credentials, choose a transport and installation path, configure your MCP client, then verify the connection.",
   },
-  "/get-started/docker/": {
+  "/getting-started/docker/": {
     title: "Docker Compose",
     description:
       "Run the published trello-mcp image as a loopback-published Compose service, or build the image locally.",
   },
-  "/get-started/http/": {
+  "/getting-started/http/": {
     title: "Streamable HTTP",
     description:
       "Connect an HTTP MCP client to trello-mcp on loopback and understand the wider-network boundary.",
   },
-  "/get-started/stdio/": {
+  "/getting-started/stdio/": {
     title: "stdio",
     description:
       "Let a local desktop MCP client launch trello-mcp as a child process without a network listener.",
   },
-  "/trello-api-key/": {
-    title: "Trello API Key",
+  "/getting-started/trello-api-key/": {
+    title: "Trello API key",
     description:
       "Create a Trello app, generate an API key, authorize a token, store both credentials safely, and verify them with trello-mcp.",
   },
-  "/clients/": {
+  "/getting-started/clients/": {
     title: "Set up your MCP client",
     description:
       "Configure trello-mcp over local stdio or Streamable HTTP in supported MCP clients.",
   },
-  "/clients/compatibility/": {
+  "/getting-started/compatibility/": {
     title: "Compatibility evidence",
     description:
       "Dated evidence for MCP client setup, transport connection, tool discovery, and live Trello validation.",
@@ -191,6 +202,11 @@ const publicDocumentMetadata = {
     description:
       "Practical Trello workflows expressed through the MCP tool catalog.",
   },
+  "/guides/operations/": {
+    title: "Operate trello-mcp",
+    description:
+      "Upgrade, roll back, inspect, stop, and rotate credentials for a running trello-mcp deployment.",
+  },
   "/guides/troubleshooting/": {
     title: "Troubleshooting",
     description:
@@ -199,19 +215,19 @@ const publicDocumentMetadata = {
   "/reference/": {
     title: "Reference",
     description:
-      "Repository, policy, support, documentation-source, live-validation, release, and roadmap resources for trello-mcp.",
+      "Technical reference, contribution guidance, issue reporting, release resources, and security policies for trello-mcp.",
   },
   "/reference/configuration/": {
     title: "Configuration reference",
     description:
       "Every trello-mcp runtime and Compose setting, its default, and the boundary it controls.",
   },
-  "/tools/": {
+  "/reference/tools/": {
     title: "Tool catalog",
     description:
       "Search 77 Trello MCP tools by category, behavior, name, purpose, and input.",
   },
-  "/tools/api-coverage/": {
+  "/reference/api-coverage/": {
     title: "API coverage",
     description:
       "Supported, partially supported, deferred, and out-of-scope Trello REST API groups.",
@@ -221,7 +237,7 @@ const publicDocumentMetadata = {
     description:
       "Run the project checks, update canonical documentation, follow the Trello tool pattern, and prepare focused contributions safely.",
   },
-  "/reference/support/": {
+  "/reference/reporting-issues/": {
     title: "Reporting issues and support",
     description:
       "Choose the right support channel and prepare a useful, sanitized trello-mcp bug report.",
@@ -231,12 +247,12 @@ const publicDocumentMetadata = {
     description:
       "Supported versions, private vulnerability reporting, sensitive data handling, and threat-model boundaries for trello-mcp.",
   },
-  "/security/": {
+  "/guides/security/": {
     title: "Security and data flow",
     description:
       "Understand how trello-mcp handles credentials, Trello data, transports, logs, attachment uploads, and write operations.",
   },
-  "/faq/": {
+  "/guides/faq/": {
     title: "FAQ",
     description:
       "Answers about trello-mcp hosting, credentials, transports, Trello access, destructive tools, privacy, support, and the official Trello MCP server.",
@@ -247,34 +263,31 @@ const publicDocumentMetadata = {
 >;
 
 const primaryNavigation = [
-  ["Install and run", "/get-started/"],
-  ["Trello API Key", "/trello-api-key/"],
-  ["Set up your MCP client", "/clients/"],
-  ["Compatibility", "/clients/compatibility/"],
-  ["Docker Compose", "/get-started/docker/"],
-  ["Streamable HTTP", "/get-started/http/"],
-  ["stdio", "/get-started/stdio/"],
+  ["Install and run", "/getting-started/"],
+  ["Trello API key", "/getting-started/trello-api-key/"],
+  ["Set up your MCP client", "/getting-started/clients/"],
+  ["Compatibility", "/getting-started/compatibility/"],
+  ["Docker Compose", "/getting-started/docker/"],
+  ["Streamable HTTP", "/getting-started/http/"],
+  ["stdio", "/getting-started/stdio/"],
   ["How it works", "/guides/how-it-works/"],
   ["Workflows", "/guides/workflows/"],
-  ["Security & Data", "/security/"],
+  ["Security & Data", "/guides/security/"],
+  ["Operations", "/guides/operations/"],
   ["Troubleshooting", "/guides/troubleshooting/"],
-  ["FAQ", "/faq/"],
+  ["FAQ", "/guides/faq/"],
   ["Overview", "/reference/"],
   ["Configuration", "/reference/configuration/"],
-  ["Tool catalog", "/tools/"],
-  ["API coverage", "/tools/api-coverage/"],
+  ["Tool catalog", "/reference/tools/"],
+  ["API coverage", "/reference/api-coverage/"],
   ["Contributing", "/reference/contributing/"],
-  ["Reporting issues and support", "/reference/support/"],
+  ["Reporting issues and support", "/reference/reporting-issues/"],
   ["Security policy", "/reference/security-policy/"],
 ] as const;
 
 const responsiveViewports = [
   { name: "desktop-1440", width: 1440, height: 900 },
-  { name: "desktop-1920", width: 1920, height: 1080 },
-  { name: "ipad-portrait", width: 768, height: 1024 },
-  { name: "ipad-landscape", width: 1024, height: 768 },
   { name: "mobile", width: 390, height: 844 },
-  { name: "narrow-mobile", width: 320, height: 568 },
 ] as const;
 
 function getClientPickerGrid(page: Page) {
@@ -427,7 +440,7 @@ test.describe("public production routes", () => {
         );
         const openGraphUrl = page.locator('meta[property="og:url"]');
 
-        await expect(page).toHaveTitle(`${metadata.title} | trello-mcp`);
+        await expect(page).toHaveTitle(`${metadata.title} — trello-mcp`);
         await expect(description).toHaveCount(1);
         await expect(description).toHaveAttribute(
           "content",
@@ -442,6 +455,7 @@ test.describe("public production routes", () => {
         const canonicalUrl = new URL(
           canonicalHref ?? "http://invalid.invalid/",
         );
+        expect(canonicalUrl.origin).toBe(CANONICAL_WEBSITE_ORIGIN);
         expect(canonicalUrl.pathname).toBe(route);
         expect(canonicalUrl.search).toBe("");
         expect(canonicalUrl.hash).toBe("");
@@ -575,8 +589,10 @@ test("project footer preserves Starlight metadata and matches the reference layo
     .toBe("none");
 
   for (const [name, href] of [
-    ["Tools", "/tools/"],
-    ["Security", "/security/"],
+    ["Reference", "/reference/"],
+    ["Roadmap", ROADMAP_URL],
+    ["Help", "/reference/reporting-issues/"],
+    ["Security & Data", "/guides/security/"],
     ["GitHub", "https://github.com/enthouan/trello-mcp"],
   ] as const) {
     await expect(
@@ -669,7 +685,7 @@ test("project footer preserves Starlight metadata and matches the reference layo
 test("required attribution, independent-project language, and official alternative are exact", async ({
   page,
 }) => {
-  for (const route of ["/", "/get-started/"]) {
+  for (const route of ["/", "/getting-started/"]) {
     await test.step(`${route} displays the required notice`, async () => {
       await gotoLoaded(page, route);
       const main = page.locator("main");
@@ -686,7 +702,10 @@ test("required attribution, independent-project language, and official alternati
     });
   }
 
-  for (const route of ["/clients/", "/trello-api-key/"]) {
+  for (const route of [
+    "/getting-started/clients/",
+    "/getting-started/trello-api-key/",
+  ]) {
     await test.step(`${route} has no duplicate project banner`, async () => {
       await gotoLoaded(page, route);
       const main = page.locator("main");
@@ -704,19 +723,28 @@ test("required attribution, independent-project language, and official alternati
     });
   }
 
-  for (const route of ["/faq/", "/reference/"]) {
-    await gotoLoaded(page, route);
-    await expect(page.locator("main")).toContainText(OFFICIAL_ENDPOINT);
-    await expect(page.locator("main")).not.toContainText(
-      "developed by Antoine Ménard",
-    );
-  }
+  await gotoLoaded(page, "/guides/faq/");
+  await expect(page.locator("main")).toContainText(OFFICIAL_ENDPOINT);
+  await expect(page.locator("main")).not.toContainText(
+    "developed by Antoine Ménard",
+  );
+
+  await gotoLoaded(page, "/reference/");
+  await expect(page.locator("main")).not.toContainText(OFFICIAL_ENDPOINT);
+  await expect(
+    page.locator(
+      'main a[href="https://support.atlassian.com/trello/docs/connect-trello-to-ai-assistants-with-trello-mcp/"]',
+    ),
+  ).toBeVisible();
+  await expect(page.locator("main")).not.toContainText(
+    "developed by Antoine Ménard",
+  );
 });
 
 test("installation guidance names the image, recommends reproducible tags, and links source-built HTTP correctly", async ({
   page,
 }) => {
-  await gotoLoaded(page, "/get-started/docker/");
+  await gotoLoaded(page, "/getting-started/docker/");
   const main = page.locator("main");
 
   await expect(
@@ -736,6 +764,17 @@ test("installation guidance names the image, recommends reproducible tags, and l
   await expect(tagTable).toContainText(
     "Follows the current main branch build and can change whenever main publishes.",
   );
+  await expect(main).toContainText(
+    "Set TRELLO_MCP_IMAGE_TAG to an exact published X.Y.Z release before starting.",
+  );
+  await expect(
+    main.locator("pre").filter({
+      hasText: "Select-String -Path .env -Pattern '^TRELLO_MCP_IMAGE_TAG=",
+    }),
+  ).toBeVisible();
+  await expect(
+    main.getByRole("heading", { name: "Windows PowerShell", exact: true }),
+  ).toBeVisible();
 
   await expect(
     main.getByRole("heading", { name: "Local Docker build", exact: true }),
@@ -756,26 +795,52 @@ test("installation guidance names the image, recommends reproducible tags, and l
   }
   await expect(main).not.toContainText("http://localhost:3000");
 
-  await gotoLoaded(page, "/clients/");
+  await gotoLoaded(page, "/getting-started/clients/");
   await expect(
     page.getByRole("link", { name: "local Docker build", exact: true }),
-  ).toHaveAttribute("href", "/get-started/docker/#local-docker-build");
+  ).toHaveAttribute("href", "/getting-started/docker/#local-docker-build");
 });
 
-test("README publishing, website CI, local QA, and OCI metadata stay on the documented safe defaults", async () => {
-  const [readme, releaseWorkflow, buildWorkflow, contributing] =
-    await Promise.all([
-      readFile(new URL("../../README.md", import.meta.url), "utf8"),
-      readFile(
-        new URL("../../.github/workflows/release.yml", import.meta.url),
-        "utf8",
-      ),
-      readFile(
-        new URL("../../.github/workflows/build-and-test.yml", import.meta.url),
-        "utf8",
-      ),
-      readFile(new URL("../../CONTRIBUTING.md", import.meta.url), "utf8"),
-    ]);
+test("README publishing, canonical website builds, local QA, and OCI metadata stay on the documented safe defaults", async () => {
+  const [
+    readme,
+    releaseWorkflow,
+    buildWorkflow,
+    contributing,
+    packageSource,
+    websitePackageSource,
+    workspaceSource,
+    astroConfig,
+    robotsSource,
+    publicationSource,
+    cloudflareHeaders,
+  ] = await Promise.all([
+    readFile(new URL("../../README.md", import.meta.url), "utf8"),
+    readFile(
+      new URL("../../.github/workflows/release.yml", import.meta.url),
+      "utf8",
+    ),
+    readFile(
+      new URL("../../.github/workflows/build-and-test.yml", import.meta.url),
+      "utf8",
+    ),
+    readFile(new URL("../../CONTRIBUTING.md", import.meta.url), "utf8"),
+    readFile(new URL("../../package.json", import.meta.url), "utf8"),
+    readFile(new URL("../package.json", import.meta.url), "utf8"),
+    readFile(new URL("../../pnpm-workspace.yaml", import.meta.url), "utf8"),
+    readFile(new URL("../astro.config.mjs", import.meta.url), "utf8"),
+    readFile(new URL("../src/pages/robots.txt.ts", import.meta.url), "utf8"),
+    readFile(new URL("../src/data/publication.ts", import.meta.url), "utf8"),
+    readFile(new URL("../public/_headers", import.meta.url), "utf8"),
+  ]);
+  const packageScripts = (
+    JSON.parse(packageSource) as { scripts: Record<string, string> }
+  ).scripts;
+  const websitePackage = JSON.parse(websitePackageSource) as {
+    name: string;
+    private: boolean;
+    scripts: Record<string, string>;
+  };
 
   expect(readme).not.toContain("docker run --rm -p 3000:3000");
   expect(
@@ -792,14 +857,55 @@ test("README publishing, website CI, local QA, and OCI metadata stay on the docu
   expect(
     buildWorkflow.match(/actions\/checkout@v7\n\s+with:\n\s+fetch-depth: 0/g),
   ).toHaveLength(1);
+  expect(packageScripts["website:dev"]).toBe("pnpm --dir website dev");
+  expect(packageScripts["website:build"]).toBe("pnpm --dir website build");
+  expect(packageScripts["website:preview"]).toBe("pnpm --dir website preview");
+  expect(websitePackage).toMatchObject({
+    name: "trello-mcp-website",
+    private: true,
+    scripts: {
+      dev: "ASTRO_DEV_BACKGROUND=0 astro dev",
+      build: "astro build",
+      preview: "ASTRO_PREVIEW_BACKGROUND=0 astro preview",
+      typecheck: "astro check --minimumFailingSeverity warning",
+    },
+  });
+  expect(websitePackage).toHaveProperty("devDependencies", {
+    "@astrojs/check": "0.9.10",
+    "@astrojs/markdown-remark": "7.2.2",
+    "@astrojs/starlight": "0.41.7",
+    "@fortawesome/free-brands-svg-icons": "7.3.1",
+    "@fortawesome/free-solid-svg-icons": "7.3.1",
+    astro: "7.2.0",
+    sharp: "0.35.3",
+    typescript: "6.0.3",
+  });
+  expect(workspaceSource).toMatch(/^packages:\n\s+- website\s*$/);
+  for (const deprecatedScript of [
+    "site:dev",
+    "site:build",
+    "site:build:production",
+    "site:preview",
+  ]) {
+    expect(packageScripts).not.toHaveProperty(deprecatedScript);
+  }
+  expect(astroConfig).toContain("site: CANONICAL_WEBSITE_URL");
+  expect(astroConfig).not.toContain("PageSidebar");
+  expect(robotsSource).toContain("CANONICAL_WEBSITE_URL");
+  expect(publicationSource.trim()).toBe(
+    `export const CANONICAL_WEBSITE_URL = "${CANONICAL_WEBSITE_URL}";`,
+  );
+  for (const source of [astroConfig, robotsSource, publicationSource]) {
+    expect(source).not.toMatch(
+      /node:process|WEBSITE_(?:BASE_URL|PUBLICATION_MODE)/,
+    );
+  }
   for (const command of [
     "pnpm docs:check",
     "pnpm site:og:check",
     "pnpm site:check",
-    "pnpm site:build",
+    "pnpm website:build",
     "pnpm site:test",
-    "pnpm site:visual",
-    "pnpm site:lighthouse",
   ]) {
     expect(buildWorkflow).toContain(command);
   }
@@ -808,24 +914,56 @@ test("README publishing, website CI, local QA, and OCI metadata stay on the docu
     "cloudflare/wrangler-action",
     "CLOUDFLARE_API_TOKEN",
     "CLOUDFLARE_ACCOUNT_ID",
+    "SITE_URL",
+    "WEBSITE_BASE_URL",
+    "WEBSITE_PUBLICATION_MODE",
+    "site:build:production",
+    "pnpm site:visual",
+    "pnpm site:lighthouse",
+    "playwright install --with-deps chromium webkit",
     "pages deploy",
   ]) {
     expect(buildWorkflow).not.toContain(deploymentMarker);
   }
+  expect(buildWorkflow).toContain(
+    "PLAYWRIGHT_USE_EXISTING_BUILD=1 pnpm site:test",
+  );
   expect(contributing).toContain(
     [
-      "corepack pnpm site:build",
-      "corepack pnpm exec playwright install --with-deps chromium webkit",
+      "corepack pnpm website:build",
+      "corepack pnpm exec playwright install --with-deps chromium",
       "corepack pnpm site:test",
-      "corepack pnpm site:lighthouse",
     ].join("\n"),
   );
+  expect(contributing).toContain(
+    "Cloudflare Pages should run `corepack pnpm website:build`",
+  );
+  expect(contributing).toMatch(/no website environment\s+variable is required/);
+  expect(contributing).not.toMatch(
+    /WEBSITE_(?:BASE_URL|PUBLICATION_MODE)|SITE_URL|site:build:production/,
+  );
+  expect(contributing).toContain(
+    "Run `corepack pnpm site:visual` for the smaller desktop/mobile",
+  );
+  expect(contributing).toContain(
+    "`corepack pnpm site:lighthouse` when a release or",
+  );
+  expect(cloudflareHeaders.trim()).toBe(
+    [
+      "/*",
+      "  X-Content-Type-Options: nosniff",
+      "  Referrer-Policy: strict-origin-when-cross-origin",
+      "  X-Frame-Options: DENY",
+      "  Permissions-Policy: camera=(), geolocation=(), microphone=(), payment=(), usb=()",
+    ].join("\n"),
+  );
+  expect(cloudflareHeaders).not.toContain("Content-Security-Policy");
 });
 
 test("transport guides preserve Trello-specific runtime and security boundaries", async ({
   page,
 }) => {
-  await gotoLoaded(page, "/get-started/docker/");
+  await gotoLoaded(page, "/getting-started/docker/");
   const dockerGuide = page.locator("main");
   await expect(dockerGuide).toContainText("127.0.0.1:3000:3000");
   await expect(dockerGuide).toContainText("TRELLO_MCP_IMAGE_TAG");
@@ -835,7 +973,7 @@ test("transport guides preserve Trello-specific runtime and security boundaries"
   );
   await expect(dockerGuide).toContainText("auth_whoami");
 
-  await gotoLoaded(page, "/get-started/http/");
+  await gotoLoaded(page, "/getting-started/http/");
   const httpGuide = page.locator("main");
   await expect(httpGuide).toContainText(
     "Direct Node.js HTTP is not loopback-constrained",
@@ -853,7 +991,7 @@ test("transport guides preserve Trello-specific runtime and security boundaries"
     "refuses an unauthenticated non-loopback bind",
   );
 
-  await gotoLoaded(page, "/get-started/stdio/");
+  await gotoLoaded(page, "/getting-started/stdio/");
   const stdioGuide = page.locator("main");
   await expect(stdioGuide).toContainText("No network listener is opened");
   await expect(stdioGuide).toContainText("TRANSPORT=stdio");
@@ -878,15 +1016,15 @@ test("the onboarding overview preserves prior deep links and points to the split
     "next-steps",
   ] as const;
 
-  await gotoLoaded(page, "/get-started/");
+  await gotoLoaded(page, "/getting-started/");
   for (const anchor of legacyAnchors) {
     await expect(page.locator(`#${anchor}`)).toHaveCount(1);
   }
 
   for (const [name, href] of [
-    ["Docker Compose", "/get-started/docker/"],
-    ["Streamable HTTP", "/get-started/http/"],
-    ["stdio", "/get-started/stdio/"],
+    ["Docker Compose", "/getting-started/docker/"],
+    ["Streamable HTTP", "/getting-started/http/"],
+    ["stdio", "/getting-started/stdio/"],
   ] as const) {
     await expect(
       page.getByRole("link", { name, exact: true }).last(),
@@ -894,7 +1032,7 @@ test("the onboarding overview preserves prior deep links and points to the split
   }
 
   for (const anchor of legacyAnchors) {
-    await page.goto(`/get-started/#${anchor}`, {
+    await page.goto(`/getting-started/#${anchor}`, {
       waitUntil: "domcontentloaded",
     });
     await expect(page.locator(`#${anchor}`)).toHaveCount(1);
@@ -904,7 +1042,7 @@ test("the onboarding overview preserves prior deep links and points to the split
 test("onboarding uses native client and installation tabs", async ({
   page,
 }) => {
-  await gotoLoaded(page, "/get-started/");
+  await gotoLoaded(page, "/getting-started/");
   const clientTabs = page.locator(
     'main starlight-tabs[data-sync-key="mcp-client"]',
   );
@@ -935,7 +1073,8 @@ test("onboarding uses native client and installation tabs", async ({
       };
     });
     expect(renderedIcon.content).not.toBe("none");
-    expect(renderedIcon.maskImage).toContain(`/client-icons/${icon}.svg`);
+    expect(renderedIcon.maskImage).toContain("data:image/svg+xml");
+    expect(renderedIcon.maskImage).not.toContain("/client-icons/");
   }
 
   const quickClientLayout = await clientTabs
@@ -964,30 +1103,28 @@ test("onboarding uses native client and installation tabs", async ({
   );
   await expect(installTabs).toHaveCount(1);
   await expect(installTabs.getByRole("tab")).toHaveText([
-    "Docker",
-    "HTTP",
-    "stdio",
+    "Local stdio",
+    "HTTP · published image",
+    "HTTP · source build",
   ]);
   for (const [label, href, expectedCommands] of [
+    ["Local stdio", "/getting-started/stdio/", ['TRANSPORT": "stdio']],
     [
-      "Docker",
-      "/get-started/docker/",
+      "HTTP · published image",
+      "/getting-started/docker/",
       [
-        "TRELLO_API_KEY=replace-me",
-        "TRELLO_TOKEN=replace-me",
         "Set TRELLO_API_KEY to a non-placeholder value",
         "Set TRELLO_TOKEN to a non-placeholder value",
+        "Set TRELLO_MCP_IMAGE_TAG to an exact published X.Y.Z release",
         "docker compose up -d --wait --wait-timeout 120",
         "curl -fsS http://127.0.0.1:3000/healthz",
         "curl -fsS http://127.0.0.1:3000/readyz",
       ],
     ],
     [
-      "HTTP",
-      "/get-started/http/",
+      "HTTP · source build",
+      "/getting-started/http/",
       [
-        "TRELLO_API_KEY=replace-me",
-        "TRELLO_TOKEN=replace-me",
         "Set TRELLO_API_KEY to a non-placeholder value",
         "Set TRELLO_TOKEN to a non-placeholder value",
         "docker compose -f docker-compose.local.yml up --build -d --wait --wait-timeout 120",
@@ -995,7 +1132,6 @@ test("onboarding uses native client and installation tabs", async ({
         "curl -fsS http://127.0.0.1:3000/readyz",
       ],
     ],
-    ["stdio", "/get-started/stdio/", ['TRANSPORT": "stdio']],
   ] as const) {
     await installTabs.getByRole("tab", { name: label, exact: true }).click();
     const activePanel = installTabs.locator(
@@ -1012,7 +1148,7 @@ test("onboarding uses native client and installation tabs", async ({
     ).toHaveAttribute("href", href);
   }
 
-  await page.goto("/get-started/#codex", { waitUntil: "networkidle" });
+  await page.goto("/getting-started/#codex", { waitUntil: "networkidle" });
   await expect(
     page.locator(
       'main starlight-tabs[data-sync-key="mcp-client"] [role="tab"][aria-selected="true"]',
@@ -1022,7 +1158,7 @@ test("onboarding uses native client and installation tabs", async ({
     ["vscode", "VS Code"],
     ["opencode", "OpenCode"],
   ] as const) {
-    await page.goto(`/get-started/#${hash}`, { waitUntil: "networkidle" });
+    await page.goto(`/getting-started/#${hash}`, { waitUntil: "networkidle" });
     await expect(
       page.locator(
         'main starlight-tabs[data-sync-key="mcp-client"] [role="tab"][aria-selected="true"]',
@@ -1030,20 +1166,21 @@ test("onboarding uses native client and installation tabs", async ({
     ).toHaveText(label);
   }
 
-  await gotoLoaded(page, "/clients/");
+  await gotoLoaded(page, "/getting-started/clients/");
   const clientHeadings = [
-    ["Claude Desktop", "claude-desktop", "claude.svg"],
-    ["Claude Code", "claude-code", "claude.svg"],
-    ["Codex", "codex", "openai.svg"],
-    ["VS Code", "vs-code", "vscode.svg"],
-    ["OpenCode", "opencode", "opencode.svg"],
-    [
-      "MCP Inspector and manual clients",
-      "mcp-inspector-and-manual-clients",
-      "inspector.svg",
-    ],
+    ["Codex", "codex"],
+    ["Claude Code", "claude-code"],
+    ["Claude Desktop", "claude-desktop"],
+    ["VS Code", "vs-code"],
+    ["OpenCode", "opencode"],
+    ["MCP Inspector and manual clients", "mcp-inspector-and-manual-clients"],
   ] as const;
-  for (const [name, id, icon] of clientHeadings) {
+  await expect(
+    page.locator(
+      `main ${clientHeadings.map(([, id]) => `h2#${id}`).join(", main ")}`,
+    ),
+  ).toHaveText(clientHeadings.map(([name]) => name));
+  for (const [name, id] of clientHeadings) {
     const heading = page.getByRole("heading", { level: 2, name, exact: true });
     await expect(heading).toHaveAttribute("id", id);
     await expect(heading).toHaveAccessibleName(name);
@@ -1061,7 +1198,8 @@ test("onboarding uses native client and installation tabs", async ({
     expect(renderedIcon.content).not.toBe("none");
     expect(renderedIcon.width).toBeGreaterThan(0);
     expect(renderedIcon.height).toBeGreaterThan(0);
-    expect(renderedIcon.maskImage).toContain(`/client-icons/${icon}`);
+    expect(renderedIcon.maskImage).toContain("data:image/svg+xml");
+    expect(renderedIcon.maskImage).not.toContain("/client-icons/");
   }
 
   const transportTabs = page.locator(
@@ -1122,14 +1260,39 @@ test("onboarding uses native client and installation tabs", async ({
   await expect(verificationSteps.locator(":scope > li")).toHaveCount(4);
 });
 
+test("compatibility evidence keeps the shared client order", async ({
+  page,
+}) => {
+  await gotoLoaded(page, "/getting-started/compatibility/");
+
+  await expect(
+    page.locator("main table").first().locator("tbody tr > td:first-child"),
+  ).toHaveText([
+    "Codex CLI",
+    "Claude Code",
+    "Claude Desktop",
+    "VS Code",
+    "OpenCode",
+    "MCP Inspector",
+  ]);
+  await expect(page.locator("main h3")).toHaveText([
+    "Codex",
+    "Claude Code",
+    "Claude Desktop",
+    "VS Code",
+    "OpenCode",
+    "MCP Inspector",
+  ]);
+});
+
 test("removed client branding and version labels stay out of the public setup docs", async ({
   page,
 }) => {
   for (const route of [
     "/",
-    "/get-started/",
-    "/clients/",
-    "/clients/compatibility/",
+    "/getting-started/",
+    "/getting-started/clients/",
+    "/getting-started/compatibility/",
   ]) {
     await gotoLoaded(page, route);
     await expect(page.locator("main")).not.toContainText(/\bCursor\b/);
@@ -1144,7 +1307,7 @@ test("onboarding remains complete without client-side enhancement", async ({
   const page = await context.newPage();
 
   try {
-    const response = await page.goto("/get-started/", {
+    const response = await page.goto("/getting-started/", {
       waitUntil: "domcontentloaded",
     });
     expect(response?.status()).toBe(200);
@@ -1154,24 +1317,53 @@ test("onboarding remains complete without client-side enhancement", async ({
     await expect(
       page.getByRole("heading", { name: "OpenCode", exact: true }),
     ).toBeVisible();
-    await expect(
-      page.getByRole("navigation", {
-        name: "Installation guides without JavaScript",
-      }),
-    ).toContainText("Docker");
-    await expect(
-      page.getByRole("navigation", {
-        name: "Installation guides without JavaScript",
-      }),
-    ).toContainText("HTTP");
-    await expect(
-      page.getByRole("navigation", {
-        name: "Installation guides without JavaScript",
-      }),
-    ).toContainText("stdio");
+    const fallbackGuides = page.getByRole("navigation", {
+      name: "Installation guides without JavaScript",
+    });
+    for (const [name, href] of [
+      ["local stdio", "/getting-started/stdio/"],
+      ["published-image HTTP", "/getting-started/docker/"],
+      ["source-built HTTP", "/getting-started/http/"],
+    ] as const) {
+      await expect(
+        fallbackGuides.getByRole("link", { name, exact: true }),
+      ).toHaveAttribute("href", href);
+    }
   } finally {
     await context.close();
   }
+});
+
+test("onboarding follows the dependency order and shows a sanitized verification result", async ({
+  page,
+}) => {
+  await gotoLoaded(page, "/getting-started/");
+  const main = page.locator("main");
+  const headings = await main.locator("h2").allTextContents();
+  const expectedOrder = [
+    "Prerequisites",
+    "Common path",
+    "Choose a transport, then an installation",
+    "Configure your client",
+    "Next",
+  ];
+  expect(headings.filter((heading) => expectedOrder.includes(heading))).toEqual(
+    expectedOrder,
+  );
+
+  await expect(
+    page.getByRole("complementary", { name: "Protect Streamable HTTP" }),
+  ).toBeVisible();
+  const verificationExample = main.locator("figure").filter({
+    hasText: "Sanitized example response",
+  });
+  await expect(verificationExample.first()).toContainText('"id": "member-id"');
+  await expect(verificationExample.first()).toContainText(
+    '"username": "your-username"',
+  );
+  await expect(verificationExample.first()).not.toContainText(
+    /TRELLO_(?:API_KEY|TOKEN)|MCP_AUTH_TOKEN|Authorization/i,
+  );
 });
 
 test("homepage uses descriptive SEO and complete social metadata", async ({
@@ -1181,24 +1373,46 @@ test("homepage uses descriptive SEO and complete social metadata", async ({
   await gotoLoaded(page, "/");
 
   await expect(page).toHaveTitle(
-    "Self-hosted, auditable Trello MCP server | trello-mcp",
+    "Self-hosted, auditable Trello MCP server — trello-mcp",
+  );
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute(
+    "content",
+    "#0052cc",
   );
   await expect(page.locator('meta[name="description"]')).toHaveAttribute(
     "content",
     "A self-hosted, auditable Model Context Protocol server for broad Trello automation.",
   );
-  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
-    "href",
-    /\/$/,
+  const canonical = page.locator('link[rel="canonical"]');
+  await expect(canonical).toHaveAttribute("href", CANONICAL_WEBSITE_URL);
+  const canonicalHref = await canonical.getAttribute("href");
+  await expect(page.locator('meta[property="og:type"]')).toHaveAttribute(
+    "content",
+    "website",
   );
+
+  const structuredData = page.locator('script[type="application/ld+json"]');
+  await expect(structuredData).toHaveCount(1);
+  const websiteSchema = JSON.parse((await structuredData.textContent()) ?? "");
+  expect(websiteSchema).toEqual({
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "trello-mcp",
+    url: canonicalHref,
+    description:
+      "A self-hosted, auditable Model Context Protocol server for broad Trello automation.",
+  });
 
   const openGraphImage = page.locator('meta[property="og:image"]');
   const twitterImage = page.locator('meta[name="twitter:image"]');
   await expect(openGraphImage).toHaveAttribute(
     "content",
-    /\/social-card\.png$/,
+    `${CANONICAL_WEBSITE_URL}social-card.png`,
   );
-  await expect(twitterImage).toHaveAttribute("content", /\/social-card\.png$/);
+  await expect(twitterImage).toHaveAttribute(
+    "content",
+    `${CANONICAL_WEBSITE_URL}social-card.png`,
+  );
   await expect(page.locator('meta[property="og:image:type"]')).toHaveAttribute(
     "content",
     "image/png",
@@ -1256,11 +1470,48 @@ test("homepage uses descriptive SEO and complete social metadata", async ({
     width: 1200,
     height: 630,
   });
+
+  await gotoLoaded(page, "/getting-started/");
+  await expect(page.locator('meta[property="og:type"]')).toHaveAttribute(
+    "content",
+    "article",
+  );
+  await expect(page.locator('script[type="application/ld+json"]')).toHaveCount(
+    0,
+  );
+});
+
+test("client icons are generated locally from Font Awesome", async ({
+  request,
+}) => {
+  const response = await request.get("/client-icons.css", {
+    failOnStatusCode: false,
+  });
+  expect(response.status()).toBe(200);
+  expect(response.headers()["content-type"]).toContain("text/css");
+
+  const css = await response.text();
+  expect(css).toContain("Font Awesome Free 7.3.1");
+  expect(css).toContain("CC BY 4.0");
+  expect(css).toContain("https://fontawesome.com/license/free");
+  expect(css.match(/data:image\/svg\+xml/g) ?? []).toHaveLength(6);
+  expect(css).not.toMatch(/url\(["']?https?:/);
+
+  for (const [name, [prefix, iconName]] of Object.entries(
+    CLIENT_ICON_SOURCES,
+  )) {
+    expect(css).toContain(`/* ${name}: ${prefix} ${iconName} */`);
+    expect(css).toContain(`--client-icon-${name}:`);
+
+    const legacyResponse = await request.get(`/client-icons/${name}.svg`, {
+      failOnStatusCode: false,
+    });
+    expect(legacyResponse.status()).toBe(404);
+  }
 });
 
 test("homepage keeps two hero actions and exposes setup, workflows, clients, and trust evidence", async ({
   page,
-  request,
 }) => {
   await gotoLoaded(page, "/");
 
@@ -1300,7 +1551,7 @@ test("homepage keeps two hero actions and exposes setup, workflows, clients, and
   await expect(heroActions).toHaveCount(2);
   const getStartedAction = heroActions.nth(0);
   await expect(getStartedAction).toHaveText("Get started");
-  await expect(getStartedAction).toHaveAttribute("href", "/get-started/");
+  await expect(getStartedAction).toHaveAttribute("href", "/getting-started/");
   const githubAction = heroActions.nth(1);
   await expect(githubAction).toHaveText("View on GitHub");
   await expect(githubAction).toHaveClass(/secondary/);
@@ -1382,7 +1633,7 @@ test("homepage keeps two hero actions and exposes setup, workflows, clients, and
 
   for (const title of [
     "77 catalog-backed tools",
-    "Local by default",
+    "Choose your trust boundary",
     "Trello secrets stay out of prompts",
     "Archive before delete",
   ]) {
@@ -1390,10 +1641,11 @@ test("homepage keeps two hero actions and exposes setup, workflows, clients, and
   }
   await expect(
     page.getByRole("link", { name: "See all 77 tools", exact: true }),
-  ).toHaveAttribute("href", "/tools/");
+  ).toHaveAttribute("href", "/reference/tools/");
   await expect(page.locator("main")).toContainText(
-    "Docker Compose publishes Streamable HTTP to loopback",
+    "Wider HTTP access must be deliberate and protected",
   );
+  await expect(page.locator("main")).not.toContainText("Local by default");
   await expect(page.locator("main")).toContainText(
     "MCP client approval remains the enforcement boundary",
   );
@@ -1429,8 +1681,8 @@ test("homepage keeps two hero actions and exposes setup, workflows, clients, and
       "#let-your-mcp-client-create-a-trello-card-for-you",
     );
     const clientPicker = main.querySelector("#pick-your-mcp-client");
-    const runChooser = main.querySelector("#choose-how-to-run-trello-mcp");
-    if (!proofGrid || !cardExample || !clientPicker || !runChooser) {
+    const useful = main.querySelector("#useful-by-design");
+    if (!proofGrid || !cardExample || !clientPicker || !useful) {
       return false;
     }
 
@@ -1444,7 +1696,7 @@ test("homepage keeps two hero actions and exposes setup, workflows, clients, and
           Node.DOCUMENT_POSITION_FOLLOWING,
       ) &&
       Boolean(
-        clientPicker.compareDocumentPosition(runChooser) &
+        clientPicker.compareDocumentPosition(useful) &
           Node.DOCUMENT_POSITION_FOLLOWING,
       )
     );
@@ -1461,17 +1713,8 @@ test("homepage keeps two hero actions and exposes setup, workflows, clients, and
 
   await expect(
     page.getByRole("heading", { name: "Choose how to run trello-mcp" }),
-  ).toBeVisible();
-  const transportTabs = page.getByRole("tablist").first();
-  await expect(
-    transportTabs.getByRole("tab", { name: "Docker / Streamable HTTP" }),
-  ).toBeVisible();
-  const stdioTab = transportTabs.getByRole("tab", { name: "Local stdio" });
-  await stdioTab.click();
-  await expect(stdioTab).toHaveAttribute("aria-selected", "true");
-  await expect(page.locator("main")).toContainText(
-    "node /absolute/path/to/trello-mcp/dist/index.js",
-  );
+  ).toHaveCount(0);
+  await expect(page.locator("main starlight-tabs")).toHaveCount(0);
 
   for (const workflow of [
     "Find and summarize work",
@@ -1481,45 +1724,56 @@ test("homepage keeps two hero actions and exposes setup, workflows, clients, and
   ]) {
     await expect(page.getByText(workflow, { exact: true })).toBeVisible();
   }
+  for (const toolChain of [
+    "search → card_get → card_actions",
+    "list_boards → board_lists → card_create → card_move",
+    "card_members → card_member_add → card_comment_add",
+    "card_checklists → card_checklist_item_create → card_custom_field_set",
+  ]) {
+    await expect(page.getByText(toolChain, { exact: true })).toBeVisible();
+  }
+  await expect(
+    page.getByRole("link", { name: "Follow the workflow guide", exact: true }),
+  ).toHaveAttribute("href", "/guides/workflows/");
 
   await expect(page.getByText("OpenCode", { exact: true })).toBeVisible();
   await expect(page.getByText("VS Code", { exact: true })).toBeVisible();
   const clientEvidenceCards = getClientPickerGrid(page);
   const clientCases = [
     [
-      "Claude Desktop",
-      "claude",
-      "/clients/#claude-desktop",
-      "Connection and tool discovery tested — local stdio. No live Trello workflow was run.",
+      "Codex",
+      "openai",
+      "/getting-started/clients/#codex",
+      "Connection and complete tool discovery tested — local stdio and authenticated Streamable HTTP. No live Trello workflow was run.",
     ],
     [
       "Claude Code",
       "claude",
-      "/clients/#claude-code",
+      "/getting-started/clients/#claude-code",
       "Connection and complete tool discovery tested — local stdio and authenticated Streamable HTTP. No live Trello workflow was run.",
     ],
     [
-      "Codex",
-      "openai",
-      "/clients/#codex",
-      "Connection and complete tool discovery tested — local stdio and authenticated Streamable HTTP. No live Trello workflow was run.",
-    ],
-    [
-      "OpenCode",
-      "opencode",
-      "/clients/#opencode",
-      "Configuration reviewed — local stdio and authenticated Streamable HTTP setup. No dated client run or live Trello call is claimed.",
+      "Claude Desktop",
+      "claude",
+      "/getting-started/clients/#claude-desktop",
+      "Connection and tool discovery tested — local stdio. No live Trello workflow was run.",
     ],
     [
       "VS Code",
       "vscode",
-      "/clients/#vs-code",
+      "/getting-started/clients/#vs-code",
       "Configuration reviewed — user-profile stdio with password inputs and authenticated Streamable HTTP setup. No dated client run or live Trello call is claimed.",
+    ],
+    [
+      "OpenCode",
+      "opencode",
+      "/getting-started/clients/#opencode",
+      "Configuration reviewed — local stdio and authenticated Streamable HTTP setup. No dated client run or live Trello call is claimed.",
     ],
     [
       "All compatibility evidence",
       "evidence",
-      "/clients/compatibility/",
+      "/getting-started/compatibility/",
       "See the dated environment, test boundaries, limitations, and live-validation status behind every client claim.",
     ],
   ] as const;
@@ -1562,13 +1816,8 @@ test("homepage keeps two hero actions and exposes setup, workflows, clients, and
       Number.parseFloat(iconStyle.fontSize),
       1,
     );
-    expect(iconStyle.maskImage).toContain(`/client-icons/${iconName}.svg`);
-
-    const iconResponse = await request.get(`/client-icons/${iconName}.svg`, {
-      failOnStatusCode: false,
-    });
-    expect(iconResponse.status()).toBe(200);
-    expect(iconResponse.headers()["content-type"]).toContain("image/svg+xml");
+    expect(iconStyle.maskImage).toContain("data:image/svg+xml");
+    expect(iconStyle.maskImage).not.toContain("/client-icons/");
   }
 
   await expect(clientEvidenceCards).not.toContainText(/all \d+ tools/);
@@ -1581,31 +1830,70 @@ test("homepage keeps two hero actions and exposes setup, workflows, clients, and
   );
   await expect(
     clientHelper.getByRole("link", { name: "complete client setup guide" }),
-  ).toHaveAttribute("href", "/clients/");
+  ).toHaveAttribute("href", "/getting-started/clients/");
   await expect(
     clientHelper.getByRole("link", { name: "different deployment path" }),
-  ).toHaveAttribute("href", "/get-started/");
+  ).toHaveAttribute("href", "/getting-started/");
   await expect(
-    page.locator('main a[href="/trello-api-key/"]').first(),
+    page.locator('main a[href="/getting-started/trello-api-key/"]').first(),
   ).toContainText("Trello API key and token");
-  await expect(page.locator('main a[href="/security/"]').first()).toBeVisible();
-  await expect(page.locator('main a[href="/faq/"]').first()).toBeVisible();
+  await expect(
+    page.locator('main a[href="/guides/security/"]').first(),
+  ).toBeVisible();
+  await expect(
+    page.locator('main a[href="/guides/faq/"]').first(),
+  ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Why run this community server?" }),
   ).toHaveCount(0);
   await expect(
-    page.getByRole("heading", { name: "Know where to go next" }),
+    page.getByRole("heading", { name: "Know when to use it" }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Know where to go next" }),
+  ).toHaveCount(0);
+  const serviceComparison = page.locator("main table").filter({
+    hasText: "Official Trello MCP",
+  });
+  await expect(serviceComparison).toHaveCount(1);
+  await expect(serviceComparison.locator("thead th")).toHaveText([
+    "Decision",
+    "trello-mcp community server",
+    "Official Trello MCP",
+  ]);
+  await expect(serviceComparison.locator("tbody tr")).toHaveCount(5);
+  await expect(serviceComparison).toContainText(
+    "Trello runs the cloud service",
+  );
+  await expect(serviceComparison).toContainText("OAuth 2.0 consent");
+  await expect(serviceComparison).toContainText(
+    "Each connection supports one authorized Workspace at launch",
+  );
+  await expect(serviceComparison).toContainText(
+    "does not support permanent destructive deletes",
+  );
+  await expect(page.locator("main")).toContainText(
+    "Comparison last checked August 10, 2026",
+  );
+  const roadmapLink = page.getByRole("link", {
+    name: "public trello-mcp roadmap",
+    exact: true,
+  });
+  await expect(roadmapLink).toHaveAttribute("href", ROADMAP_URL);
+  await expect(page.locator("main")).toContainText("is itself a Trello board");
+  await expect(
+    page.locator(
+      'main a[href="https://support.atlassian.com/trello/docs/connect-trello-to-ai-assistants-with-trello-mcp/"]',
+    ),
+  ).toHaveText("Trello’s official MCP documentation");
   for (const [name, href] of [
-    ["How it works", "/guides/how-it-works/"],
-    ["Workflows", "/guides/workflows/"],
+    ["Security & Data", "/guides/security/"],
     ["Configuration", "/reference/configuration/"],
     ["Troubleshooting", "/guides/troubleshooting/"],
-    ["Security model", "/security/"],
-    ["Frequently asked questions", "/faq/"],
+    ["FAQ", "/guides/faq/"],
   ] as const) {
     await expect(
-      page.getByRole("link", { name, exact: true }).last(),
+      page.locator("main").getByRole("link", { name, exact: true }).last(),
     ).toHaveAttribute("href", href);
   }
 });
@@ -1648,7 +1936,7 @@ test("homepage previews the canonical searchable tool catalog", async ({
     const categoryLink = row.getByRole("link", { name: label, exact: true });
     await expect(categoryLink).toHaveAttribute(
       "href",
-      `/tools/#tool-group-${category}`,
+      `/reference/tools/#tool-group-${category}`,
     );
     await expect(row.locator("dd strong")).toHaveText(String(count));
     for (const toolName of toolNames) {
@@ -1706,17 +1994,17 @@ test("homepage previews the canonical searchable tool catalog", async ({
 
   await expect(
     page.getByRole("link", { name: "Browse all 77 tools", exact: true }),
-  ).toHaveAttribute("href", "/tools/");
+  ).toHaveAttribute("href", "/reference/tools/");
   await expect(
     page.getByRole("link", { name: "API coverage matrix", exact: true }),
   ).toHaveCount(0);
 
   const sectionOrder = await page.locator("main").evaluate((main) => {
-    const automation = main.querySelector("#what-you-can-automate");
+    const automation = main.querySelector("#useful-by-design");
     const catalog = main.querySelector(
       "#one-canonical-searchable-tool-catalog",
     );
-    const next = main.querySelector("#know-where-to-go-next");
+    const next = main.querySelector("#know-when-to-use-it");
     if (!automation || !catalog || !next) return false;
     return (
       Boolean(
@@ -1829,7 +2117,7 @@ test("homepage proof and client cards match the reference grids at desktop and m
 test("security and FAQ pages state operational boundaries without overclaiming", async ({
   page,
 }) => {
-  await gotoLoaded(page, "/security/");
+  await gotoLoaded(page, "/guides/security/");
   await expect(page.locator("main h1")).toHaveText("Security and data flow");
   await expect(page.locator("main")).toContainText(
     "does not currently provide a universal read-only mode",
@@ -1846,16 +2134,15 @@ test("security and FAQ pages state operational boundaries without overclaiming",
   await expect(saferUseSteps).toHaveCount(1);
   await expect(saferUseSteps.locator(":scope > li")).toHaveCount(6);
 
-  await gotoLoaded(page, "/faq/");
+  await gotoLoaded(page, "/guides/faq/");
   await expect(page.locator("main h1")).toHaveText("FAQ");
   await expect(page.locator("main")).toContainText(
     "There is no universal server-side read-only mode or confirmation gate.",
   );
-  await expect(page.locator("main table thead th")).toHaveText([
-    "Dimension",
-    "trello-mcp community project",
-    "Official Trello MCP",
-  ]);
+  await expect(
+    page.getByRole("link", { name: "side-by-side comparison", exact: true }),
+  ).toHaveAttribute("href", "/#know-when-to-use-it");
+  await expect(page.locator("main table")).toHaveCount(0);
   await expect(
     page.locator('main a[href="https://trello.com/mcp"]').first(),
   ).toBeVisible();
@@ -1864,42 +2151,48 @@ test("security and FAQ pages state operational boundaries without overclaiming",
 test("Reference overview preserves project resources, policies, sources, and official distinction", async ({
   page,
 }) => {
-  await gotoLoaded(page, "/reference/#live-validation");
+  await gotoLoaded(page, "/reference/");
   const main = page.locator("main");
   await expect(main.locator("h1")).toHaveText("Reference");
-  await expect(main.locator("#live-validation")).toHaveCount(1);
-  await expect(main).toContainText("remains canonical");
+  await expect(main.locator("#technical-reference")).toHaveCount(1);
+  await expect(main.locator("#repository-policies")).toHaveCount(1);
+  await expect(main.locator("#documentation-contracts")).toHaveCount(1);
+  await expect(main).toContainText("Canonical long-form documentation remains");
   await expect(main).toContainText("corepack pnpm docs:tools");
   await expect(main).toContainText(DISCLAIMER);
-  await expect(main).toContainText(OFFICIAL_ENDPOINT);
+  await expect(main).not.toContainText(OFFICIAL_ENDPOINT);
+  await expect(
+    main.getByRole("complementary", {
+      name: "Pre-1.0, with documented contracts",
+    }),
+  ).toBeVisible();
 
   for (const [name, href] of [
-    ["GitHub repository", "https://github.com/enthouan/trello-mcp"],
+    ["View the source repository", "https://github.com/enthouan/trello-mcp"],
     ["Releases", "https://github.com/enthouan/trello-mcp/releases"],
     [
-      "Changelog",
+      "changelog",
       "https://github.com/enthouan/trello-mcp/blob/main/CHANGELOG.md",
     ],
     ["Issues", "https://github.com/enthouan/trello-mcp/issues"],
-    ["Roadmap", "https://trello.com/b/GnKmvuHz/trello-mcp"],
+    ["public roadmap", ROADMAP_URL],
     ["MIT License", "https://github.com/enthouan/trello-mcp/blob/main/LICENSE"],
     ["llms.txt", "/llms.txt"],
+    ["Operations", "/guides/operations/"],
     ["Contributing", "/reference/contributing/"],
-    ["Reporting issues and support", "/reference/support/"],
+    ["Reporting issues and support", "/reference/reporting-issues/"],
     ["Security policy", "/reference/security-policy/"],
     [
-      "Privacy policy",
-      "https://github.com/enthouan/trello-mcp/blob/main/PRIVACY.md",
+      "Trello MCP documentation",
+      "https://support.atlassian.com/trello/docs/connect-trello-to-ai-assistants-with-trello-mcp/",
     ],
-    [
-      "live validation instructions",
-      "https://github.com/enthouan/trello-mcp/blob/main/README.md#live-trello-smoke-tests",
-    ],
-    ["Trello MCP", "https://trello.com/mcp"],
   ] as const) {
-    await expect(
-      main.getByRole("link", { name, exact: true }).first(),
-    ).toHaveAttribute("href", href);
+    const link = main.getByRole("link", { name, exact: true }).first();
+    await expect(link).toBeVisible();
+    const actualHref = await link.getAttribute("href");
+    expect(new URL(actualHref ?? "", page.url()).href).toBe(
+      new URL(href, page.url()).href,
+    );
   }
 });
 
@@ -1913,12 +2206,13 @@ test("generated policy pages preserve canonical guidance and internal reporting 
       headings: ["Local checks", "Documentation website", "Pull requests"],
     },
     {
-      route: "/reference/support/",
+      route: "/reference/reporting-issues/",
       title: "Reporting issues and support",
       headings: [
-        "Support Channels",
-        "Support Boundaries",
-        "Bug Report Context",
+        "Choose the right channel",
+        "Prepare a useful report",
+        "Security reports",
+        "Support boundaries",
       ],
     },
     {
@@ -1947,14 +2241,29 @@ test("generated policy pages preserve canonical guidance and internal reporting 
         'starlight-toc nav[aria-labelledby="starlight__on-this-page"]',
       ),
     ).toBeVisible();
+
+    if (policy.route === "/reference/reporting-issues/") {
+      await expect(
+        main.getByRole("complementary", { name: "Sanitize every report" }),
+      ).toBeVisible();
+      const reportSteps = main
+        .locator("ol.sl-steps")
+        .filter({ hasText: "Check the focused documentation first" });
+      await expect(reportSteps).toHaveCount(1);
+      await expect(reportSteps.locator(":scope > li")).toHaveCount(5);
+    }
   }
 
-  for (const route of ["/reference/contributing/", "/reference/support/"]) {
+  for (const route of [
+    "/reference/contributing/",
+    "/reference/reporting-issues/",
+  ]) {
     await gotoLoaded(page, route);
     await expect(
       page
         .locator("main .sl-markdown-content")
-        .getByRole("link", { name: "SECURITY.md", exact: true }),
+        .getByRole("link", { name: "SECURITY.md", exact: true })
+        .first(),
     ).toBeVisible();
   }
 });
@@ -1962,9 +2271,9 @@ test("generated policy pages preserve canonical guidance and internal reporting 
 test("Trello API credential guide follows the current official flow and separates secrets", async ({
   page,
 }) => {
-  await gotoLoaded(page, "/trello-api-key/");
+  await gotoLoaded(page, "/getting-started/trello-api-key/");
 
-  await expect(page.locator("main h1")).toHaveText("Trello API Key");
+  await expect(page.locator("main h1")).toHaveText("Trello API key");
   await expect(page.locator("main")).toContainText("App Admin Portal");
   await expect(page.locator("main")).toContainText("Generate a new API Key");
   await expect(page.locator("main")).toContainText("Token link");
@@ -1973,6 +2282,15 @@ test("Trello API credential guide follows the current official flow and separate
   await expect(page.locator("main")).toContainText("Allow");
   await expect(page.locator("main")).toContainText(
     "The token is broad account access",
+  );
+  await expect(page.locator("main")).toContainText(
+    "one hour, one day, 30 days, or without a scheduled expiration",
+  );
+  await expect(page.locator("main")).toContainText(
+    "until it expires or is revoked",
+  );
+  await expect(page.locator("main")).not.toContainText(
+    "remains active until it is disabled",
   );
   await expect(page.locator("main")).toContainText("auth_whoami");
   await expect(page.locator("main")).toContainText("auth_token_info");
@@ -2055,6 +2373,7 @@ test("robots.txt points crawlers to a complete public sitemap", async ({
     sitemapDeclarations[0]?.slice("Sitemap: ".length) ??
       "http://invalid.invalid/",
   );
+  expect(sitemapIndexUrl.origin).toBe(CANONICAL_WEBSITE_ORIGIN);
   expect(sitemapIndexUrl.pathname).toBe("/sitemap-index.xml");
   expect(sitemapIndexUrl.search).toBe("");
   expect(sitemapIndexUrl.hash).toBe("");
@@ -2100,8 +2419,21 @@ test("robots.txt points crawlers to a complete public sitemap", async ({
     Object.keys(publicDocumentMetadata).sort(),
   );
   expect(sitemapBody).not.toContain("/404");
-  expect(sitemapBody).not.toContain("/concepts/how-it-works/");
-  expect(sitemapBody).not.toContain("/project/");
+  for (const legacyRoute of [
+    "/get-started/",
+    "/trello-api-key/",
+    "/clients/",
+    "/concepts/how-it-works/",
+    "/security/",
+    "/faq/",
+    "/tools/",
+    "/reference/support/",
+    "/project/",
+  ]) {
+    expect(sitemapBody).not.toContain(
+      `${CANONICAL_WEBSITE_URL}${legacyRoute.slice(1)}`,
+    );
+  }
 });
 
 test("llms.txt is generated from the public documentation collection", async ({
@@ -2115,29 +2447,45 @@ test("llms.txt is generated from the public documentation collection", async ({
 
   const body = await response.text();
   expect(body).toContain("# trello-mcp");
+  expect(body).toContain(
+    `- [Install and run](${CANONICAL_WEBSITE_URL}getting-started/)`,
+  );
   expect(body).toContain(`\n${DISCLAIMER}\n`);
   expect(body).toContain(
     `- [Official Trello MCP](https://trello.com/mcp), hosted at ${OFFICIAL_ENDPOINT}`,
   );
-  expect(body).toContain("/get-started/");
-  expect(body).toContain("/get-started/docker/");
-  expect(body).toContain("/get-started/http/");
-  expect(body).toContain("/get-started/stdio/");
-  expect(body).toContain("/trello-api-key/");
-  expect(body).toContain("/clients/");
+  expect(body).toContain("/getting-started/");
+  expect(body).toContain("/getting-started/docker/");
+  expect(body).toContain("/getting-started/http/");
+  expect(body).toContain("/getting-started/stdio/");
+  expect(body).toContain("/getting-started/trello-api-key/");
+  expect(body).toContain("/getting-started/clients/");
   expect(body).toContain("/guides/how-it-works/");
   expect(body).toContain("/guides/workflows/");
+  expect(body).toContain("/guides/operations/");
   expect(body).toContain("/guides/troubleshooting/");
   expect(body).toContain("/reference/");
   expect(body).toContain("/reference/configuration/");
   expect(body).toContain("/reference/contributing/");
-  expect(body).toContain("/reference/support/");
+  expect(body).toContain("/reference/reporting-issues/");
   expect(body).toContain("/reference/security-policy/");
-  expect(body).toContain("/tools/");
-  expect(body).toContain("/security/");
-  expect(body).toContain("/faq/");
-  expect(body).not.toContain("/concepts/how-it-works/");
-  expect(body).not.toContain("/project/");
+  expect(body).toContain("/reference/tools/");
+  expect(body).toContain("/guides/security/");
+  expect(body).toContain("/guides/faq/");
+  for (const legacyRoute of [
+    "get-started/",
+    "clients/",
+    "trello-api-key/",
+    "concepts/how-it-works/",
+    "security/",
+    "faq/",
+    "tools/",
+    "reference/support/",
+    "project/",
+  ]) {
+    expect(body).not.toContain(`${CANONICAL_WEBSITE_URL}${legacyRoute}`);
+  }
+  expect(body).not.toMatch(/\]\(\//);
   expect(body).not.toContain("undefined");
 
   const normalizedBody = body.toLowerCase();
@@ -2154,65 +2502,10 @@ test("llms.txt is generated from the public documentation collection", async ({
   }
 });
 
-test("generated pages route edits to their canonical repository sources", async ({
+test("public documentation does not expose edit-page links", async ({
   page,
 }) => {
-  const canonicalEdits = [
-    [
-      "/clients/",
-      "https://github.com/enthouan/trello-mcp/edit/main/docs/client-setup.md",
-    ],
-    [
-      "/clients/compatibility/",
-      "https://github.com/enthouan/trello-mcp/edit/main/docs/mcp-client-compatibility.md",
-    ],
-    [
-      "/trello-api-key/",
-      "https://github.com/enthouan/trello-mcp/edit/main/docs/trello-api-key.md",
-    ],
-    [
-      "/guides/how-it-works/",
-      "https://github.com/enthouan/trello-mcp/edit/main/docs/how-it-works.md",
-    ],
-    [
-      "/guides/workflows/",
-      "https://github.com/enthouan/trello-mcp/edit/main/docs/workflows.md",
-    ],
-    [
-      "/guides/troubleshooting/",
-      "https://github.com/enthouan/trello-mcp/edit/main/docs/troubleshooting.md",
-    ],
-    [
-      "/reference/configuration/",
-      "https://github.com/enthouan/trello-mcp/edit/main/docs/configuration.md",
-    ],
-    [
-      "/tools/api-coverage/",
-      "https://github.com/enthouan/trello-mcp/edit/main/docs/api-coverage.md",
-    ],
-    [
-      "/reference/contributing/",
-      "https://github.com/enthouan/trello-mcp/edit/main/CONTRIBUTING.md",
-    ],
-    [
-      "/reference/support/",
-      "https://github.com/enthouan/trello-mcp/edit/main/SUPPORT.md",
-    ],
-    [
-      "/reference/security-policy/",
-      "https://github.com/enthouan/trello-mcp/edit/main/SECURITY.md",
-    ],
-  ] as const;
-
-  for (const [route, editUrl] of canonicalEdits) {
-    await gotoLoaded(page, route);
-    await expect(page.getByRole("link", { name: "Edit page" })).toHaveAttribute(
-      "href",
-      editUrl,
-    );
-  }
-
-  for (const route of ["/", "/tools/", "/reference/", "/security/", "/faq/"]) {
+  for (const route of Object.keys(publicDocumentMetadata)) {
     await gotoLoaded(page, route);
     await expect(page.getByRole("link", { name: "Edit page" })).toHaveCount(0);
   }
@@ -2229,6 +2522,25 @@ test("guide, workflow, troubleshooting, and configuration pages cover their oper
     }),
   ).toBeVisible();
   await expect(page.locator("main ol.sl-steps")).toHaveCount(2);
+  await expect(page.locator("[data-request-flow]")).toHaveCount(1);
+  await expect(
+    page.getByRole("img", {
+      name: "How a trello-mcp tool call travels",
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Who owns what" }),
+  ).toBeVisible();
+  const ownershipCards = page.locator("main .card-grid").first();
+  await expect(ownershipCards.locator(":scope > article.card")).toHaveCount(3);
+  await expect(ownershipCards.locator(".title")).toHaveText([
+    "MCP client",
+    "trello-mcp",
+    "Trello",
+  ]);
+  await expect(
+    page.getByRole("heading", { name: "Choose the process boundary" }),
+  ).toBeVisible();
   await expect(page.locator("main")).toContainText(
     "sessionful Streamable HTTP",
   );
@@ -2264,6 +2576,39 @@ test("guide, workflow, troubleshooting, and configuration pages cover their oper
   await expect(page.locator("main")).toContainText(
     "server does not add a universal preview",
   );
+  await expect(
+    page.getByRole("complementary", {
+      name: "Keep the safety boundary visible",
+    }),
+  ).toContainText("Prefer archive tools for recoverable cleanup");
+
+  await gotoLoaded(page, "/guides/operations/");
+  await expect(page.locator("main h1")).toHaveText("Operate trello-mcp");
+  for (const heading of [
+    "Before a change",
+    "Inspect a running service",
+    "Upgrade the published image",
+    "Roll back",
+    "Rotate credentials",
+    "Stop or remove the service",
+    "State, backup, and retention",
+    "Upgrade a source or stdio installation",
+  ]) {
+    await expect(
+      page.getByRole("heading", { name: heading, exact: true }),
+    ).toBeVisible();
+  }
+  for (const operationalBoundary of [
+    "docker compose pull trello-mcp",
+    "docker compose up -d --wait --wait-timeout 120",
+    "docker compose up -d --force-recreate --wait --wait-timeout 120",
+    "docker compose down",
+    "Do not add -v as a routine shutdown step",
+    "The server has no application database",
+    "TRELLO_ATTACHMENT_UPLOAD_ROOT",
+  ]) {
+    await expect(page.locator("main")).toContainText(operationalBoundary);
+  }
 
   await gotoLoaded(page, "/guides/troubleshooting/");
   await expect(page.locator("main h1")).toHaveText("Troubleshooting");
@@ -2343,7 +2688,7 @@ test("guide, workflow, troubleshooting, and configuration pages cover their oper
 test("tool catalog groups every runtime tool and exposes searchable input metadata", async ({
   page,
 }) => {
-  await gotoLoaded(page, "/tools/");
+  await gotoLoaded(page, "/reference/tools/");
 
   await expect(page.locator("main h1")).toHaveText("Tool catalog");
   const catalog = page.locator("[data-tool-catalog]");
@@ -2460,7 +2805,9 @@ test("tool catalog groups every runtime tool and exposes searchable input metada
 
   await reset.click();
   await expect(status).toHaveText("77 of 77 tools shown");
-  await page.goto("/tools/#card_create", { waitUntil: "domcontentloaded" });
+  await page.goto("/reference/tools/#card_create", {
+    waitUntil: "domcontentloaded",
+  });
   await expect(page.locator('[data-tool-name="card_create"]')).toBeVisible();
   await expect(page).toHaveURL(/\/tools\/#card_create$/);
 });
@@ -2472,7 +2819,7 @@ test("tool catalog remains complete without client-side enhancement", async ({
   const page = await context.newPage();
 
   try {
-    const response = await page.goto("/tools/", {
+    const response = await page.goto("/reference/tools/", {
       waitUntil: "domcontentloaded",
     });
     expect(response?.status()).toBe(200);
@@ -2488,7 +2835,7 @@ test("tool catalog remains complete without client-side enhancement", async ({
 test("API coverage uses concise group headings and preserves legacy deep links", async ({
   page,
 }) => {
-  await gotoLoaded(page, "/tools/api-coverage/#api-group-actions");
+  await gotoLoaded(page, "/reference/api-coverage/#api-group-actions");
 
   const groupNames = [
     "Actions",
@@ -2513,7 +2860,7 @@ test("API coverage uses concise group headings and preserves legacy deep links",
 test("primary navigation reaches every top-level route", async ({ page }) => {
   for (const [label, route] of primaryNavigation) {
     await test.step(label, async () => {
-      await gotoLoaded(page, "/get-started/");
+      await gotoLoaded(page, "/getting-started/");
       const link = page
         .locator(`#starlight__sidebar a[href="${route}"]:visible`)
         .first();
@@ -2539,15 +2886,47 @@ test("primary navigation reaches every top-level route", async ({ page }) => {
   );
 });
 
-test("legacy Concepts and Project routes redirect to canonical destinations", async ({
+test("legacy documentation routes redirect to canonical destinations", async ({
   page,
   request,
 }) => {
-  for (const [legacyRoute, canonicalRoute, heading] of [
-    ["/concepts/how-it-works/", "/guides/how-it-works/", "How it works"],
-    ["/project/", "/reference/", "Reference"],
-  ] as const) {
-    const redirectResponse = await request.get(legacyRoute, {
+  const redirects = [
+    ["/get-started", "/getting-started/", "Install and run"],
+    ["/get-started/docker", "/getting-started/docker/", "Docker Compose"],
+    ["/get-started/http", "/getting-started/http/", "Streamable HTTP"],
+    ["/get-started/stdio", "/getting-started/stdio/", "stdio"],
+    ["/trello-api-key", "/getting-started/trello-api-key/", "Trello API key"],
+    ["/clients", "/getting-started/clients/", "Set up your MCP client"],
+    [
+      "/clients/compatibility",
+      "/getting-started/compatibility/",
+      "Compatibility evidence",
+    ],
+    ["/concepts/how-it-works", "/guides/how-it-works/", "How it works"],
+    ["/security", "/guides/security/", "Security and data flow"],
+    ["/faq", "/guides/faq/", "FAQ"],
+    ["/tools", "/reference/tools/", "Tool catalog"],
+    ["/tools/api-coverage", "/reference/api-coverage/", "API coverage"],
+    [
+      "/reference/support",
+      "/reference/reporting-issues/",
+      "Reporting issues and support",
+    ],
+    ["/project", "/reference/", "Reference"],
+  ] as const;
+  const cloudflareRedirects = await readFile(
+    new URL("../public/_redirects", import.meta.url),
+    "utf8",
+  );
+  expect(cloudflareRedirects.trim().split("\n")).toEqual(
+    redirects.flatMap(([legacyRoute, canonicalRoute]) => [
+      `${legacyRoute} ${canonicalRoute} 301`,
+      `${legacyRoute}/ ${canonicalRoute} 301`,
+    ]),
+  );
+
+  for (const [legacyRoute, canonicalRoute] of redirects) {
+    const redirectResponse = await request.get(`${legacyRoute}/`, {
       failOnStatusCode: false,
     });
     expect(redirectResponse.status()).toBe(200);
@@ -2555,8 +2934,21 @@ test("legacy Concepts and Project routes redirect to canonical destinations", as
     expect(redirectBody).toContain('http-equiv="refresh"');
     expect(redirectBody).toContain(`content="0;url=${canonicalRoute}"`);
     expect(redirectBody).toContain('name="robots" content="noindex"');
+  }
 
-    await page.goto(legacyRoute, { waitUntil: "networkidle" });
+  for (const [legacyRoute, canonicalRoute, heading] of redirects.filter(
+    ([route]) =>
+      [
+        "/get-started",
+        "/clients",
+        "/concepts/how-it-works",
+        "/security",
+        "/tools",
+        "/reference/support",
+        "/project",
+      ].includes(route),
+  )) {
+    await page.goto(`${legacyRoute}/`, { waitUntil: "networkidle" });
     await expect(page).toHaveURL(
       new RegExp(`${canonicalRoute.replaceAll("/", "\\/")}$`),
     );
@@ -2567,20 +2959,20 @@ test("legacy Concepts and Project routes redirect to canonical destinations", as
 test("sidebar exposes exactly the requested three-group information architecture", async ({
   page,
 }) => {
-  await gotoLoaded(page, "/get-started/");
+  await gotoLoaded(page, "/getting-started/");
   const sidebar = page.locator("#starlight__sidebar");
   const groups = sidebar.locator("ul.top-level > li > details");
   const expectedGroups = [
     {
       label: "Get started",
       items: [
-        ["Install and run", "/get-started/"],
-        ["Trello API Key", "/trello-api-key/"],
-        ["Set up your MCP client", "/clients/"],
-        ["Compatibility", "/clients/compatibility/"],
-        ["Docker Compose", "/get-started/docker/"],
-        ["Streamable HTTP", "/get-started/http/"],
-        ["stdio", "/get-started/stdio/"],
+        ["Install and run", "/getting-started/"],
+        ["Trello API key", "/getting-started/trello-api-key/"],
+        ["Set up your MCP client", "/getting-started/clients/"],
+        ["Compatibility", "/getting-started/compatibility/"],
+        ["Docker Compose", "/getting-started/docker/"],
+        ["Streamable HTTP", "/getting-started/http/"],
+        ["stdio", "/getting-started/stdio/"],
       ],
     },
     {
@@ -2588,9 +2980,10 @@ test("sidebar exposes exactly the requested three-group information architecture
       items: [
         ["How it works", "/guides/how-it-works/"],
         ["Workflows", "/guides/workflows/"],
-        ["Security & Data", "/security/"],
+        ["Security & Data", "/guides/security/"],
+        ["Operations", "/guides/operations/"],
         ["Troubleshooting", "/guides/troubleshooting/"],
-        ["FAQ", "/faq/"],
+        ["FAQ", "/guides/faq/"],
       ],
     },
     {
@@ -2598,10 +2991,10 @@ test("sidebar exposes exactly the requested three-group information architecture
       items: [
         ["Overview", "/reference/"],
         ["Configuration", "/reference/configuration/"],
-        ["Tool catalog", "/tools/"],
-        ["API coverage", "/tools/api-coverage/"],
+        ["Tool catalog", "/reference/tools/"],
+        ["API coverage", "/reference/api-coverage/"],
         ["Contributing", "/reference/contributing/"],
-        ["Reporting issues and support", "/reference/support/"],
+        ["Reporting issues and support", "/reference/reporting-issues/"],
         ["Security policy", "/reference/security-policy/"],
       ],
     },
@@ -2625,33 +3018,36 @@ test("sidebar exposes exactly the requested three-group information architecture
   await expect(sidebar).not.toContainText("Project");
 
   const next = page.locator('footer a[rel="next"]');
-  await expect(next).toHaveAttribute("href", "/trello-api-key/");
-  await expect(next).toContainText("Trello API Key");
+  await expect(next).toHaveAttribute(
+    "href",
+    "/getting-started/trello-api-key/",
+  );
+  await expect(next).toContainText("Trello API key");
 
-  await gotoLoaded(page, "/clients/");
+  await gotoLoaded(page, "/getting-started/clients/");
   await expect(page.locator("main h1")).toHaveText("Set up your MCP client");
   await expect(page.locator('footer a[rel="next"]')).toHaveAttribute(
     "href",
-    "/clients/compatibility/",
+    "/getting-started/compatibility/",
   );
 
-  await gotoLoaded(page, "/clients/compatibility/");
+  await gotoLoaded(page, "/getting-started/compatibility/");
   await expect(page.locator('footer a[rel="next"]')).toHaveAttribute(
     "href",
-    "/get-started/docker/",
+    "/getting-started/docker/",
   );
 
-  await gotoLoaded(page, "/get-started/http/");
+  await gotoLoaded(page, "/getting-started/http/");
   await expect(page.locator('footer a[rel="prev"]')).toHaveAttribute(
     "href",
-    "/get-started/docker/",
+    "/getting-started/docker/",
   );
   await expect(page.locator('footer a[rel="next"]')).toHaveAttribute(
     "href",
-    "/get-started/stdio/",
+    "/getting-started/stdio/",
   );
 
-  await gotoLoaded(page, "/get-started/stdio/");
+  await gotoLoaded(page, "/getting-started/stdio/");
   await expect(page.locator('footer a[rel="next"]')).toHaveAttribute(
     "href",
     "/guides/how-it-works/",
@@ -2660,7 +3056,7 @@ test("sidebar exposes exactly the requested three-group information architecture
 
 test("native mobile menu is keyboard operable", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await gotoLoaded(page, "/get-started/");
+  await gotoLoaded(page, "/getting-started/");
 
   const menu = page.locator("starlight-menu-button").first();
   const menuButton = menu.locator("button");
@@ -2671,7 +3067,7 @@ test("native mobile menu is keyboard operable", async ({ page }) => {
   await expect(menu).toHaveAttribute("aria-expanded", "true");
 
   const toolsLink = page
-    .locator('#starlight__sidebar a[href="/tools/"]:visible')
+    .locator('#starlight__sidebar a[href="/reference/tools/"]:visible')
     .first();
   await expect(toolsLink).toBeVisible();
   await toolsLink.focus();
@@ -2708,7 +3104,7 @@ test("documentation pages inherit Starlight's native content width", async ({
   );
   expect(customCss).not.toMatch(/--sl-content-width\s*:/);
 
-  await gotoLoaded(page, "/get-started/");
+  await gotoLoaded(page, "/getting-started/");
   const contentWidth = await page.evaluate(() =>
     getComputedStyle(document.documentElement)
       .getPropertyValue("--sl-content-width")
@@ -2921,7 +3317,7 @@ test("production Pagefind search returns a tool result", async ({ page }) => {
 
   const result = page
     .locator(
-      '.pagefind-ui__result-link[href^="/tools/"]:visible, [data-pagefind-ui] a[href^="/tools/"]:visible',
+      '.pagefind-ui__result-link[href^="/reference/tools/"]:visible, [data-pagefind-ui] a[href^="/reference/tools/"]:visible',
     )
     .first();
   await expect(result).toBeVisible();
@@ -3021,6 +3417,12 @@ test("the Starlight 404 is explicit and unknown routes return 404", async ({
   await expect(page.locator("main h1")).toHaveText("404");
   await expect(page.locator("main")).toContainText(/page not found/i);
   await expect(page.locator('header a[href="/"]')).toBeVisible();
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
+    "content",
+    "noindex, nofollow",
+  );
+  await expect(page.locator('link[rel="canonical"]')).toHaveCount(0);
+  await expect(page.locator('meta[property="og:url"]')).toHaveCount(0);
 
   const response = await page.goto(missingPath, { waitUntil: "networkidle" });
 
@@ -3040,7 +3442,7 @@ test("the Starlight 404 is explicit and unknown routes return 404", async ({
 test("skip link and focus indicators work from the keyboard", async ({
   page,
 }) => {
-  await gotoLoaded(page, "/get-started/");
+  await gotoLoaded(page, "/getting-started/");
   const skipLink = page.getByRole("link", { name: /skip to content/i });
 
   await expect(skipLink).toHaveAttribute("href", "#_top");
@@ -3102,7 +3504,10 @@ test("code blocks copy successfully and contain their own overflow", async ({
     });
   });
   await page.setViewportSize({ width: 320, height: 568 });
-  await gotoLoaded(page, "/get-started/");
+  await gotoLoaded(page, "/getting-started/");
+  await page
+    .getByRole("tab", { name: "HTTP · published image", exact: true })
+    .click();
 
   const codeBlocks = page.locator("main pre");
   expect(await codeBlocks.count()).toBeGreaterThan(0);
@@ -3132,7 +3537,10 @@ test("code blocks copy successfully and contain their own overflow", async ({
     )
     .first();
   await expect(copyButton).toBeVisible();
-  const source = (await codeBlocks.first().innerText()).trim();
+  const copySource = await copyButton.getAttribute("data-code");
+  expect(copySource, "Copy control must expose its source code").toBeTruthy();
+  const expectedCopy = (copySource ?? "").replaceAll("\u007f", "\n");
+  expect(expectedCopy).toContain("docker compose up -d --wait");
   await copyButton.click();
   const normalizeCopiedCode = (value: string) =>
     value
@@ -3153,108 +3561,89 @@ test("code blocks copy successfully and contain their own overflow", async ({
         ),
       ),
     )
-    .toEqual(normalizeCopiedCode(source));
+    .toEqual(normalizeCopiedCode(expectedCopy));
   expect(problems, "Copy interaction emitted browser errors").toEqual([]);
 });
 
-test("transport chooser stays legible and scrolls internally when present", async ({
+test("request flow diagram is accessible, theme-aware, and scrolls internally", async ({
   page,
   request,
 }) => {
-  const assetResponse = await request.get("/transport-chooser.svg", {
+  const assetResponse = await request.get("/request-flow.svg", {
     failOnStatusCode: false,
   });
-  await page.setViewportSize({ width: 320, height: 568 });
-  await gotoLoaded(page, "/clients/");
-
-  const figure = page.locator("figure[data-transport-chooser]");
-  if (assetResponse.status() === 404) {
-    await expect(figure).toHaveCount(0);
-    return;
-  }
-
-  expect(assetResponse.status(), "Transport chooser asset must resolve").toBe(
-    200,
-  );
+  expect(assetResponse.status(), "Request flow asset must resolve").toBe(200);
   expect(assetResponse.headers()["content-type"]).toContain("image/svg+xml");
   const assetSource = await assetResponse.text();
-  expect(assetSource).toContain(":root { color-scheme: light dark; }");
+  expect(assetSource).toContain("How a trello-mcp tool call travels");
+  expect(assetSource).toContain("Local stdio · Sessionful HTTP");
+  expect(assetSource).toContain("holds Trello API key + token");
+  expect(assetSource).toContain("Trello remains the source of truth");
   expect(assetSource).toContain("@media (prefers-color-scheme: dark)");
-  expect(assetSource).toContain(".canvas { fill: #0C1624; }");
-  expect(assetSource).toContain(
-    ".title, .panel-title, .box-title { fill: #F8FAFC; }",
-  );
-  expect(assetSource).toContain(
-    ".local-dot, .local-arrow-head { fill: #579DFF; }",
-  );
-  expect(assetSource).toContain(
-    ".http-dot, .http-arrow-head { fill: #2DD4BF; }",
-  );
-  expect(assetSource).toContain('class="panel local-panel"');
-  expect(assetSource).toContain('class="panel http-panel"');
+  const legacyAsset = await request.get("/transport-chooser.svg", {
+    failOnStatusCode: false,
+  });
+  expect(legacyAsset.status()).toBe(404);
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await gotoLoaded(page, "/guides/how-it-works/");
+
+  const figure = page.locator("figure[data-request-flow]");
 
   await expect(figure).toBeVisible();
-  const image = figure.getByRole("img", { name: TRANSPORT_CHOOSER_ALT });
-  await expect(image).toHaveAttribute("src", "/transport-chooser.svg");
-  await expect(image).toHaveAttribute("width", "1200");
-  await expect(image).toHaveAttribute("height", "600");
-  await page.locator("html").evaluate((element) => {
-    element.dataset.theme = "light";
-  });
-  await page.evaluate(
-    () =>
-      new Promise<void>((resolve) => requestAnimationFrame(() => resolve())),
-  );
-  const lightRender = await image.screenshot();
-  await page.locator("html").evaluate((element) => {
-    element.dataset.theme = "dark";
-  });
-  await page.evaluate(
-    () =>
-      new Promise<void>((resolve) => requestAnimationFrame(() => resolve())),
-  );
-  const darkRender = await image.screenshot();
-  expect(darkRender.equals(lightRender)).toBe(false);
-
-  const caption = figure.locator("figcaption");
-  await expect(caption).toContainText(
-    "Scroll horizontally when needed to compare both paths.",
-  );
-  const fullSizeLink = caption.getByRole("link", {
+  await expect(
+    figure.getByRole("img", { name: "How a trello-mcp tool call travels" }),
+  ).toBeVisible();
+  const fullSizeLink = figure.getByRole("link", {
     name: "Open the full-size diagram",
     exact: true,
   });
-  await expect(fullSizeLink).toHaveAttribute("href", "/transport-chooser.svg");
+  await expect(fullSizeLink).toHaveAttribute("href", "/request-flow.svg");
   const fullSizeResponse = await request.get(
     (await fullSizeLink.getAttribute("href")) ?? "",
     { failOnStatusCode: false },
   );
-  expect(fullSizeResponse.status(), "Full-size chooser link must resolve").toBe(
+  expect(fullSizeResponse.status(), "Full-size diagram link must resolve").toBe(
     200,
   );
 
+  const themeColors: string[] = [];
+  for (const theme of ["light", "dark"] as const) {
+    await page.locator("html").evaluate((element, nextTheme) => {
+      element.dataset.theme = nextTheme;
+    }, theme);
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) => requestAnimationFrame(() => resolve())),
+    );
+    themeColors.push(
+      await figure
+        .locator(".canvas")
+        .evaluate((element) => getComputedStyle(element).fill),
+    );
+  }
+  expect(themeColors).toEqual(["rgb(248, 251, 255)", "rgb(12, 22, 36)"]);
+
   for (const viewport of [
-    { width: 1440, height: 900, scrolls: false },
-    { width: 1024, height: 768, scrolls: false },
-    { width: 768, height: 1024, scrolls: true },
-    { width: 390, height: 844, scrolls: true },
-    { width: 320, height: 568, scrolls: true },
+    { width: 1440, height: 900 },
+    { width: 390, height: 844 },
+    { width: 320, height: 568 },
   ]) {
     await test.step(`${viewport.width}px`, async () => {
       await page.setViewportSize(viewport);
-      await gotoLoaded(page, "/clients/");
+      await gotoLoaded(page, "/guides/how-it-works/");
 
       const scrollRegion = page.getByRole("region", {
-        name: "Transport chooser diagram",
+        name: "Trello MCP request flow diagram",
       });
       await expect(scrollRegion).toBeVisible();
       await expect(scrollRegion).toHaveAttribute("tabindex", "0");
       const geometry = await scrollRegion.evaluate((element) => {
         const bounds = element.getBoundingClientRect();
-        const chooserImage = element.querySelector("img");
+        const diagram = element.querySelector("svg");
         return {
           clientWidth: element.clientWidth,
-          imageWidth: chooserImage?.getBoundingClientRect().width ?? 0,
+          diagramWidth: diagram?.getBoundingClientRect().width ?? 0,
           left: bounds.left,
           overflowX: getComputedStyle(element).overflowX,
           right: bounds.right,
@@ -3263,25 +3652,13 @@ test("transport chooser stays legible and scrolls internally when present", asyn
       });
 
       expect(["auto", "scroll"]).toContain(geometry.overflowX);
-      if (viewport.scrolls) {
-        expect(geometry.imageWidth).toBeGreaterThanOrEqual(1023);
-        expect(geometry.scrollWidth).toBeGreaterThan(geometry.clientWidth);
-      } else {
-        expect(geometry.imageWidth).toBeLessThanOrEqual(
-          geometry.clientWidth + 1,
-        );
-        expect(geometry.scrollWidth).toBeLessThanOrEqual(
-          geometry.clientWidth + 1,
-        );
-      }
+      expect(geometry.diagramWidth).toBeGreaterThanOrEqual(831);
+      expect(geometry.scrollWidth).toBeGreaterThan(geometry.clientWidth);
       expect(geometry.left).toBeGreaterThanOrEqual(-1);
       expect(geometry.right).toBeLessThanOrEqual(viewport.width + 1);
-      await assertNoPageOverflow(
-        page,
-        `transport chooser at ${viewport.width}px`,
-      );
+      await assertNoPageOverflow(page, `request flow at ${viewport.width}px`);
 
-      if (viewport.scrolls) {
+      if (viewport.width === 320) {
         await scrollRegion.evaluate((element) => {
           element.scrollLeft = 0;
         });
@@ -3296,17 +3673,15 @@ test("transport chooser stays legible and scrolls internally when present", asyn
               );
             }),
         );
-        if (
-          (await scrollRegion.evaluate((element) => element.scrollLeft)) === 0
-        ) {
-          await page.keyboard.press("Alt+ArrowRight");
-        }
         await expect
           .poll(() => scrollRegion.evaluate((element) => element.scrollLeft))
           .toBeGreaterThan(0);
       }
     });
   }
+
+  await gotoLoaded(page, "/getting-started/clients/");
+  await expect(page.locator("[data-transport-chooser]")).toHaveCount(0);
 });
 
 test("mobile tool catalog keeps filters and expanded input cards within the viewport", async ({
@@ -3315,7 +3690,7 @@ test("mobile tool catalog keeps filters and expanded input cards within the view
   for (const width of [390, 320]) {
     await test.step(`${width}px`, async () => {
       await page.setViewportSize({ width, height: width === 390 ? 844 : 568 });
-      await gotoLoaded(page, "/tools/");
+      await gotoLoaded(page, "/reference/tools/");
 
       const catalog = page.locator("[data-tool-catalog]");
       const controls = catalog.locator("[data-catalog-controls]");
@@ -3378,7 +3753,7 @@ test("tool catalog uses two-column cards when the content area is wide enough", 
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await gotoLoaded(page, "/tools/#tool-group-cards");
+  await gotoLoaded(page, "/reference/tools/#tool-group-cards");
 
   const cards = page.locator(
     '[aria-labelledby="tool-group-cards"] [data-tool-card]',
@@ -3467,7 +3842,7 @@ test("mobile controls meet the WCAG 2.2 minimum touch-target size", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await gotoLoaded(page, "/get-started/");
+  await gotoLoaded(page, "/getting-started/");
 
   const menu = page.locator("starlight-menu-button").first();
   await menu.locator("button").click();
@@ -3505,8 +3880,8 @@ test("pages reflow without horizontal overflow at a 200% zoom equivalent", async
 }) => {
   test.setTimeout(120_000);
   // At 200% browser zoom, a 1440×900 display exposes roughly a 720×450 CSS-pixel
-  // viewport. Using that viewport is portable across Chromium and WebKit, unlike
-  // engine-private zoom controls, and exercises the same responsive reflow.
+  // viewport. Using that viewport avoids engine-private zoom controls and
+  // exercises the same responsive reflow in the Chromium PR gate.
   await page.setViewportSize({ width: 720, height: 450 });
 
   for (const route of publicRoutes) {

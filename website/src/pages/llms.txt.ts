@@ -5,20 +5,28 @@ export const prerender = true;
 
 function routeForEntry(id: string) {
   const withoutIndex = id.replace(/(?:^|\/)index$/, "");
-  return withoutIndex ? `/${withoutIndex}/` : "/";
+  return withoutIndex ? `${withoutIndex}/` : "";
 }
 
 export const GET: APIRoute = async ({ site }) => {
   if (!site) {
-    throw new Error("Astro.site must be configured to generate llms.txt.");
+    throw new Error("Astro.site must be configured to generate llms.txt");
   }
+
+  const base = import.meta.env.BASE_URL.endsWith("/")
+    ? import.meta.env.BASE_URL
+    : `${import.meta.env.BASE_URL}/`;
+  const href = (path: string) => {
+    const pathname = `${base}${path}`.replace(/\/{2,}/g, "/");
+    return new URL(pathname, site).href;
+  };
 
   const entries = await getCollection("docs");
   const pages = entries
     .map((entry) => ({
       description: entry.data.description?.trim(),
       title: entry.data.title,
-      url: new URL(routeForEntry(entry.id), site).href,
+      url: href(routeForEntry(entry.id)),
     }))
     .sort((left, right) => left.url.localeCompare(right.url));
 

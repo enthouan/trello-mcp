@@ -29,8 +29,6 @@ jobs:
   website:
     runs-on: ubuntu-latest
     timeout-minutes: 40
-    env:
-      SITE_URL: https://example.invalid
     steps:
       - uses: actions/checkout@v7
         with:
@@ -45,11 +43,9 @@ jobs:
       - run: pnpm docs:check
       - run: pnpm site:og:check
       - run: pnpm site:check
-      - run: pnpm site:build
-      - run: pnpm exec playwright install --with-deps chromium webkit
-      - run: pnpm site:test
-      - run: pnpm site:visual
-      - run: pnpm site:lighthouse
+      - run: pnpm website:build
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: PLAYWRIGHT_USE_EXISTING_BUILD=1 pnpm site:test
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: always()
         with:

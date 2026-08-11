@@ -1,7 +1,5 @@
 ---
 // biome-ignore lint/correctness/noUnusedImports: Astro renders this component in the template below.
-import EditLink from "@astrojs/starlight/components/EditLink.astro";
-// biome-ignore lint/correctness/noUnusedImports: Astro renders this component in the template below.
 import LastUpdated from "@astrojs/starlight/components/LastUpdated.astro";
 // biome-ignore lint/correctness/noUnusedImports: Astro renders this component in the template below.
 import Pagination from "@astrojs/starlight/components/Pagination.astro";
@@ -10,11 +8,13 @@ import Pagination from "@astrojs/starlight/components/Pagination.astro";
 const base = import.meta.env.BASE_URL;
 // biome-ignore lint/correctness/noUnusedVariables: Astro renders this value in the template below.
 const repositoryUrl = "https://github.com/enthouan/trello-mcp";
+// biome-ignore lint/correctness/noUnusedVariables: Astro renders this value in the template below.
+const roadmapUrl =
+  "https://trello.com/b/GnKmvuHz/trello-mcp-enthouan-trello-mcp";
 ---
 
 <footer class="site-footer sl-flex">
   <div class="meta sl-flex">
-    <EditLink />
     <LastUpdated />
   </div>
   <Pagination />
@@ -24,8 +24,10 @@ const repositoryUrl = "https://github.com/enthouan/trello-mcp";
       <a class="project-footer__name" href={base}>trello-mcp</a>
 
       <nav aria-label="Documentation links">
-        <a href={`${base}tools/`}>Tools</a>
-        <a href={`${base}security/`}>Security</a>
+        <a href={`${base}reference/`}>Reference</a>
+        <a href={roadmapUrl} rel="external">Roadmap</a>
+        <a href={`${base}reference/reporting-issues/`}>Help</a>
+        <a href={`${base}guides/security/`}>Security &amp; Data</a>
         <a href={repositoryUrl} rel="external">GitHub</a>
       </nav>
     </div>

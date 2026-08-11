@@ -1,7 +1,6 @@
 ---
 title: "Configuration reference"
 description: "Every trello-mcp runtime and Compose setting, its default, and the boundary it controls."
-editUrl: "https://github.com/enthouan/trello-mcp/edit/main/docs/configuration.md"
 ---
 
 `trello-mcp` reads its runtime configuration from environment variables. Two
@@ -46,7 +45,7 @@ the HTTP health check fail, so use a direct child process for stdio instead.
 | `TRELLO_TOKEN` | Yes | The token authorizing requests as a Trello member. Treat it like a password. |
 
 Both values must be non-empty or startup fails configuration validation. Create
-them with the [Trello API Key guide](/trello-api-key/), then keep them in a
+them with the [Trello API key guide](/getting-started/trello-api-key/), then keep them in a
 protected client configuration, process environment, secrets manager, or
 ignored `.env` file. Never commit either value or include it in logs, URLs,
 screenshots, issues, or pull requests.
@@ -85,7 +84,7 @@ TRELLO_TOKEN=your-token
 LOG_LEVEL=info
 ```
 
-Use the client-specific format in [Set up your MCP client](/clients/). Do not
+Use the client-specific format in [Set up your MCP client](/getting-started/clients/). Do not
 start a detached stdio process yourself; the MCP client owns its stdin and
 stdout streams.
 
@@ -323,5 +322,5 @@ TRELLO_MCP_HOST_PORT=3000
 TRELLO_MCP_IMAGE_TAG=0.8.1
 ```
 
-Continue with [Set up your MCP client](/clients/), or compare the complete
-startup commands in the [README quick start](/get-started/).
+Continue with [Set up your MCP client](/getting-started/clients/), or compare the complete
+startup commands in the [README quick start](/getting-started/).

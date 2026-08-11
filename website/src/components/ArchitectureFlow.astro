@@ -1,0 +1,123 @@
+---
+// biome-ignore lint/correctness/noUnusedImports: Astro renders this value through set:html below.
+import diagram from "../../../docs/assets/how-it-works/request-flow.svg?raw";
+
+// biome-ignore lint/correctness/noUnusedVariables: Astro renders this value in the template below.
+const diagramUrl = `${import.meta.env.BASE_URL}request-flow.svg`;
+---
+
+<figure class="request-flow not-content" data-request-flow>
+  <div
+    class="request-flow__viewport"
+    data-request-flow-scroll
+    role="region"
+    aria-label="Trello MCP request flow diagram"
+    tabindex="0"
+    set:html={diagram}
+  ></div>
+  <p class="request-flow__note">
+    <strong>
+      trello-mcp never places <code>TRELLO_API_KEY</code> or <code>TRELLO_TOKEN</code> in MCP
+      requests or results.
+    </strong>{" "}
+    Do not put either value in prompts. HTTP clients send the separate <code>MCP_AUTH_TOKEN</code>
+    {" "}when configured; stdio does not use it. <a href={diagramUrl}>Open the full-size diagram</a>.
+  </p>
+</figure>
+
+<style>
+  .request-flow {
+    --flow-canvas: #f8fbff;
+    --flow-title: #172b4d;
+    --flow-copy: #44546f;
+    --flow-client-panel: #e9f2ff;
+    --flow-client-stroke: #0c66e4;
+    --flow-client-badge: #cce0ff;
+    --flow-client-accent: #0052cc;
+    --flow-server-panel: #f1f6ff;
+    --flow-server-stroke: #579dff;
+    --flow-server-badge: #deebff;
+    --flow-server-accent: #0747a6;
+    --flow-api-panel: #e3fcef;
+    --flow-api-stroke: #22a06b;
+    --flow-api-badge: #baf3db;
+    --flow-api-accent: #216e4e;
+    --flow-detail: #ffffff;
+    --flow-detail-stroke: #b7c7d9;
+    --flow-request: #0c66e4;
+    --flow-result: #626f86;
+    --flow-footer: #09326c;
+    --flow-footer-copy: #ffffff;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    margin-block: 1.5rem;
+    margin-inline: 0;
+  }
+
+  :global(:root[data-theme="dark"]) .request-flow {
+    --flow-canvas: #0c1624;
+    --flow-title: #eef6ff;
+    --flow-copy: #b6c2cf;
+    --flow-client-panel: #102a4d;
+    --flow-client-stroke: #579dff;
+    --flow-client-badge: #193f70;
+    --flow-client-accent: #cce0ff;
+    --flow-server-panel: #172554;
+    --flow-server-stroke: #85b8ff;
+    --flow-server-badge: #20366f;
+    --flow-server-accent: #d6e4ff;
+    --flow-api-panel: #10352b;
+    --flow-api-stroke: #4bce97;
+    --flow-api-badge: #164b3d;
+    --flow-api-accent: #baf3db;
+    --flow-detail: #172233;
+    --flow-detail-stroke: #44546f;
+    --flow-request: #85b8ff;
+    --flow-result: #9fadbc;
+    --flow-footer: #1c3b66;
+    --flow-footer-copy: #deebff;
+  }
+
+  .request-flow__viewport {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 8px;
+    background: var(--flow-canvas);
+  }
+
+  .request-flow__viewport:focus-visible {
+    outline: 3px solid var(--sl-color-accent);
+    outline-offset: 3px;
+  }
+
+  .request-flow__viewport :global(svg) {
+    display: block;
+    width: max(100%, 52rem);
+    min-width: 52rem;
+    max-width: none;
+    height: auto;
+    margin: 0;
+  }
+
+  .request-flow__note {
+    margin-block: 0.75rem 0;
+    padding: 0.85rem 1rem;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 8px;
+    color: var(--sl-color-gray-2);
+    font-size: var(--sl-text-sm);
+  }
+
+  .request-flow__note strong {
+    color: var(--sl-color-white);
+  }
+
+  .request-flow__note a {
+    color: var(--sl-color-text-accent);
+    text-underline-offset: 0.2em;
+  }
+</style>

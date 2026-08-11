@@ -1,4 +1,4 @@
-# Trello API Key
+# Trello API key
 
 `trello-mcp` needs two credentials from Trello: `TRELLO_API_KEY` identifies the
 app you register, and `TRELLO_TOKEN` authorizes access as a Trello member. You
@@ -22,11 +22,12 @@ revoke them for you.
   ready. Do not paste credentials into this website, chat, screenshots, issues,
   or pull requests.
 
-> **The token is broad account access.** Trello says a generated token can read
-> and change resources allowed by its consent screen and remains active until it
-> is disabled. It can also reach boards and Workspaces the member gains access
-> to later. Treat the token like a password and use a dedicated Trello member
-> when you need a narrower boundary.
+> **The token is broad account access.** Trello tokens can be issued for one
+> hour, one day, 30 days, or without a scheduled expiration. A token remains
+> usable until it expires or is revoked, and it can reach boards and Workspaces
+> the member gains access to later when those resources fall within the granted
+> scope. Treat the token like a password and use a dedicated Trello member when
+> you need a narrower boundary.
 
 ## Create the credentials
 

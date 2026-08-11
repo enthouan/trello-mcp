@@ -40,7 +40,7 @@ the HTTP health check fail, so use a direct child process for stdio instead.
 | `TRELLO_TOKEN` | Yes | The token authorizing requests as a Trello member. Treat it like a password. |
 
 Both values must be non-empty or startup fails configuration validation. Create
-them with the [Trello API Key guide](trello-api-key.md), then keep them in a
+them with the [Trello API key guide](trello-api-key.md), then keep them in a
 protected client configuration, process environment, secrets manager, or
 ignored `.env` file. Never commit either value or include it in logs, URLs,
 screenshots, issues, or pull requests.

@@ -15,15 +15,10 @@ Trello also operates an [official hosted MCP server](https://trello.com/mcp) at 
 
 Choose this project when you specifically want to operate an inspectable, self-hosted server, use a local `stdio` process, or control the HTTP deployment and its logs. Choose Trello's official service when you want the Trello-hosted endpoint and its official setup and support path.
 
-| Dimension | `trello-mcp` community project | Official Trello MCP |
-| --- | --- | --- |
-| Status | Independent, community-maintained open source project. | Official service operated by Trello. |
-| Hosting | You run the process locally, in Docker, or on infrastructure you manage. | Trello-hosted endpoint at `https://mcp.trello.com/v1`. |
-| Connection | Local `stdio` or your own Streamable HTTP `/mcp` endpoint. | Follow Trello's current connection instructions for the official endpoint. |
-| Authentication | Operator-supplied Trello API key and token; optional separate bearer token for this project's HTTP endpoint. | Follow Trello's current authentication instructions. |
-| Support | Best-effort community support through this repository. | Use Trello's official documentation and support channels. |
-
-The two services have different implementations and may expose different behavior. Verify the current documentation for the service you choose rather than assuming their tool surfaces or security models are interchangeable.
+The homepage has the maintained [side-by-side comparison](/#know-when-to-use-it), including hosting,
+authentication, Workspace scope, destructive-operation behavior, best fit, and the date it was last
+checked against Trello's official documentation. The two services have different implementations;
+do not assume their tool surfaces or security models are interchangeable.
 
 ## Is there a hosted trello-mcp service?
 
@@ -34,7 +29,7 @@ No. The maintainers do not operate a hosted service for this repository. You run
 - Use **Docker with Streamable HTTP** when the server should run as a container or long-running service.
 - Use **local stdio** when the MCP client should launch the server as a child process on the same machine.
 
-The [Get Started guide](/get-started/) covers both paths. Client support varies, so check the dated [compatibility evidence](/clients/compatibility/) before relying on a specific configuration.
+The [Get Started guide](/getting-started/) covers both paths. Client support varies, so check the dated [compatibility evidence](/getting-started/compatibility/) before relying on a specific configuration.
 
 ## What can the configured Trello credentials access?
 
@@ -52,17 +47,17 @@ That also means a single credential pair can create a broad access boundary. Use
 
 You supply Trello credentials through the server environment or a local MCP client configuration. `trello-mcp` does not provide a hosted credential vault, database-backed credential store, or OAuth/token-lifecycle service. Your client configuration, `.env` file, container platform, secrets manager, shell environment, and backups determine where the values persist.
 
-For HTTP deployments, `MCP_AUTH_TOKEN` is a separate optional shared secret that protects `/mcp`; it is not sent to Trello. Read [Security and data flow](/security/) before exposing the server beyond the local machine.
+For HTTP deployments, `MCP_AUTH_TOKEN` is a separate optional shared secret that protects `/mcp`; it is not sent to Trello. Read [Security and data flow](/guides/security/) before exposing the server beyond the local machine.
 
 ## Does it support OAuth?
 
-No. This project currently uses a Trello API key and token supplied by the operator. It does not implement OAuth redirects, token creation, refresh, or revocation. Follow the [Trello API credentials guide](/trello-api-key/) to obtain them through Trello's official flow and use Trello's controls to revoke them.
+No. This project currently uses a Trello API key and token supplied by the operator. It does not implement OAuth redirects, token creation, refresh, or revocation. Follow the [Trello API credentials guide](/getting-started/trello-api-key/) to obtain them through Trello's official flow and use Trello's controls to revoke them.
 
 ## Can trello-mcp change or permanently delete data?
 
 Yes. The server exposes write tools for common card, list, label, checklist, comment, member, attachment, and custom-field workflows. It also includes deletion tools for cards, labels, attachments, checklists, checklist items, and comments.
 
-There is no universal server-side read-only mode or confirmation gate. Start with read-only diagnostics and discovery, use client-side tool approvals where available, prefer card or list archiving when it meets the need, and confirm permanent deletions explicitly. The generated [tool catalog](/tools/) describes each operation.
+There is no universal server-side read-only mode or confirmation gate. Start with read-only diagnostics and discovery, use client-side tool approvals where available, prefer card or list archiving when it meets the need, and confirm permanent deletions explicitly. The generated [tool catalog](/reference/tools/) describes each operation.
 
 ## How should I handle prompt injection?
 
@@ -80,7 +75,7 @@ Your MCP client, hosting provider, reverse proxy, logging stack, backups, Trello
 
 No. URL attachments do not require local filesystem access, while server-local uploads remain disabled until `TRELLO_ATTACHMENT_UPLOAD_ROOT` points to an absolute directory. When enabled, upload paths must resolve inside that directory.
 
-For remote or container deployments, the file must first exist on the server or inside the container. Review the [security guidance](/security/#local-attachment-uploads) before enabling it.
+For remote or container deployments, the file must first exist on the server or inside the container. Review the [security guidance](/guides/security/#local-attachment-uploads) before enabling it.
 
 ## How can I verify a new setup safely?
 
@@ -98,7 +93,7 @@ Never include credentials, authorization headers, private Trello data, full cred
   <LinkCard
     title="Get started"
     description="Choose Docker with Streamable HTTP or a local stdio process."
-    href="/get-started/"
+    href="/getting-started/"
   />
   <LinkCard
     title="Reference and support"

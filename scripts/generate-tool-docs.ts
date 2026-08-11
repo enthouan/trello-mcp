@@ -1,8 +1,15 @@
 import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
+import {
+  CLIENT_DOCUMENTATION_ORDER,
+  type ClientSetup,
+  getClientSetup,
+} from "../docs/setup-recipes.js";
 import { allTools } from "../src/trello/tools.js";
 
 const toolsStartMarker = "<!-- tools:start -->";
 const toolsEndMarker = "<!-- tools:end -->";
+const clientRecipesStartMarker = "<!-- client-recipes:start -->";
+const clientRecipesEndMarker = "<!-- client-recipes:end -->";
 
 const paths = {
   contributing: new URL("../CONTRIBUTING.md", import.meta.url),
@@ -17,24 +24,25 @@ const paths = {
   clientSetup: new URL("../docs/client-setup.md", import.meta.url),
   configuration: new URL("../docs/configuration.md", import.meta.url),
   howItWorks: new URL("../docs/how-it-works.md", import.meta.url),
+  howItWorksRequestFlow: new URL(
+    "../docs/assets/how-it-works/request-flow.svg",
+    import.meta.url,
+  ),
+  operations: new URL("../docs/operations.md", import.meta.url),
   troubleshooting: new URL("../docs/troubleshooting.md", import.meta.url),
   trelloApiKey: new URL("../docs/trello-api-key.md", import.meta.url),
   workflows: new URL("../docs/workflows.md", import.meta.url),
-  clientSetupTransportChooser: new URL(
-    "../docs/assets/client-setup/transport-chooser.svg",
-    import.meta.url,
-  ),
   siteClients: new URL(
-    "../website/src/content/docs/clients/index.mdx",
+    "../website/src/content/docs/getting-started/clients.mdx",
     import.meta.url,
   ),
   siteHome: new URL("../website/src/content/docs/index.mdx", import.meta.url),
   siteTrelloApiKey: new URL(
-    "../website/src/content/docs/trello-api-key.mdx",
+    "../website/src/content/docs/getting-started/trello-api-key.mdx",
     import.meta.url,
   ),
   siteCompatibility: new URL(
-    "../website/src/content/docs/clients/compatibility.md",
+    "../website/src/content/docs/getting-started/compatibility.mdx",
     import.meta.url,
   ),
   siteConfiguration: new URL(
@@ -49,6 +57,10 @@ const paths = {
     "../website/src/content/docs/guides/how-it-works.mdx",
     import.meta.url,
   ),
+  siteOperations: new URL(
+    "../website/src/content/docs/guides/operations.md",
+    import.meta.url,
+  ),
   siteLegacyHowItWorks: new URL(
     "../website/src/content/docs/concepts/how-it-works.mdx",
     import.meta.url,
@@ -58,7 +70,7 @@ const paths = {
     import.meta.url,
   ),
   siteSupport: new URL(
-    "../website/src/content/docs/reference/support.md",
+    "../website/src/content/docs/reference/reporting-issues.mdx",
     import.meta.url,
   ),
   siteTroubleshooting: new URL(
@@ -66,7 +78,7 @@ const paths = {
     import.meta.url,
   ),
   siteTools: new URL(
-    "../website/src/content/docs/tools/index.mdx",
+    "../website/src/content/docs/reference/tools.mdx",
     import.meta.url,
   ),
   siteWorkflows: new URL(
@@ -74,11 +86,11 @@ const paths = {
     import.meta.url,
   ),
   siteApiCoverage: new URL(
-    "../website/src/content/docs/tools/api-coverage.md",
+    "../website/src/content/docs/reference/api-coverage.mdx",
     import.meta.url,
   ),
-  siteTransportChooser: new URL(
-    "../website/public/transport-chooser.svg",
+  siteRequestFlow: new URL(
+    "../website/public/request-flow.svg",
     import.meta.url,
   ),
 };
@@ -94,6 +106,24 @@ const obsoleteGeneratedFiles = [
     label: "website/src/content/docs/concepts/how-it-works.mdx",
     path: paths.siteLegacyHowItWorks,
   },
+  {
+    label: "website/public/transport-chooser.svg",
+    path: new URL("../website/public/transport-chooser.svg", import.meta.url),
+  },
+  ...[
+    "clients/index.mdx",
+    "clients/compatibility.md",
+    "trello-api-key.mdx",
+    "tools/index.mdx",
+    "tools/api-coverage.md",
+    "reference/support.md",
+  ].map((relativePath) => ({
+    label: `website/src/content/docs/${relativePath}`,
+    path: new URL(
+      `../website/src/content/docs/${relativePath}`,
+      import.meta.url,
+    ),
+  })),
 ] as const;
 
 const args = process.argv.slice(2);
@@ -197,16 +227,12 @@ function starlightPage(
   title: string,
   description: string,
   body: string,
-  editUrl?: string | false,
   extraFrontmatter: readonly string[] = [],
 ): string {
   return [
     "---",
     `title: ${JSON.stringify(title)}`,
     `description: ${JSON.stringify(description)}`,
-    ...(editUrl === undefined
-      ? []
-      : [`editUrl: ${editUrl === false ? "false" : JSON.stringify(editUrl)}`]),
     ...extraFrontmatter,
     "---",
     "",
@@ -216,31 +242,32 @@ function starlightPage(
 }
 
 const siteLinkRewrites = new Map([
-  ["api-coverage.md", "/tools/api-coverage/"],
+  ["api-coverage.md", "/reference/api-coverage/"],
   ["configuration.md", "/reference/configuration/"],
   ["how-it-works.md", "/guides/how-it-works/"],
+  ["operations.md", "/guides/operations/"],
   ["troubleshooting.md", "/guides/troubleshooting/"],
   ["workflows.md", "/guides/workflows/"],
-  ["mcp-client-compatibility.md", "/clients/compatibility/"],
-  ["client-setup.md", "/clients/"],
+  ["mcp-client-compatibility.md", "/getting-started/compatibility/"],
+  ["client-setup.md", "/getting-started/clients/"],
   [
     "client-setup.md#mcp-inspector-and-manual-clients",
-    "/clients/#mcp-inspector-and-manual-clients",
+    "/getting-started/clients/#mcp-inspector-and-manual-clients",
   ],
-  ["trello-api-key.md", "/trello-api-key/"],
+  ["trello-api-key.md", "/getting-started/trello-api-key/"],
   [
     "../README.md#attachment-uploads",
     "/reference/configuration/#local-attachment-uploads",
   ],
   ["../README.md#environment", "/reference/configuration/"],
-  ["../README.md#quick-start", "/get-started/"],
-  ["../README.md#security-notes", "/security/"],
+  ["../README.md#quick-start", "/getting-started/"],
+  ["../README.md#security-notes", "/guides/security/"],
   ["SECURITY.md", "/reference/security-policy/"],
   ["./SECURITY.md", "/reference/security-policy/"],
   ["CONTRIBUTING.md", "/reference/contributing/"],
   ["./CONTRIBUTING.md", "/reference/contributing/"],
-  ["SUPPORT.md", "/reference/support/"],
-  ["./SUPPORT.md", "/reference/support/"],
+  ["SUPPORT.md", "/reference/reporting-issues/"],
+  ["./SUPPORT.md", "/reference/reporting-issues/"],
   ["PRIVACY.md", "https://github.com/enthouan/trello-mcp/blob/main/PRIVACY.md"],
   [
     "./PRIVACY.md",
@@ -248,7 +275,7 @@ const siteLinkRewrites = new Map([
   ],
   ["../SECURITY.md", "/reference/security-policy/"],
   ["../CONTRIBUTING.md", "/reference/contributing/"],
-  ["../SUPPORT.md", "/reference/support/"],
+  ["../SUPPORT.md", "/reference/reporting-issues/"],
   [
     "../PRIVACY.md",
     "https://github.com/enthouan/trello-mcp/blob/main/PRIVACY.md",
@@ -263,33 +290,23 @@ const siteLinkRewrites = new Map([
   ],
   [
     "../README.md#option-a-run-the-published-docker-image",
-    "/get-started/docker/",
+    "/getting-started/docker/",
   ],
   [
     "../README.md#option-b-build-locally-from-source",
-    "/get-started/docker/#local-docker-build",
+    "/getting-started/docker/#local-docker-build",
   ],
   ["../README.md#live-trello-smoke-tests", "/reference/#live-validation"],
-  ["assets/client-setup/transport-chooser.svg", "/transport-chooser.svg"],
+  ["assets/how-it-works/request-flow.svg", "/request-flow.svg"],
 ]);
 
-const readmeUrl = "https://github.com/enthouan/trello-mcp/blob/main/README.md";
-const githubEditBaseUrl = "https://github.com/enthouan/trello-mcp/edit/main";
-
-function rewriteSiteLinks(
-  source: string,
-  label: string,
-  hasClientSetup: boolean,
-): string {
+function rewriteSiteLinks(source: string, label: string): string {
   const rewrites = new Map(siteLinkRewrites);
   rewrites.set(
     "../README.md#3-connect-your-mcp-client",
-    hasClientSetup ? "/clients/" : `${readmeUrl}#3-connect-your-mcp-client`,
+    "/getting-started/clients/",
   );
-  rewrites.set(
-    "../README.md#mcp-client-setup",
-    hasClientSetup ? "/clients/" : `${readmeUrl}#mcp-client-setup`,
-  );
+  rewrites.set("../README.md#mcp-client-setup", "/getting-started/clients/");
 
   let rewritten = source;
   for (const [from, to] of rewrites) {
@@ -297,7 +314,7 @@ function rewriteSiteLinks(
   }
 
   const unresolved = rewritten.match(
-    /\]\((?:\.\.\/(?:README|SECURITY|CONTRIBUTING|SUPPORT|PRIVACY)\.md|(?:\.\/)?(?:SECURITY|CONTRIBUTING|SUPPORT|PRIVACY)\.md|\.\.\/docker-compose(?:\.local)?\.yml|(?:\.\/)?(?:api-coverage|client-setup|configuration|how-it-works|mcp-client-compatibility|trello-api-key|troubleshooting|workflows)\.md|assets\/client-setup\/)[^)]*\)/,
+    /\]\((?:\.\.\/(?:README|SECURITY|CONTRIBUTING|SUPPORT|PRIVACY)\.md|(?:\.\/)?(?:SECURITY|CONTRIBUTING|SUPPORT|PRIVACY)\.md|\.\.\/docker-compose(?:\.local)?\.yml|(?:\.\/)?(?:api-coverage|client-setup|configuration|how-it-works|mcp-client-compatibility|operations|trello-api-key|troubleshooting|workflows)\.md|assets\/)[^)]*\)/,
   );
   if (unresolved) {
     throw new Error(
@@ -316,32 +333,64 @@ function escapeHtmlAttribute(value: string): string {
     .replaceAll(">", "&gt;");
 }
 
-function withTransportChooserFigure(source: string, label: string): string {
+function withArchitectureFlow(source: string, label: string): string {
   let imageCount = 0;
   const wrapped = source.replace(
-    /!\[([^\]\n]+)\]\(\/transport-chooser\.svg\)/g,
-    (_match, altText: string) => {
+    /!\[[^\]\n]+\]\(\/request-flow\.svg\)/g,
+    () => {
       imageCount += 1;
-      return [
-        '<figure class="transport-chooser" data-transport-chooser>',
-        '  <div class="transport-chooser__viewport" data-transport-chooser-scroll role="region" aria-label="Transport chooser diagram" tabindex="0">',
-        `    <img src="/transport-chooser.svg" alt="${escapeHtmlAttribute(altText)}" width="1200" height="600" />`,
-        "  </div>",
-        "  <figcaption>",
-        '    Scroll horizontally when needed to compare both paths. <a href="/transport-chooser.svg">Open the full-size diagram</a>.',
-        "  </figcaption>",
-        "</figure>",
-      ].join("\n");
+      return "<ArchitectureFlow />";
     },
   );
 
   if (imageCount !== 1) {
     throw new Error(
-      `${label} must contain exactly one generated transport chooser image`,
+      `${label} must contain exactly one generated request-flow image`,
     );
   }
 
   return wrapped;
+}
+
+function withOwnershipCardGrid(source: string, label: string): string {
+  const heading = "## Who owns what\n\n";
+  const headingCount = source.split(heading).length - 1;
+  if (headingCount !== 1) {
+    throw new Error(`${label} must contain exactly one Who owns what section`);
+  }
+
+  const sectionStart = source.indexOf(heading) + heading.length;
+  const nextHeading = source.indexOf("\n## ", sectionStart);
+  if (nextHeading < 0) {
+    throw new Error(`${label} must place another section after Who owns what`);
+  }
+
+  const section = source.slice(sectionStart, nextHeading).trim();
+  const cards = [
+    ...section.matchAll(/### ([^\n]+)\n\n([\s\S]*?)(?=\n\n### |$)/g),
+  ];
+  const expectedTitles = ["MCP client", "trello-mcp", "Trello"];
+  if (
+    cards.length !== expectedTitles.length ||
+    cards.some((match, index) => match[1] !== expectedTitles[index]) ||
+    cards.map((match) => match[0]).join("\n\n") !== section
+  ) {
+    throw new Error(
+      `${label} must define MCP client, trello-mcp, and Trello ownership cards`,
+    );
+  }
+
+  const cardGrid = [
+    "<CardGrid>",
+    ...cards.flatMap((match) => [
+      `  <Card title="${escapeHtmlAttribute(match[1] ?? "")}">`,
+      indentTabContent((match[2] ?? "").trim()),
+      "  </Card>",
+    ]),
+    "</CardGrid>",
+  ].join("\n");
+
+  return `${source.slice(0, sectionStart)}${cardGrid}\n${source.slice(nextHeading)}`;
 }
 
 function withMdxComponentImport(
@@ -558,6 +607,89 @@ function withClientTransportTabs(source: string, label: string): string {
   return transformed;
 }
 
+function fencedRecipe(language: string, code: string): string {
+  return [`\`\`\`${language}`, code, "```"].join("\n");
+}
+
+function clientDocumentationSection(client: ClientSetup): string {
+  const { documentation } = client;
+  const sections = [
+    `## ${documentation.heading}`,
+    "",
+    documentation.introduction,
+    "",
+  ];
+
+  if (documentation.stdioHeading) {
+    sections.push(`### ${documentation.stdioHeading}`, "");
+  }
+  sections.push(fencedRecipe(client.language, client.code));
+  if (documentation.afterStdio) {
+    sections.push("", documentation.afterStdio);
+  }
+
+  if (client.http) {
+    if (!documentation.httpHeading || documentation.afterHttp === undefined) {
+      throw new Error(
+        `${client.key} must document its Streamable HTTP configuration`,
+      );
+    }
+    sections.push(
+      "",
+      `### ${documentation.httpHeading}`,
+      "",
+      fencedRecipe(client.http.language, client.http.code),
+    );
+    if (documentation.afterHttp) {
+      sections.push("", documentation.afterHttp);
+    }
+  } else if (
+    documentation.httpHeading !== undefined ||
+    documentation.afterHttp !== undefined
+  ) {
+    throw new Error(
+      `${client.key} documents Streamable HTTP without an HTTP recipe`,
+    );
+  }
+
+  return sections.join("\n").trimEnd();
+}
+
+function generatedClientRecipeBlock(): string {
+  const sections = CLIENT_DOCUMENTATION_ORDER.map((key) =>
+    clientDocumentationSection(getClientSetup(key)),
+  );
+  return [
+    clientRecipesStartMarker,
+    "<!-- Generated from docs/setup-recipes.ts by scripts/generate-tool-docs.ts. -->",
+    "",
+    sections.join("\n\n"),
+    "",
+    clientRecipesEndMarker,
+  ].join("\n");
+}
+
+function replaceClientRecipeBlock(source: string): string {
+  const normalized = normalizeMarkdown(source);
+  const startCount = normalized.split(clientRecipesStartMarker).length - 1;
+  const endCount = normalized.split(clientRecipesEndMarker).length - 1;
+  if (startCount !== 1 || endCount !== 1) {
+    throw new Error(
+      `docs/client-setup.md must contain exactly one ${clientRecipesStartMarker} and one ${clientRecipesEndMarker}`,
+    );
+  }
+
+  const start = normalized.indexOf(clientRecipesStartMarker);
+  const end = normalized.indexOf(clientRecipesEndMarker, start);
+  if (start > end) {
+    throw new Error(
+      `docs/client-setup.md must place ${clientRecipesStartMarker} before ${clientRecipesEndMarker}`,
+    );
+  }
+
+  return `${normalized.slice(0, start)}${generatedClientRecipeBlock()}${normalized.slice(end + clientRecipesEndMarker.length)}`;
+}
+
 function credentialSiteBody(source: string): string {
   const label = "docs/trello-api-key.md";
   let body = blockquoteToAside(
@@ -598,7 +730,20 @@ function credentialSiteBody(source: string): string {
 
 function clientsSiteBody(source: string): string {
   const label = "docs/client-setup.md";
-  let body = withTransportChooserFigure(source, label);
+  const markerCount = [clientRecipesStartMarker, clientRecipesEndMarker].filter(
+    (marker) => source.includes(marker),
+  ).length;
+  if (markerCount !== 2) {
+    throw new Error(
+      `${label} must contain its generated client recipe marker block`,
+    );
+  }
+  let body = source
+    .replace(
+      `${clientRecipesStartMarker}\n<!-- Generated from docs/setup-recipes.ts by scripts/generate-tool-docs.ts. -->\n\n`,
+      "",
+    )
+    .replace(`\n${clientRecipesEndMarker}`, "");
   body = withClientTransportTabs(body, label);
   body = withStepsAfterHeading(body, "Verify the connection safely", 4, label);
   return withMdxComponentImport(body, ["Steps", "TabItem", "Tabs"]);
@@ -615,15 +760,21 @@ function configurationSiteBody(source: string): string {
 
 function howItWorksSiteBody(source: string): string {
   const label = "docs/how-it-works.md";
-  let body = blockquoteToAside(
-    source,
+  let body = withArchitectureFlow(source, label);
+  body = blockquoteToAside(
+    body,
     "The MCP client is part of the trust boundary",
     "caution",
     label,
   );
   body = withStepsAfterHeading(body, "Request lifecycle", 8, label);
+  body = withOwnershipCardGrid(body, label);
   body = withStepsAfterHeading(body, "HTTP sessions", 5, label);
-  return withMdxComponentImport(body, ["Steps"]);
+  return [
+    'import ArchitectureFlow from "../../../components/ArchitectureFlow.astro";',
+    "",
+    withMdxComponentImport(body, ["Card", "CardGrid", "Steps"]),
+  ].join("\n");
 }
 
 function troubleshootingSiteBody(source: string): string {
@@ -646,6 +797,12 @@ function workflowsSiteBody(source: string): string {
     "caution",
     label,
   );
+  body = blockquoteToAside(
+    body,
+    "Keep the safety boundary visible",
+    "caution",
+    label,
+  );
   for (const heading of [
     "The five-stage pattern",
     "Summarize a board without changing it",
@@ -660,37 +817,28 @@ function workflowsSiteBody(source: string): string {
   return withMdxComponentImport(body, ["Steps"]);
 }
 
-function compatibilityIntroduction(source: string): string {
-  const body = withoutDocumentTitle(source, "docs/mcp-client-compatibility.md");
-  const firstParagraph = body.split(/\n\n+/)[0];
-  if (!firstParagraph || firstParagraph.startsWith("#")) {
+function supportSiteBody(source: string): string {
+  const stepsHeading = "## Prepare a useful report\n\n";
+  const nextHeading = "\n\n## Security reports";
+  if (!source.includes(stepsHeading) || !source.includes(nextHeading)) {
     throw new Error(
-      "docs/mcp-client-compatibility.md must start with an introductory paragraph",
+      "SUPPORT.md must preserve the Prepare a useful report and Security reports sections",
     );
   }
 
-  return firstParagraph.replaceAll("\n", " ");
-}
+  const withSteps = source
+    .replace(stepsHeading, `${stepsHeading}<Steps>\n\n`)
+    .replace(nextHeading, `\n\n</Steps>${nextHeading}`);
 
-function fallbackClientsPage(compatibilitySource: string): string {
-  const evidenceSummary = compatibilityIntroduction(compatibilitySource)
-    .replace(/^This page records /, "The compatibility record documents ")
-    .replace(/^This record /, "The compatibility record ");
-
-  const body = [
-    "Choose a server connection path in [Get started](/get-started/), then use the dated evidence below to understand what has and has not been exercised in named MCP clients.",
+  return [
+    'import { Aside, Steps } from "@astrojs/starlight/components";',
     "",
-    evidenceSummary,
+    '<Aside type="caution" title="Sanitize every report">',
+    "  Never include Trello API keys, Trello tokens, MCP bearer tokens, authorization headers, credential-bearing URLs, private Trello data, raw environment output, or unredacted logs in a public issue, discussion, screenshot, or reproduction.",
+    "</Aside>",
     "",
-    "[Read the compatibility evidence →](/clients/compatibility/)",
+    withSteps,
   ].join("\n");
-
-  return starlightPage(
-    "Set up your MCP client",
-    "Start with a transport path and review dated MCP client compatibility evidence.",
-    body,
-    `${githubEditBaseUrl}/docs/mcp-client-compatibility.md`,
-  );
 }
 
 async function readOptional(path: URL): Promise<string | undefined> {
@@ -711,9 +859,10 @@ async function expectedFiles(): Promise<GeneratedFile[]> {
     apiCoverage,
     clientCompatibility,
     clientSetup,
-    clientSetupTransportChooser,
     configuration,
     howItWorks,
+    howItWorksRequestFlow,
+    operations,
     securityPolicy,
     siteHome,
     support,
@@ -725,10 +874,11 @@ async function expectedFiles(): Promise<GeneratedFile[]> {
     readFile(paths.readme, "utf8"),
     readFile(paths.apiCoverage, "utf8"),
     readFile(paths.clientCompatibility, "utf8"),
-    readOptional(paths.clientSetup),
-    readOptional(paths.clientSetupTransportChooser),
+    readFile(paths.clientSetup, "utf8"),
     readFile(paths.configuration, "utf8"),
     readFile(paths.howItWorks, "utf8"),
+    readFile(paths.howItWorksRequestFlow, "utf8"),
+    readFile(paths.operations, "utf8"),
     readFile(paths.securityPolicy, "utf8"),
     readFile(paths.siteHome, "utf8"),
     readFile(paths.support, "utf8"),
@@ -737,37 +887,24 @@ async function expectedFiles(): Promise<GeneratedFile[]> {
     readFile(paths.workflows, "utf8"),
   ]);
 
-  const hasClientSetup = clientSetup !== undefined;
-  const hasTransportChooser = clientSetupTransportChooser !== undefined;
-  if (hasClientSetup !== hasTransportChooser) {
+  if (!howItWorks.includes("](assets/how-it-works/request-flow.svg)")) {
     throw new Error(
-      "docs/client-setup.md and docs/assets/client-setup/transport-chooser.svg must either both exist or both be absent",
-    );
-  }
-  if (
-    clientSetup &&
-    !clientSetup.includes("](assets/client-setup/transport-chooser.svg)")
-  ) {
-    throw new Error(
-      "docs/client-setup.md must reference assets/client-setup/transport-chooser.svg",
+      "docs/how-it-works.md must reference assets/how-it-works/request-flow.svg",
     );
   }
 
+  const generatedClientSetup = replaceClientRecipeBlock(clientSetup);
   const table = toolTable();
-  const clients = clientSetup
-    ? starlightPage(
-        "Set up your MCP client",
-        "Configure trello-mcp over local stdio or Streamable HTTP in supported MCP clients.",
-        clientsSiteBody(
-          rewriteSiteLinks(
-            withoutDocumentTitle(clientSetup, "docs/client-setup.md"),
-            "docs/client-setup.md",
-            true,
-          ),
-        ),
-        `${githubEditBaseUrl}/docs/client-setup.md`,
-      )
-    : fallbackClientsPage(clientCompatibility);
+  const clients = starlightPage(
+    "Set up your MCP client",
+    "Configure trello-mcp over local stdio or Streamable HTTP in supported MCP clients.",
+    clientsSiteBody(
+      rewriteSiteLinks(
+        withoutDocumentTitle(generatedClientSetup, "docs/client-setup.md"),
+        "docs/client-setup.md",
+      ),
+    ),
+  );
 
   const files: GeneratedFile[] = [
     {
@@ -776,34 +913,37 @@ async function expectedFiles(): Promise<GeneratedFile[]> {
       contents: replaceReadmeCatalog(readme, table),
     },
     {
+      path: paths.clientSetup,
+      label: "docs/client-setup.md",
+      contents: generatedClientSetup,
+    },
+    {
       path: paths.siteHome,
       label: "website/src/content/docs/index.mdx",
       contents: validateHomepageToolCount(siteHome),
     },
     {
       path: paths.siteTrelloApiKey,
-      label: "website/src/content/docs/trello-api-key.mdx",
+      label: "website/src/content/docs/getting-started/trello-api-key.mdx",
       contents: starlightPage(
-        "Trello API Key",
+        "Trello API key",
         "Create a Trello app, generate an API key, authorize a token, store both credentials safely, and verify them with trello-mcp.",
         credentialSiteBody(
           rewriteSiteLinks(
             withoutDocumentTitle(trelloApiKey, "docs/trello-api-key.md"),
             "docs/trello-api-key.md",
-            hasClientSetup,
           ),
         ),
-        `${githubEditBaseUrl}/docs/trello-api-key.md`,
       ),
     },
     {
       path: paths.siteClients,
-      label: "website/src/content/docs/clients/index.mdx",
+      label: "website/src/content/docs/getting-started/clients.mdx",
       contents: clients,
     },
     {
       path: paths.siteCompatibility,
-      label: "website/src/content/docs/clients/compatibility.md",
+      label: "website/src/content/docs/getting-started/compatibility.mdx",
       contents: starlightPage(
         "Compatibility evidence",
         "Dated evidence for MCP client setup, transport connection, tool discovery, and live Trello validation.",
@@ -813,9 +953,7 @@ async function expectedFiles(): Promise<GeneratedFile[]> {
             "docs/mcp-client-compatibility.md",
           ),
           "docs/mcp-client-compatibility.md",
-          hasClientSetup,
         ),
-        `${githubEditBaseUrl}/docs/mcp-client-compatibility.md`,
       ),
     },
     {
@@ -828,10 +966,8 @@ async function expectedFiles(): Promise<GeneratedFile[]> {
           rewriteSiteLinks(
             withoutDocumentTitle(howItWorks, "docs/how-it-works.md"),
             "docs/how-it-works.md",
-            hasClientSetup,
           ),
         ),
-        `${githubEditBaseUrl}/docs/how-it-works.md`,
       ),
     },
     {
@@ -844,10 +980,20 @@ async function expectedFiles(): Promise<GeneratedFile[]> {
           rewriteSiteLinks(
             withoutDocumentTitle(workflows, "docs/workflows.md"),
             "docs/workflows.md",
-            hasClientSetup,
           ),
         ),
-        `${githubEditBaseUrl}/docs/workflows.md`,
+      ),
+    },
+    {
+      path: paths.siteOperations,
+      label: "website/src/content/docs/guides/operations.md",
+      contents: starlightPage(
+        "Operate trello-mcp",
+        "Upgrade, roll back, inspect, stop, and rotate credentials for a running trello-mcp deployment.",
+        rewriteSiteLinks(
+          withoutDocumentTitle(operations, "docs/operations.md"),
+          "docs/operations.md",
+        ),
       ),
     },
     {
@@ -860,10 +1006,8 @@ async function expectedFiles(): Promise<GeneratedFile[]> {
           rewriteSiteLinks(
             withoutDocumentTitle(troubleshooting, "docs/troubleshooting.md"),
             "docs/troubleshooting.md",
-            hasClientSetup,
           ),
         ),
-        `${githubEditBaseUrl}/docs/troubleshooting.md`,
       ),
     },
     {
@@ -876,10 +1020,8 @@ async function expectedFiles(): Promise<GeneratedFile[]> {
           rewriteSiteLinks(
             withoutDocumentTitle(configuration, "docs/configuration.md"),
             "docs/configuration.md",
-            hasClientSetup,
           ),
         ),
-        `${githubEditBaseUrl}/docs/configuration.md`,
       ),
     },
     {
@@ -891,23 +1033,21 @@ async function expectedFiles(): Promise<GeneratedFile[]> {
         rewriteSiteLinks(
           withoutDocumentTitle(contributing, "CONTRIBUTING.md"),
           "CONTRIBUTING.md",
-          hasClientSetup,
         ),
-        `${githubEditBaseUrl}/CONTRIBUTING.md`,
       ),
     },
     {
       path: paths.siteSupport,
-      label: "website/src/content/docs/reference/support.md",
+      label: "website/src/content/docs/reference/reporting-issues.mdx",
       contents: starlightPage(
         "Reporting issues and support",
         "Choose the right support channel and prepare a useful, sanitized trello-mcp bug report.",
-        rewriteSiteLinks(
-          withoutDocumentTitle(support, "SUPPORT.md"),
-          "SUPPORT.md",
-          hasClientSetup,
+        supportSiteBody(
+          rewriteSiteLinks(
+            withoutDocumentTitle(support, "SUPPORT.md"),
+            "SUPPORT.md",
+          ),
         ),
-        `${githubEditBaseUrl}/SUPPORT.md`,
       ),
     },
     {
@@ -919,14 +1059,12 @@ async function expectedFiles(): Promise<GeneratedFile[]> {
         rewriteSiteLinks(
           withoutDocumentTitle(securityPolicy, "SECURITY.md"),
           "SECURITY.md",
-          hasClientSetup,
         ),
-        `${githubEditBaseUrl}/SECURITY.md`,
       ),
     },
     {
       path: paths.siteTools,
-      label: "website/src/content/docs/tools/index.mdx",
+      label: "website/src/content/docs/reference/tools.mdx",
       contents: starlightPage(
         "Tool catalog",
         `Search ${allTools.length} Trello MCP tools by category, behavior, name, purpose, and input.`,
@@ -938,38 +1076,33 @@ async function expectedFiles(): Promise<GeneratedFile[]> {
           "",
           "“Read only” means the tool does not intentionally change Trello. “Writes data” covers creates, updates, assignments, moves, and reversible state changes. “Permanent delete” identifies calls that remove a Trello resource rather than archive or detach it. Tool handlers return JSON-serializable data to the MCP client.",
           "",
-          "Search by tool name, purpose, result, or input, or narrow the catalog by category and behavior. Every tool name is a permanent link. Example prompts use placeholder names and contain no credentials or account data.",
+          "Search by tool name, purpose, result, or input, or narrow the catalog by category and behavior. Every tool has a direct link. Example prompts use placeholder names and contain no credentials or account data.",
           "",
           "<ToolCatalog />",
           "",
-          "For supported and deferred Trello REST endpoint families, see [API coverage](/tools/api-coverage/).",
+          "For supported and deferred Trello REST endpoint families, see [API coverage](/reference/api-coverage/).",
         ].join("\n"),
-        false,
       ),
     },
     {
       path: paths.siteApiCoverage,
-      label: "website/src/content/docs/tools/api-coverage.md",
+      label: "website/src/content/docs/reference/api-coverage.mdx",
       contents: starlightPage(
         "API coverage",
         "Supported, partially supported, deferred, and out-of-scope Trello REST API groups.",
         rewriteSiteLinks(
           withoutDocumentTitle(apiCoverage, "docs/api-coverage.md"),
           "docs/api-coverage.md",
-          hasClientSetup,
         ),
-        `${githubEditBaseUrl}/docs/api-coverage.md`,
       ),
     },
   ];
 
-  if (clientSetupTransportChooser !== undefined) {
-    files.push({
-      path: paths.siteTransportChooser,
-      label: "website/public/transport-chooser.svg",
-      contents: clientSetupTransportChooser,
-    });
-  }
+  files.push({
+    path: paths.siteRequestFlow,
+    label: "website/public/request-flow.svg",
+    contents: howItWorksRequestFlow,
+  });
 
   return files;
 }

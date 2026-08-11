@@ -9,7 +9,7 @@ hero:
     html: '<img src="/favicon.svg?v=full-bleed-split-card" width="400" height="400" alt="trello-mcp split-card mark">'
   actions:
     - text: Get started
-      link: /get-started/
+      link: /getting-started/
       icon: right-arrow
     - text: View on GitHub
       link: https://github.com/enthouan/trello-mcp
@@ -31,8 +31,6 @@ import {
   LinkButton,
   LinkCard,
   Steps,
-  TabItem,
-  Tabs,
 } from '@astrojs/starlight/components';
 import ToolCatalogPreview from '../../components/ToolCatalogPreview.astro';
 import { TOOL_COUNT } from '../../data/tool-catalog.js';
@@ -48,12 +46,12 @@ import { TOOL_COUNT } from '../../data/tool-catalog.js';
     Boards, lists, cards, checklists, labels, members, comments, attachments, custom fields, and
     search share one catalog generated from the server's runtime definitions.
 
-    <a href="/tools/">See all {TOOL_COUNT} tools</a>
+    <a href="/reference/tools/">See all {TOOL_COUNT} tools</a>
 
   </Card>
-  <Card title="Local by default" icon="laptop">
-    stdio opens no network listener. Docker Compose publishes Streamable HTTP to loopback unless
-    you deliberately configure wider access.
+  <Card title="Choose your trust boundary" icon="laptop">
+    Use local stdio with no network listener, or the documented Docker Compose path with
+    Streamable HTTP published to loopback. Wider HTTP access must be deliberate and protected.
   </Card>
   <Card title="Trello secrets stay out of prompts" icon="padlock">
     The server reads `TRELLO_API_KEY` and `TRELLO_TOKEN` from its environment and uses them only for
@@ -85,125 +83,88 @@ Show me the proposed card_create call and wait for my confirmation.
 
 ## Pick your MCP client
 
-The setup guide keeps configuration review separate from successful connection, tool discovery, and live Trello calls. These labels reflect the dated [compatibility evidence](/clients/compatibility/); they are not inferred from similar clients.
+The setup guide keeps configuration review separate from successful connection, tool discovery, and live Trello calls. These labels reflect the dated [compatibility evidence](/getting-started/compatibility/); they are not inferred from similar clients.
 
-First time connecting? [Create your Trello API key and token](/trello-api-key/) before configuring your client.
+First time connecting? [Create your Trello API key and token](/getting-started/trello-api-key/) before configuring your client.
 
 <CardGrid>
   <LinkCard
-    title="Claude Desktop"
-    description="Connection and tool discovery tested — local stdio. No live Trello workflow was run."
-    href="/clients/#claude-desktop"
-    data-client-icon="claude"
+    title="Codex"
+    description="Connection and complete tool discovery tested — local stdio and authenticated Streamable HTTP. No live Trello workflow was run."
+    href="/getting-started/clients/#codex"
+    data-client-icon="openai"
   />
   <LinkCard
     title="Claude Code"
     description="Connection and complete tool discovery tested — local stdio and authenticated Streamable HTTP. No live Trello workflow was run."
-    href="/clients/#claude-code"
+    href="/getting-started/clients/#claude-code"
     data-client-icon="claude"
   />
   <LinkCard
-    title="Codex"
-    description="Connection and complete tool discovery tested — local stdio and authenticated Streamable HTTP. No live Trello workflow was run."
-    href="/clients/#codex"
-    data-client-icon="openai"
-  />
-  <LinkCard
-    title="OpenCode"
-    description="Configuration reviewed — local stdio and authenticated Streamable HTTP setup. No dated client run or live Trello call is claimed."
-    href="/clients/#opencode"
-    data-client-icon="opencode"
+    title="Claude Desktop"
+    description="Connection and tool discovery tested — local stdio. No live Trello workflow was run."
+    href="/getting-started/clients/#claude-desktop"
+    data-client-icon="claude"
   />
   <LinkCard
     title="VS Code"
     description="Configuration reviewed — user-profile stdio with password inputs and authenticated Streamable HTTP setup. No dated client run or live Trello call is claimed."
-    href="/clients/#vs-code"
+    href="/getting-started/clients/#vs-code"
     data-client-icon="vscode"
+  />
+  <LinkCard
+    title="OpenCode"
+    description="Configuration reviewed — local stdio and authenticated Streamable HTTP setup. No dated client run or live Trello call is claimed."
+    href="/getting-started/clients/#opencode"
+    data-client-icon="opencode"
   />
   <LinkCard
     title="All compatibility evidence"
     description="See the dated environment, test boundaries, limitations, and live-validation status behind every client claim."
-    href="/clients/compatibility/"
+    href="/getting-started/compatibility/"
     data-client-icon="evidence"
   />
 </CardGrid>
 
-Need another client or deployment route? Open the [complete client setup guide](/clients/) or choose a [different deployment path](/get-started/).
+Need another client or deployment route? Open the [complete client setup guide](/getting-started/clients/) or choose a [different deployment path](/getting-started/).
 
 <Aside type="caution" title="Before approving a write">
   Use `auth_whoami` to confirm the connected Trello account. Discovery tools are read-only, but write tools make persistent changes in Trello. Confirm the target and intended change, and use a disposable board for trial mutations.
 </Aside>
 
-## Choose how to run trello-mcp
-
-Create a [Trello API key and token](/trello-api-key/), then choose the path that matches where the server should run. Both paths expose the same {TOOL_COUNT}-tool surface.
-
-<Tabs syncKey="transport">
-  <TabItem label="Docker / Streamable HTTP">
-    Run trello-mcp continuously as a local container or service. Trello credentials stay with the server; clients connect to its `/mcp` URL.
-
-    ```bash
-    git clone https://github.com/enthouan/trello-mcp.git
-    cd trello-mcp
-    cp .env.example .env
-    # Add TRELLO_API_KEY and TRELLO_TOKEN to the ignored .env file.
-    docker compose up -d --wait --wait-timeout 120
-    ```
-
-    Point a local Streamable HTTP client to:
-
-    ```text
-    http://127.0.0.1:3000/mcp
-    ```
-
-    Keep the default loopback bind for local use. A remote deployment needs an intentionally reachable HTTPS endpoint and additional access controls.
-  </TabItem>
-
-  <TabItem label="Local stdio">
-    Let an MCP client launch a built clone on the same machine. The client passes the Trello credentials to the child process.
-
-    ```bash
-    git clone https://github.com/enthouan/trello-mcp.git
-    cd trello-mcp
-    corepack enable
-    corepack prepare pnpm@10.34.1 --activate
-    corepack pnpm install --frozen-lockfile
-    corepack pnpm build
-    ```
-
-    Configure the client to run:
-
-    ```bash
-    node /absolute/path/to/trello-mcp/dist/index.js
-    ```
-
-    Pass `TRANSPORT=stdio`, `TRELLO_API_KEY`, and `TRELLO_TOKEN` in the child-process environment. Use the client-specific examples below so secrets stay out of source control.
-  </TabItem>
-</Tabs>
-
-Continue with the [complete setup guide](/get-started/) or review the [security model](/security/) before exposing an HTTP deployment.
-
-## What you can automate
+## Useful by design
 
 Use natural-language requests in an MCP client to search, inspect, and maintain the Trello resources your configured token can access.
 
 <CardGrid>
-  <Card title="Find and summarize work">
-    Search cards and boards, inspect lists, and turn bounded board activity into a useful status summary.
+  <Card title="Find and summarize work" icon="magnifier">
+    Search for work, inspect the matching card, and review a bounded activity history before summarizing it.
+
+    `search → card_get → card_actions`
   </Card>
 
-  <Card title="Create and organize cards">
-    Create cards, update their details and due dates, move them between lists or boards, and archive them reversibly.
+  <Card title="Create and organize cards" icon="add-document">
+    Discover the board and its lists, create a card in the intended destination, then move it when the workflow changes.
+
+    `list_boards → board_lists → card_create → card_move`
   </Card>
 
-  <Card title="Coordinate with collaborators">
-    Discover members, assign or unassign cards, manage labels, and add, edit, or remove comments.
+  <Card title="Coordinate with collaborators" icon="comment">
+    Inspect current card members, assign the right collaborator, and leave a visible update on the card.
+
+    `card_members → card_member_add → card_comment_add`
   </Card>
 
-  <Card title="Track the details">
-    Work with checklists, checklist items, custom fields, attachments, card covers, and positions.
+  <Card title="Track the details" icon="approve-check-circle">
+    Inspect a card's checklists, add the next checklist item, and record structured project data in a custom field.
+
+    `card_checklists → card_checklist_item_create → card_custom_field_set`
   </Card>
 </CardGrid>
+
+<LinkButton href="/guides/workflows/" variant="primary" icon="right-arrow">
+  Follow the workflow guide
+</LinkButton>
 
 ## One canonical, searchable tool catalog
 
@@ -211,24 +172,33 @@ Names, descriptions, and input definitions come directly from the same registere
 
 <ToolCatalogPreview />
 
-<LinkButton href="/tools/" variant="primary" icon="right-arrow">
+<LinkButton href="/reference/tools/" variant="primary" icon="right-arrow">
   Browse all {TOOL_COUNT} tools
 </LinkButton>
 
-## Know where to go next
+## Know when to use it
 
-Move from setup into practical automation, then use the focused guides, reference, and recovery pages when you need to understand or change the boundary.
+Choose this community server when self-hosting, local stdio, an inspectable deployment, or broad Trello REST automation matters. Choose Trello's official MCP service when you prefer a Trello-hosted connection, OAuth consent, official support, and a workspace-scoped managed service.
+
+| Decision | `trello-mcp` community server | Official Trello MCP |
+| --- | --- | --- |
+| Hosting | You run the process locally, in Docker, or on infrastructure you manage. | Trello runs the cloud service. |
+| Authentication | You create and protect a Trello API key and member token. HTTP clients can use a separate server bearer token. | OAuth 2.0 consent grants revocable access without giving the MCP client a Trello API token. |
+| Trello scope | One deployment can reach boards and Workspaces visible to the authorized member and granted token scope. | Each connection supports one authorized Workspace at launch. |
+| Changes | The catalog includes read, write, archive, and explicitly labeled permanent-delete operations; client approval is the enforcement boundary. | The official service supports granted read, write, and search access, but does not support permanent destructive deletes. |
+| Best fit | Auditable self-hosting, local-process integration, operator-controlled logs and networking, and broad REST-backed workflows. | Managed onboarding, official support, OAuth access control, and a smaller Trello-managed trust boundary. |
+
+Comparison last checked **August 10, 2026** against [Trello's official MCP documentation](https://support.atlassian.com/trello/docs/connect-trello-to-ai-assistants-with-trello-mcp/). Product capabilities can change, so review that page before choosing a service.
+
+Naturally, the [public `trello-mcp` roadmap](https://trello.com/b/GnKmvuHz/trello-mcp-enthouan-trello-mcp) is itself a Trello board. Follow it to see what is planned, active, and shipped.
+
+Use the focused guides, reference, and recovery pages when you need to understand or change either boundary.
 
 <CardGrid>
   <LinkCard
-    title="How it works"
-    description="Follow a request through the MCP client, session or process transport, trello-mcp, and the Trello REST API."
-    href="/guides/how-it-works/"
-  />
-  <LinkCard
-    title="Workflows"
-    description="Combine focused tools into inspect-first, reviewable Trello operations."
-    href="/guides/workflows/"
+    title="Security & Data"
+    description="Follow credentials, Trello data, transports, logs, and write operations across every trust boundary."
+    href="/guides/security/"
   />
   <LinkCard
     title="Configuration"
@@ -241,13 +211,8 @@ Move from setup into practical automation, then use the focused guides, referenc
     href="/guides/troubleshooting/"
   />
   <LinkCard
-    title="Security model"
-    description="Follow the credential, network exposure, logging, untrusted-content, and tool-approval guidance."
-    href="/security/"
-  />
-  <LinkCard
-    title="Frequently asked questions"
+    title="FAQ"
     description="Compare the transports, understand data access, and distinguish this project from Trello's official MCP server."
-    href="/faq/"
+    href="/guides/faq/"
   />
 </CardGrid>

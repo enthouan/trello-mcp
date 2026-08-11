@@ -1,27 +1,48 @@
+import { URL } from "node:url";
 import { unified } from "@astrojs/markdown-remark";
 import starlight from "@astrojs/starlight";
 import { defineConfig } from "astro/config";
+import { CANONICAL_WEBSITE_URL } from "./src/data/publication.js";
 
 const repositoryUrl = "https://github.com/enthouan/trello-mcp";
-const siteUrl = normalizeSiteUrl(process.env.SITE_URL);
-const socialImageUrl = new URL("social-card.png", siteUrl).href;
-
-function normalizeSiteUrl(value) {
-  const configuredUrl = value?.trim();
-  if (!configuredUrl && process.env.CI) {
-    throw new Error(
-      "SITE_URL must be configured for CI and deployment builds.",
-    );
-  }
-
-  const siteUrl = new URL(configuredUrl || "http://localhost:4321");
-
-  if (siteUrl.protocol !== "http:" && siteUrl.protocol !== "https:") {
-    throw new Error("SITE_URL must use http or https.");
-  }
-
-  return siteUrl.href;
-}
+const socialImageUrl = new URL("social-card.png", CANONICAL_WEBSITE_URL).href;
+/** @type {Array<{ tag: "meta"; attrs: Record<string, string> }>} */
+const socialImageHead = [
+  {
+    tag: "meta",
+    attrs: { property: "og:image", content: socialImageUrl },
+  },
+  {
+    tag: "meta",
+    attrs: {
+      property: "og:image:alt",
+      content: "trello-mcp — independent, self-hosted Trello MCP server",
+    },
+  },
+  {
+    tag: "meta",
+    attrs: { property: "og:image:type", content: "image/png" },
+  },
+  {
+    tag: "meta",
+    attrs: { property: "og:image:width", content: "1200" },
+  },
+  {
+    tag: "meta",
+    attrs: { property: "og:image:height", content: "630" },
+  },
+  {
+    tag: "meta",
+    attrs: { name: "twitter:image", content: socialImageUrl },
+  },
+  {
+    tag: "meta",
+    attrs: {
+      name: "twitter:image:alt",
+      content: "trello-mcp — independent, self-hosted Trello MCP server",
+    },
+  },
+];
 
 function makeScrollableTablesKeyboardAccessible() {
   return (tree) => {
@@ -43,10 +64,23 @@ function makeScrollableTablesKeyboardAccessible() {
 }
 
 export default defineConfig({
-  site: siteUrl,
+  output: "static",
+  site: CANONICAL_WEBSITE_URL,
   trailingSlash: "always",
   redirects: {
+    "/get-started": "/getting-started/",
+    "/get-started/docker": "/getting-started/docker/",
+    "/get-started/http": "/getting-started/http/",
+    "/get-started/stdio": "/getting-started/stdio/",
+    "/trello-api-key": "/getting-started/trello-api-key/",
+    "/clients": "/getting-started/clients/",
+    "/clients/compatibility": "/getting-started/compatibility/",
     "/concepts/how-it-works": "/guides/how-it-works/",
+    "/security": "/guides/security/",
+    "/faq": "/guides/faq/",
+    "/tools": "/reference/tools/",
+    "/tools/api-coverage": "/reference/api-coverage/",
+    "/reference/support": "/reference/reporting-issues/",
     "/project": "/reference/",
   },
   markdown: {
@@ -57,6 +91,7 @@ export default defineConfig({
   integrations: [
     starlight({
       title: "trello-mcp",
+      titleDelimiter: "—",
       description:
         "Documentation for trello-mcp, a self-hosted and auditable Model Context Protocol server for broad Trello automation.",
       favicon: "/favicon.svg?v=full-bleed-split-card",
@@ -67,59 +102,39 @@ export default defineConfig({
       },
       head: [
         {
-          tag: "meta",
+          tag: "link",
           attrs: {
-            property: "og:image",
-            content: socialImageUrl,
+            rel: "stylesheet",
+            href: "/client-icons.css",
           },
         },
         {
           tag: "meta",
           attrs: {
-            property: "og:image:alt",
-            content: "trello-mcp — independent, self-hosted Trello MCP server",
+            name: "robots",
+            content: "index, follow",
           },
         },
         {
           tag: "meta",
           attrs: {
-            property: "og:image:type",
-            content: "image/png",
+            name: "theme-color",
+            content: "#0052cc",
           },
         },
         {
           tag: "meta",
           attrs: {
-            property: "og:image:width",
-            content: "1200",
+            name: "twitter:card",
+            content: "summary_large_image",
           },
         },
-        {
-          tag: "meta",
-          attrs: {
-            property: "og:image:height",
-            content: "630",
-          },
-        },
-        {
-          tag: "meta",
-          attrs: {
-            name: "twitter:image",
-            content: socialImageUrl,
-          },
-        },
-        {
-          tag: "meta",
-          attrs: {
-            name: "twitter:image:alt",
-            content: "trello-mcp — independent, self-hosted Trello MCP server",
-          },
-        },
+        ...socialImageHead,
       ],
       customCss: ["./src/styles/custom.css"],
+      routeMiddleware: "./src/starlightRouteData.ts",
       components: {
         Footer: "./src/components/Footer.astro",
-        PageSidebar: "./src/components/PageSidebar.astro",
       },
       social: [
         {
@@ -132,16 +147,28 @@ export default defineConfig({
         {
           label: "Get started",
           items: [
-            { slug: "get-started", label: "Install and run" },
-            { slug: "trello-api-key", label: "Trello API Key" },
-            { slug: "clients", label: "Set up your MCP client" },
+            { slug: "getting-started", label: "Install and run" },
             {
-              slug: "clients/compatibility",
+              slug: "getting-started/trello-api-key",
+              label: "Trello API key",
+            },
+            {
+              slug: "getting-started/clients",
+              label: "Set up your MCP client",
+            },
+            {
+              slug: "getting-started/compatibility",
               label: "Compatibility",
             },
-            { slug: "get-started/docker", label: "Docker Compose" },
-            { slug: "get-started/http", label: "Streamable HTTP" },
-            { slug: "get-started/stdio", label: "stdio" },
+            {
+              slug: "getting-started/docker",
+              label: "Docker Compose",
+            },
+            {
+              slug: "getting-started/http",
+              label: "Streamable HTTP",
+            },
+            { slug: "getting-started/stdio", label: "stdio" },
           ],
         },
         {
@@ -149,12 +176,13 @@ export default defineConfig({
           items: [
             { slug: "guides/how-it-works", label: "How it works" },
             { slug: "guides/workflows", label: "Workflows" },
-            { slug: "security", label: "Security & Data" },
+            { slug: "guides/security", label: "Security & Data" },
+            { slug: "guides/operations", label: "Operations" },
             {
               slug: "guides/troubleshooting",
               label: "Troubleshooting",
             },
-            { slug: "faq", label: "FAQ" },
+            { slug: "guides/faq", label: "FAQ" },
           ],
         },
         {
@@ -165,11 +193,11 @@ export default defineConfig({
               slug: "reference/configuration",
               label: "Configuration",
             },
-            { slug: "tools", label: "Tool catalog" },
-            { slug: "tools/api-coverage", label: "API coverage" },
+            { slug: "reference/tools", label: "Tool catalog" },
+            { slug: "reference/api-coverage", label: "API coverage" },
             { slug: "reference/contributing", label: "Contributing" },
             {
-              slug: "reference/support",
+              slug: "reference/reporting-issues",
               label: "Reporting issues and support",
             },
             {

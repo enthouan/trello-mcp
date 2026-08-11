@@ -17,13 +17,32 @@ Use the operator Compose file to run the published container image. The applicat
 
 1. **Create `.env`.** Copy `.env.example`; Compose reads it for variable interpolation and passes only supported runtime values to the container.
 
-2. **Set both Trello credentials.** [Create an API key and token](/trello-api-key/), then store `TRELLO_API_KEY` and `TRELLO_TOKEN` in `.env`.
+2. **Set both Trello credentials.** [Create an API key and token](/getting-started/trello-api-key/), then store `TRELLO_API_KEY` and `TRELLO_TOKEN` in `.env`.
 
 3. **Choose an image tag.** Set `TRELLO_MCP_IMAGE_TAG` to an exact published `X.Y.Z` release for a reproducible deployment. Use `latest` only when you intentionally want the newest image built from `main`.
 
 4. **Start and verify the process.** Run `docker compose up -d --wait --wait-timeout 120`, inspect `docker compose ps`, then request both health endpoints on loopback. The health-aware wait prevents verification from racing a cold image pull or container startup.
 
 </Steps>
+
+### Windows PowerShell
+
+Use an exact published image tag here too:
+
+```powershell title="Windows PowerShell"
+git clone https://github.com/enthouan/trello-mcp.git
+Set-Location trello-mcp
+Copy-Item .env.example .env
+# Set both Trello credentials and TRELLO_MCP_IMAGE_TAG=X.Y.Z in .env
+notepad .env
+if (-not (Select-String -Path .env -Pattern '^TRELLO_MCP_IMAGE_TAG=\d+\.\d+\.\d+$' -Quiet)) {
+  throw 'Set TRELLO_MCP_IMAGE_TAG to an exact published X.Y.Z release before starting.'
+}
+docker compose up -d --wait --wait-timeout 120
+docker compose ps
+Invoke-RestMethod http://127.0.0.1:3000/healthz
+Invoke-RestMethod http://127.0.0.1:3000/readyz
+```
 
 <Aside type="caution" title="The host bind and container listener are different">
   Compose publishes `127.0.0.1:3000:3000` on the host by default. That loopback publication is the local safety boundary even though the process accepts connections on the container's internal interface. `TRELLO_MCP_HOST_BIND_IP` changes the Docker host publication; it does not configure the Node.js listener.

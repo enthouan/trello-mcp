@@ -1,4 +1,13 @@
-# Support
+---
+title: "Reporting issues and support"
+description: "Choose the right support channel and prepare a useful, sanitized trello-mcp bug report."
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+<Aside type="caution" title="Sanitize every report">
+  Never include Trello API keys, Trello tokens, MCP bearer tokens, authorization headers, credential-bearing URLs, private Trello data, raw environment output, or unredacted logs in a public issue, discussion, screenshot, or reproduction.
+</Aside>
 
 `trello-mcp` is a self-hosted open source project with best-effort community support.
 
@@ -7,11 +16,13 @@
 | Situation | Where to go |
 | --- | --- |
 | Reproducible server bug, documentation problem, or focused feature request | Open a GitHub issue in this repository. |
-| Vulnerability, credential exposure, authentication bypass, or a report that requires private details | Follow [SECURITY.md](SECURITY.md) and use GitHub private vulnerability reporting. Do not open a public issue. |
+| Vulnerability, credential exposure, authentication bypass, or a report that requires private details | Follow [SECURITY.md](/reference/security-policy/) and use GitHub private vulnerability reporting. Do not open a public issue. |
 | Trello account access, billing, Workspace administration, credential generation, upstream API availability, or Trello-enforced rate limits | Use the official Atlassian or Trello support channel. |
 | Reverse proxy, TLS, firewall, custom container platform, or private-host networking problem | Start with the platform or network operator. This project can document its interfaces, but cannot support every deployment stack. |
 
 ## Prepare a useful report
+
+<Steps>
 
 1. **Check the focused documentation first.** Review the README, the website's
    troubleshooting and FAQ pages, the current tool catalog, and API coverage.
@@ -34,11 +45,13 @@
    latest release or current `main`, whether a client restart changed the
    result, and which troubleshooting checks passed or failed.
 
+</Steps>
+
 ## Security reports
 
 Do not open a public issue for vulnerabilities, credential leaks,
 authentication bypasses, or exposure problems. Follow
-[SECURITY.md](SECURITY.md) and use GitHub private vulnerability reporting from
+[SECURITY.md](/reference/security-policy/) and use GitHub private vulnerability reporting from
 the repository's Security tab. If that action is unavailable, do not publish
 sensitive details in an issue or discussion.
 

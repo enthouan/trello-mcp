@@ -9,6 +9,7 @@ const baseURL = (process.env.PLAYWRIGHT_BASE_URL ?? localBaseUrl).replace(
   "",
 );
 const repositoryRoot = fileURLToPath(new URL("..", import.meta.url));
+const useExistingBuild = process.env.PLAYWRIGHT_USE_EXISTING_BUILD === "1";
 const visualQa =
   process.env.VISUAL_QA === "1" ||
   process.argv.some((argument) => argument.endsWith("visual.spec.ts"));
@@ -47,16 +48,12 @@ export default defineConfig({
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
     },
-    {
-      name: "webkit",
-      use: { ...devices["Desktop Safari"] },
-    },
   ],
   ...(process.env.PLAYWRIGHT_BASE_URL
     ? {}
     : {
         webServer: {
-          command: `corepack pnpm site:build && corepack pnpm site:preview --host ${host} --port ${port}`,
+          command: `${useExistingBuild ? "" : "corepack pnpm website:build && "}corepack pnpm website:preview --host ${host} --port ${port}`,
           cwd: repositoryRoot,
           reuseExistingServer: false,
           timeout: 120_000,

@@ -14,10 +14,9 @@ corepack pnpm test:coverage
 corepack pnpm build
 corepack pnpm docs:check
 corepack pnpm site:check
-corepack pnpm site:build
-corepack pnpm exec playwright install --with-deps chromium webkit
+corepack pnpm website:build
+corepack pnpm exec playwright install --with-deps chromium
 corepack pnpm site:test
-corepack pnpm site:lighthouse
 ```
 
 ## Documentation website
@@ -28,8 +27,25 @@ copies and tool catalog are generated deterministically.
 
 ```bash
 corepack pnpm docs:tools
-corepack pnpm site:dev
+corepack pnpm website:dev
 ```
+
+Every website build targets the canonical origin `https://trello-mcp.com/` and
+includes production canonical metadata. To inspect the built artifact locally:
+
+```bash
+corepack pnpm website:build
+corepack pnpm website:preview
+```
+
+Cloudflare Pages should run `corepack pnpm website:build` and publish
+`website/dist`. The canonical URL is built in, so no website environment
+variable is required.
+
+The normal pull-request gate uses Chromium with screenshots retained only on
+failure. Run `corepack pnpm site:visual` for the smaller desktop/mobile,
+light/dark design matrix, or `corepack pnpm site:lighthouse` when a release or
+substantial layout change needs an explicit performance audit.
 
 Before changing generated website pages, update their canonical source or
 `src/trello/tools.ts`, then run `corepack pnpm docs:tools`. Use

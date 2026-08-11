@@ -32,7 +32,7 @@ corepack pnpm build
 
 2. **Use absolute executable and entry paths.** Point the client at this checkout's `dist/index.js`. Desktop apps may also need the absolute path to `node` because they inherit a smaller `PATH` than a shell.
 
-3. **Set the transport and credentials.** [Create a Trello API key and token](/trello-api-key/), then pass `TRANSPORT=stdio`, `TRELLO_API_KEY`, and `TRELLO_TOKEN` in the child-process environment.
+3. **Set the transport and credentials.** [Create a Trello API key and token](/getting-started/trello-api-key/), then pass `TRANSPORT=stdio`, `TRELLO_API_KEY`, and `TRELLO_TOKEN` in the child-process environment.
 
 4. **Restart the client.** Reopen it so the process configuration is reloaded and the server's tools are rediscovered.
 

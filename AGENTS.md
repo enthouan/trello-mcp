@@ -54,7 +54,7 @@ corepack pnpm test
 corepack pnpm test:coverage
 corepack pnpm docs:check
 corepack pnpm site:check
-corepack pnpm site:build
+corepack pnpm website:build
 corepack pnpm site:test
 corepack pnpm site:lighthouse
 ```
@@ -117,7 +117,8 @@ corepack pnpm exec biome check --write path/to/file.ts
 - `src/utils/logger.ts`: Pino logger and redaction.
 - `tests/`: Vitest unit tests.
 - `scripts/generate-tool-docs.ts`: regenerates the README tool catalog.
-- `website/`: Astro Starlight source, generated documentation mirrors, production-preview tests, and visual/Lighthouse QA.
+- `website/`: Astro Starlight workspace, generated documentation mirrors, production-preview tests, and visual/Lighthouse QA.
+- `website/package.json`: Astro/Starlight dependencies and website lifecycle scripts.
 - `scripts/codex/setup.sh`: Codex cloud fresh-container setup.
 - `scripts/codex/maintenance.sh`: Codex cloud cached-container maintenance.
 - `.github/workflows/build-and-test.yml`: Build, test, and website QA workflow.
@@ -237,14 +238,18 @@ The GitHub Actions workflow named `Build and Test` runs:
 - build
 - test coverage
 - Astro content/type checks and the production website build
-- Chromium and WebKit website, accessibility, and responsive checks
-- Lighthouse budgets for every public documentation route
+- Chromium website, accessibility, navigation, metadata, and responsive checks
+- screenshots retained on failure for ordinary CI
 
 The `Release` workflow publishes Docker images to GHCR from `main` and `v*` tags.
 
 Cloudflare Pages handles production website builds and deployment outside GitHub
 Actions. Keep `Build and Test` focused on validation; it must not require
 Cloudflare credentials or invoke a production deployment.
+
+Configure Cloudflare Pages to run `corepack pnpm website:build` and publish
+`website/dist`. The canonical production URL is built in, so no website
+environment variable is required.
 
 If changing CI:
 
@@ -280,10 +285,13 @@ corepack pnpm build
 corepack pnpm test
 corepack pnpm docs:check
 corepack pnpm site:check
-corepack pnpm site:build
+corepack pnpm website:build
 corepack pnpm site:test
-corepack pnpm site:lighthouse
 ```
+
+Use `corepack pnpm site:visual` for the representative desktop/mobile,
+light/dark design matrix and `corepack pnpm site:lighthouse` for release-time or
+substantial layout/performance validation.
 
 For tool catalog changes, also run:
 

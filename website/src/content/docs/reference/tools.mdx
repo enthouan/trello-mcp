@@ -1,7 +1,6 @@
 ---
 title: "Tool catalog"
 description: "Search 77 Trello MCP tools by category, behavior, name, purpose, and input."
-editUrl: false
 ---
 
 import ToolCatalog from "../../../components/ToolCatalog.astro";
@@ -11,8 +10,8 @@ The server exposes **{TOOL_COUNT} tools across {CATEGORY_COUNT} focused areas**.
 
 “Read only” means the tool does not intentionally change Trello. “Writes data” covers creates, updates, assignments, moves, and reversible state changes. “Permanent delete” identifies calls that remove a Trello resource rather than archive or detach it. Tool handlers return JSON-serializable data to the MCP client.
 
-Search by tool name, purpose, result, or input, or narrow the catalog by category and behavior. Every tool name is a permanent link. Example prompts use placeholder names and contain no credentials or account data.
+Search by tool name, purpose, result, or input, or narrow the catalog by category and behavior. Every tool has a direct link. Example prompts use placeholder names and contain no credentials or account data.
 
 <ToolCatalog />
 
-For supported and deferred Trello REST endpoint families, see [API coverage](/tools/api-coverage/).
+For supported and deferred Trello REST endpoint families, see [API coverage](/reference/api-coverage/).

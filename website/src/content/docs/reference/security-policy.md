@@ -1,7 +1,6 @@
 ---
 title: "Security policy"
 description: "Supported versions, private vulnerability reporting, sensitive data handling, and threat-model boundaries for trello-mcp."
-editUrl: "https://github.com/enthouan/trello-mcp/edit/main/SECURITY.md"
 ---
 
 ## Supported Versions

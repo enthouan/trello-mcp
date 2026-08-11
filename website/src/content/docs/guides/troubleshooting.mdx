@@ -1,7 +1,6 @@
 ---
 title: "Troubleshooting"
 description: "Diagnose startup, transport, authentication, Docker, Trello API, rate-limit, and attachment failures safely."
-editUrl: "https://github.com/enthouan/trello-mcp/edit/main/docs/troubleshooting.md"
 ---
 
 import {
@@ -34,7 +33,7 @@ For the supported settings and defaults, see the
    endpoint ending in `/mcp`.
 3. **Restart after configuration changes.** The server reads its environment at
    startup. Restart the process or container, then reload or restart the MCP
-   client as described in [Set up your MCP client](/clients/).
+   client as described in [Set up your MCP client](/getting-started/clients/).
 4. **Test the narrowest safe operation.** For HTTP, check `/healthz` and
    `/readyz`. In the MCP client, confirm tool discovery before calling the
    read-only `auth_whoami` or `auth_token_info` tool. Do not create Trello data
@@ -117,7 +116,7 @@ other account-specific metadata can still be private.
   client's supported secret or environment mechanism.
 - Fully restart the MCP client after changing its configuration.
 - Check the client-specific configuration shape in
-  [Set up your MCP client](/clients/); field names are not interchangeable
+  [Set up your MCP client](/getting-started/clients/); field names are not interchangeable
   between clients.
 
 In stdio mode, the MCP client owns the process. Do not also start a background
@@ -132,7 +131,7 @@ the command with a script that prints banners to stdout.
 
 Use the MCP client's connection view or MCP Inspector rather than typing into
 the process. Follow the sanitized Inspector setup in
-[Set up your MCP client](/clients/#mcp-inspector-and-manual-clients).
+[Set up your MCP client](/getting-started/clients/#mcp-inspector-and-manual-clients).
 
 ### The server opens an HTTP port instead
 
@@ -144,7 +143,7 @@ the client.
 
 Confirm it launched the current build, then reload the client and request its
 tool list again. The expected surface and dated client evidence are documented
-in [MCP Client Compatibility](/clients/compatibility/). Some clients group
+in [MCP Client Compatibility](/getting-started/compatibility/). Some clients group
 or hide tools until the server is enabled for the current workspace.
 
 ## Streamable HTTP
@@ -285,7 +284,7 @@ This is a tool-call error from Trello, not the optional HTTP MCP bearer check.
   configured as `TRELLO_API_KEY`.
 - Restart the process or container after replacing either value.
 - If the token was revoked, expired, exposed, or belongs to the wrong member,
-  replace it using [Trello API Key](/trello-api-key/).
+  replace it using [Trello API key](/getting-started/trello-api-key/).
 - Once authentication works, call the read-only `auth_whoami` and
   `auth_token_info` tools to confirm the member, expiration, and permissions.
 
