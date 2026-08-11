@@ -15,10 +15,15 @@ Trello also operates an [official hosted MCP server](https://trello.com/mcp) at 
 
 Choose this project when you specifically want to operate an inspectable, self-hosted server, use a local `stdio` process, or control the HTTP deployment and its logs. Choose Trello's official service when you want the Trello-hosted endpoint and its official setup and support path.
 
-The homepage has the maintained [side-by-side comparison](/#know-when-to-use-it), including hosting,
-authentication, Workspace scope, destructive-operation behavior, best fit, and the date it was last
-checked against Trello's official documentation. The two services have different implementations;
-do not assume their tool surfaces or security models are interchangeable.
+| Decision | `trello-mcp` community server | Official Trello MCP |
+| --- | --- | --- |
+| Hosting | You run the process locally, in Docker, or on infrastructure you manage. | Trello runs the cloud service. |
+| Authentication | You create and protect a Trello API key and member token. HTTP clients can use a separate server bearer token. | OAuth 2.0 consent grants revocable access without giving the MCP client a Trello API token. |
+| Trello scope | One deployment can reach boards and Workspaces visible to the authorized member and granted token scope. | Each connection supports one authorized Workspace at launch. |
+| Changes | The catalog includes read, write, archive, and explicitly labeled permanent-delete operations; client approval is the enforcement boundary. | The official service supports granted read, write, and search access, but does not support permanent destructive deletes. |
+| Best fit | Auditable self-hosting, local-process integration, operator-controlled logs and networking, and broad REST-backed workflows. | Managed onboarding, official support, OAuth access control, and a smaller Trello-managed trust boundary. |
+
+Comparison last checked **August 10, 2026** against [Trello's official MCP documentation](https://support.atlassian.com/trello/docs/connect-trello-to-ai-assistants-with-trello-mcp/). Product capabilities can change, so review that page before choosing a service. The two services have different implementations; do not assume their tool surfaces or security models are interchangeable.
 
 ## Is there a hosted trello-mcp service?
 

@@ -25,35 +25,13 @@ const CLIENT_ICON_SOURCES = {
   opencode: ["fas", "robot"],
   vscode: ["fas", "code"],
 } as const;
+const CATALOG_CATEGORY_COUNT = 13;
 const CATALOG_PREVIEW_CATEGORIES = [
-  [
-    "credentials",
-    "Credential diagnostics",
-    2,
-    ["auth_whoami", "auth_token_info"],
-  ],
   [
     "boards",
     "Boards",
     11,
     ["list_boards", "board_create", "board_get", "board_field_get"],
-  ],
-  [
-    "workspaces",
-    "Workspaces",
-    5,
-    [
-      "list_workspaces",
-      "workspace_get",
-      "workspace_boards",
-      "workspace_members",
-    ],
-  ],
-  [
-    "members",
-    "Members",
-    4,
-    ["member_get", "member_boards", "member_cards", "member_workspaces"],
   ],
   [
     "lists",
@@ -68,17 +46,6 @@ const CATALOG_PREVIEW_CATEGORIES = [
     ["card_get", "card_board", "card_list", "card_create"],
   ],
   [
-    "attachments",
-    "Attachments",
-    5,
-    [
-      "card_attachments",
-      "card_attachment_get",
-      "card_attachment_add_url",
-      "card_attachment_upload",
-    ],
-  ],
-  [
     "checklists",
     "Checklists",
     10,
@@ -88,40 +55,6 @@ const CATALOG_PREVIEW_CATEGORIES = [
       "card_checklist_update",
       "card_checklist_delete",
     ],
-  ],
-  [
-    "custom-fields",
-    "Custom fields",
-    5,
-    [
-      "card_custom_field_items",
-      "card_custom_field_set",
-      "card_custom_field_clear",
-      "custom_field_get",
-    ],
-  ],
-  [
-    "card-members",
-    "Card members",
-    3,
-    ["card_members", "card_member_add", "card_member_remove"],
-  ],
-  [
-    "comments-activity",
-    "Comments and card activity",
-    4,
-    [
-      "card_comment_add",
-      "card_comment_update",
-      "card_comment_delete",
-      "card_actions",
-    ],
-  ],
-  [
-    "labels",
-    "Labels",
-    7,
-    ["card_labels", "label_get", "label_create", "label_update"],
   ],
   ["search", "Search", 2, ["search", "search_members"]],
 ] as const;
@@ -1739,14 +1672,20 @@ test("homepage keeps two hero actions and exposes setup, workflows, clients, and
   const cardExamplePrompt = page
     .locator("main figure")
     .filter({ hasText: "Card creation example prompt" });
-  await expect(cardExamplePrompt).toContainText("Show me my Trello boards.");
-  await expect(cardExamplePrompt).toContainText("wait for my confirmation");
-  await expect(page.locator("main")).toContainText(
-    "passes the selected boardId to board_lists",
-  );
-  await expect(page.locator("main")).toContainText(
-    "the client proposes card_create",
-  );
+  await expect(cardExamplePrompt).toContainText("Create a Trello card for me.");
+  await expect(cardExamplePrompt).toContainText("wait for my approval");
+  const cardExampleSteps = page
+    .locator("main ol.sl-steps")
+    .filter({ hasText: "Choose the destination" });
+  await expect(cardExampleSteps.locator(":scope > li")).toHaveCount(3);
+  for (const toolName of [
+    "list_boards",
+    "board_lists",
+    "card_create",
+    "card_archive",
+  ]) {
+    await expect(cardExampleSteps).toContainText(toolName);
+  }
   const cardExampleCodeGeometry = await cardExamplePrompt
     .locator("pre")
     .evaluate((element) => ({
@@ -1826,37 +1765,37 @@ test("homepage keeps two hero actions and exposes setup, workflows, clients, and
       "Codex",
       "openai",
       "/getting-started/clients/#codex",
-      "Connection and complete tool discovery tested — local stdio and authenticated Streamable HTTP. No live Trello workflow was run.",
+      "Tested over local stdio and authenticated Streamable HTTP.",
     ],
     [
       "Claude Code",
       "claude",
       "/getting-started/clients/#claude-code",
-      "Connection and complete tool discovery tested — local stdio and authenticated Streamable HTTP. No live Trello workflow was run.",
+      "Tested over local stdio and authenticated Streamable HTTP.",
     ],
     [
       "Claude Desktop",
       "claude",
       "/getting-started/clients/#claude-desktop",
-      "Connection and tool discovery tested — local stdio. No live Trello workflow was run.",
+      "Tested over local stdio.",
     ],
     [
       "VS Code",
       "vscode",
       "/getting-started/clients/#vs-code",
-      "Configuration reviewed — user-profile stdio with password inputs and authenticated Streamable HTTP setup. No dated client run or live Trello call is claimed.",
+      "Configuration reviewed for stdio and authenticated Streamable HTTP.",
     ],
     [
       "OpenCode",
       "opencode",
       "/getting-started/clients/#opencode",
-      "Configuration reviewed — local stdio and authenticated Streamable HTTP setup. No dated client run or live Trello call is claimed.",
+      "Configuration reviewed for stdio and authenticated Streamable HTTP.",
     ],
     [
       "All compatibility evidence",
       "evidence",
       "/getting-started/compatibility/",
-      "See the dated environment, test boundaries, limitations, and live-validation status behind every client claim.",
+      "See dated test scope, limitations, and live-validation status.",
     ],
   ] as const;
   await expect(
@@ -1937,25 +1876,18 @@ test("homepage keeps two hero actions and exposes setup, workflows, clients, and
   const serviceComparison = page.locator("main table").filter({
     hasText: "Official Trello MCP",
   });
-  await expect(serviceComparison).toHaveCount(1);
-  await expect(serviceComparison.locator("thead th")).toHaveText([
-    "Decision",
-    "trello-mcp community server",
-    "Official Trello MCP",
-  ]);
-  await expect(serviceComparison.locator("tbody tr")).toHaveCount(5);
-  await expect(serviceComparison).toContainText(
-    "Trello runs the cloud service",
-  );
-  await expect(serviceComparison).toContainText("OAuth 2.0 consent");
-  await expect(serviceComparison).toContainText(
-    "Each connection supports one authorized Workspace at launch",
-  );
-  await expect(serviceComparison).toContainText(
-    "does not support permanent destructive deletes",
+  await expect(serviceComparison).toHaveCount(0);
+  await expect(
+    page.getByRole("link", {
+      name: "full side-by-side comparison",
+      exact: true,
+    }),
+  ).toHaveAttribute(
+    "href",
+    "/guides/faq/#which-trello-mcp-server-should-i-choose",
   );
   await expect(page.locator("main")).toContainText(
-    "Comparison last checked August 10, 2026",
+    "last checked August 10, 2026",
   );
   const roadmapLink = page.getByRole("link", {
     name: "public trello-mcp roadmap",
@@ -1963,11 +1895,6 @@ test("homepage keeps two hero actions and exposes setup, workflows, clients, and
   });
   await expect(roadmapLink).toHaveAttribute("href", ROADMAP_URL);
   await expect(page.locator("main")).toContainText("is itself a Trello board");
-  await expect(
-    page.locator(
-      'main a[href="https://support.atlassian.com/trello/docs/connect-trello-to-ai-assistants-with-trello-mcp/"]',
-    ),
-  ).toHaveText("Trello’s official MCP documentation");
   for (const [name, href] of [
     ["Security & Data", "/guides/security/"],
     ["Configuration", "/reference/configuration/"],
@@ -1995,6 +1922,10 @@ test("homepage previews the canonical searchable tool catalog", async ({
   await expect(preview).toHaveAttribute("data-tool-count", "77");
   await expect(preview).toHaveAttribute(
     "data-category-count",
+    String(CATALOG_CATEGORY_COUNT),
+  );
+  await expect(preview).toHaveAttribute(
+    "data-preview-category-count",
     String(CATALOG_PREVIEW_CATEGORIES.length),
   );
   await expect(preview).toContainText("MCP method: tools/list");
@@ -2075,7 +2006,10 @@ test("homepage previews the canonical searchable tool catalog", async ({
   }
 
   await expect(
-    page.getByRole("link", { name: "Browse all 77 tools", exact: true }),
+    page.getByRole("link", {
+      name: "See all 13 categories and 77 tools",
+      exact: true,
+    }),
   ).toHaveAttribute("href", "/reference/tools/");
   await expect(
     page.getByRole("link", { name: "API coverage matrix", exact: true }),
@@ -2221,10 +2155,34 @@ test("security and FAQ pages state operational boundaries without overclaiming",
   await expect(page.locator("main")).toContainText(
     "There is no universal server-side read-only mode or confirmation gate.",
   );
+  const serviceComparison = page.locator("main table").filter({
+    hasText: "Official Trello MCP",
+  });
+  await expect(serviceComparison).toHaveCount(1);
+  await expect(serviceComparison.locator("thead th")).toHaveText([
+    "Decision",
+    "trello-mcp community server",
+    "Official Trello MCP",
+  ]);
+  await expect(serviceComparison.locator("tbody tr")).toHaveCount(5);
+  await expect(serviceComparison).toContainText(
+    "Trello runs the cloud service",
+  );
+  await expect(serviceComparison).toContainText("OAuth 2.0 consent");
+  await expect(serviceComparison).toContainText(
+    "Each connection supports one authorized Workspace at launch",
+  );
+  await expect(serviceComparison).toContainText(
+    "does not support permanent destructive deletes",
+  );
+  await expect(page.locator("main")).toContainText(
+    "Comparison last checked August 10, 2026",
+  );
   await expect(
-    page.getByRole("link", { name: "side-by-side comparison", exact: true }),
-  ).toHaveAttribute("href", "/#know-when-to-use-it");
-  await expect(page.locator("main table")).toHaveCount(0);
+    page.locator(
+      'main a[href="https://support.atlassian.com/trello/docs/connect-trello-to-ai-assistants-with-trello-mcp/"]',
+    ),
+  ).toHaveText("Trello’s official MCP documentation");
   await expect(
     page.locator('main a[href="https://trello.com/mcp"]').first(),
   ).toBeVisible();

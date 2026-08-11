@@ -3,6 +3,18 @@
 import { Icon } from "@astrojs/starlight/components";
 // biome-ignore lint/correctness/noUnusedImports: Astro renders these values in the template below.
 import { CATEGORY_ENTRIES, TOOL_COUNT } from "../data/tool-catalog.js";
+
+const featuredCategorySlugs = new Set<string>([
+  "boards",
+  "lists",
+  "cards",
+  "checklists",
+  "search",
+]);
+// biome-ignore lint/correctness/noUnusedVariables: Astro renders this value in the template below.
+const featuredCategories = CATEGORY_ENTRIES.filter(({ category }) =>
+  featuredCategorySlugs.has(category),
+);
 ---
 
 <figure
@@ -10,6 +22,7 @@ import { CATEGORY_ENTRIES, TOOL_COUNT } from "../data/tool-catalog.js";
   data-catalog-preview
   data-tool-count={TOOL_COUNT}
   data-category-count={CATEGORY_ENTRIES.length}
+  data-preview-category-count={featuredCategories.length}
 >
   <div class="catalog-preview__bar" aria-hidden="true">
     <span></span><span></span><span></span>
@@ -23,7 +36,7 @@ import { CATEGORY_ENTRIES, TOOL_COUNT } from "../data/tool-catalog.js";
     </p>
     <dl>
       {
-        CATEGORY_ENTRIES.map(({ category, label, tools }) => (
+        featuredCategories.map(({ category, label, tools }) => (
           <div data-catalog-preview-row data-category={category}>
             <dt>
               <a href={`/reference/tools/#tool-group-${category}`}>{label}</a>

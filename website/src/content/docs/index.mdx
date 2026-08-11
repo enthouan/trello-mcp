@@ -33,7 +33,7 @@ import {
   Steps,
 } from '@astrojs/starlight/components';
 import ToolCatalogPreview from '../../components/ToolCatalogPreview.astro';
-import { TOOL_COUNT } from '../../data/tool-catalog.js';
+import { CATEGORY_COUNT, TOOL_COUNT } from '../../data/tool-catalog.js';
 
 <Aside type="note" title="Independent integration for Trello">
   trello-mcp is an independent, community-maintained project. It is not an official Trello or Atlassian product, service, or MCP implementation, and it is not affiliated with, endorsed by, or sponsored by Trello or Atlassian.
@@ -68,17 +68,17 @@ import { TOOL_COUNT } from '../../data/tool-catalog.js';
 This example creates one real card in an existing list in your connected Trello account. Your MCP client can discover the board and list IDs, so you only need to choose the destination and supply a card title.
 
 ```text title="Card creation example prompt"
-Show me my Trello boards.
-Ask me which board, list, and card title to use.
-Show me the proposed card_create call and wait for my confirmation.
+Create a Trello card for me.
+Ask which board, list, and title to use.
+Show the proposed card_create call and wait for my approval.
 ```
 
 <Steps>
-1. **Choose the destination.** The client calls `list_boards`, then passes the selected `boardId` to `board_lists`, so you can choose an existing list without finding IDs yourself. Both calls are read-only.
+1. **Choose the destination.** The client uses the read-only `list_boards` and `board_lists` tools so you can choose an existing list without finding IDs yourself.
 
-2. **Review the proposed call.** Confirm that the client proposes `card_create` with the intended `listId` and non-empty `name`. Those are the only required inputs. It is a write action that creates one persistent card.
+2. **Review the proposed call.** Confirm that `card_create` has the intended `listId` and card `name`. It creates one persistent card.
 
-3. **Create the card.** Approve the write. trello-mcp creates one persistent card in the chosen list and returns it to the client. The card appears in that list; if this was only a test, use `card_archive` instead of permanently deleting it.
+3. **Create the card.** Approve the write. If it was only a test, use `card_archive` instead of permanently deleting it.
 </Steps>
 
 ## Pick your MCP client
@@ -90,37 +90,37 @@ First time connecting? [Create your Trello API key and token](/getting-started/t
 <CardGrid>
   <LinkCard
     title="Codex"
-    description="Connection and complete tool discovery tested — local stdio and authenticated Streamable HTTP. No live Trello workflow was run."
+    description="Tested over local stdio and authenticated Streamable HTTP."
     href="/getting-started/clients/#codex"
     data-client-icon="openai"
   />
   <LinkCard
     title="Claude Code"
-    description="Connection and complete tool discovery tested — local stdio and authenticated Streamable HTTP. No live Trello workflow was run."
+    description="Tested over local stdio and authenticated Streamable HTTP."
     href="/getting-started/clients/#claude-code"
     data-client-icon="claude"
   />
   <LinkCard
     title="Claude Desktop"
-    description="Connection and tool discovery tested — local stdio. No live Trello workflow was run."
+    description="Tested over local stdio."
     href="/getting-started/clients/#claude-desktop"
     data-client-icon="claude"
   />
   <LinkCard
     title="VS Code"
-    description="Configuration reviewed — user-profile stdio with password inputs and authenticated Streamable HTTP setup. No dated client run or live Trello call is claimed."
+    description="Configuration reviewed for stdio and authenticated Streamable HTTP."
     href="/getting-started/clients/#vs-code"
     data-client-icon="vscode"
   />
   <LinkCard
     title="OpenCode"
-    description="Configuration reviewed — local stdio and authenticated Streamable HTTP setup. No dated client run or live Trello call is claimed."
+    description="Configuration reviewed for stdio and authenticated Streamable HTTP."
     href="/getting-started/clients/#opencode"
     data-client-icon="opencode"
   />
   <LinkCard
     title="All compatibility evidence"
-    description="See the dated environment, test boundaries, limitations, and live-validation status behind every client claim."
+    description="See dated test scope, limitations, and live-validation status."
     href="/getting-started/compatibility/"
     data-client-icon="evidence"
   />
@@ -173,26 +173,16 @@ Names, descriptions, and input definitions come directly from the same registere
 <ToolCatalogPreview />
 
 <LinkButton href="/reference/tools/" variant="primary" icon="right-arrow">
-  Browse all {TOOL_COUNT} tools
+  See all {CATEGORY_COUNT} categories and {TOOL_COUNT} tools
 </LinkButton>
 
 ## Know when to use it
 
 Choose this community server when self-hosting, local stdio, an inspectable deployment, or broad Trello REST automation matters. Choose Trello's official MCP service when you prefer a Trello-hosted connection, OAuth consent, official support, and a workspace-scoped managed service.
 
-| Decision | `trello-mcp` community server | Official Trello MCP |
-| --- | --- | --- |
-| Hosting | You run the process locally, in Docker, or on infrastructure you manage. | Trello runs the cloud service. |
-| Authentication | You create and protect a Trello API key and member token. HTTP clients can use a separate server bearer token. | OAuth 2.0 consent grants revocable access without giving the MCP client a Trello API token. |
-| Trello scope | One deployment can reach boards and Workspaces visible to the authorized member and granted token scope. | Each connection supports one authorized Workspace at launch. |
-| Changes | The catalog includes read, write, archive, and explicitly labeled permanent-delete operations; client approval is the enforcement boundary. | The official service supports granted read, write, and search access, but does not support permanent destructive deletes. |
-| Best fit | Auditable self-hosting, local-process integration, operator-controlled logs and networking, and broad REST-backed workflows. | Managed onboarding, official support, OAuth access control, and a smaller Trello-managed trust boundary. |
-
-Comparison last checked **August 10, 2026** against [Trello's official MCP documentation](https://support.atlassian.com/trello/docs/connect-trello-to-ai-assistants-with-trello-mcp/). Product capabilities can change, so review that page before choosing a service.
+See the [full side-by-side comparison](/guides/faq/#which-trello-mcp-server-should-i-choose), last checked **August 10, 2026** against Trello's official MCP documentation.
 
 Naturally, the [public `trello-mcp` roadmap](https://trello.com/b/GnKmvuHz/trello-mcp-enthouan-trello-mcp) is itself a Trello board. Follow it to see what is planned, active, and shipped.
-
-Use the focused guides, reference, and recovery pages when you need to understand or change either boundary.
 
 <CardGrid>
   <LinkCard
