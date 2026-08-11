@@ -831,8 +831,29 @@ test("README publishing, canonical website builds, local QA, and OCI metadata st
     buildWorkflow.match(/actions\/checkout@v7\n\s+with:\n\s+fetch-depth: 0/g),
   ).toHaveLength(1);
   expect(packageScripts["website:dev"]).toBe("pnpm --dir website dev");
+  expect(packageScripts["website:typecheck"]).toBe(
+    "pnpm --dir website typecheck",
+  );
   expect(packageScripts["website:build"]).toBe("pnpm --dir website build");
+  expect(packageScripts["website:og"]).toBe(
+    "tsx website/scripts/render-og-image.ts",
+  );
+  expect(packageScripts["website:og:check"]).toBe(
+    "tsx website/scripts/render-og-image.ts --check",
+  );
   expect(packageScripts["website:preview"]).toBe("pnpm --dir website preview");
+  expect(packageScripts["website:test"]).toBe(
+    "playwright test --config website/playwright.config.ts",
+  );
+  expect(packageScripts["website:visual"]).toBe(
+    "playwright test --config website/playwright.config.ts website/tests/visual.spec.ts",
+  );
+  expect(packageScripts["website:lighthouse"]).toBe(
+    "tsx website/scripts/lighthouse.ts",
+  );
+  expect(packageScripts["website:check"]).toBe(
+    "pnpm docs:check && pnpm website:og:check && pnpm website:typecheck && pnpm website:test",
+  );
   expect(websitePackage).toMatchObject({
     name: "trello-mcp-website",
     private: true,
@@ -859,6 +880,12 @@ test("README publishing, canonical website builds, local QA, and OCI metadata st
     "site:build",
     "site:build:production",
     "site:preview",
+    "site:check",
+    "site:og",
+    "site:og:check",
+    "site:test",
+    "site:visual",
+    "site:lighthouse",
   ]) {
     expect(packageScripts).not.toHaveProperty(deprecatedScript);
   }
@@ -874,11 +901,8 @@ test("README publishing, canonical website builds, local QA, and OCI metadata st
     );
   }
   for (const command of [
-    "pnpm docs:check",
-    "pnpm site:og:check",
-    "pnpm site:check",
-    "pnpm website:build",
-    "pnpm site:test",
+    "pnpm exec playwright install --with-deps chromium",
+    "pnpm website:check",
   ]) {
     expect(buildWorkflow).toContain(command);
   }
@@ -891,21 +915,17 @@ test("README publishing, canonical website builds, local QA, and OCI metadata st
     "WEBSITE_BASE_URL",
     "WEBSITE_PUBLICATION_MODE",
     "site:build:production",
-    "pnpm site:visual",
-    "pnpm site:lighthouse",
+    "pnpm website:visual",
+    "pnpm website:lighthouse",
     "playwright install --with-deps chromium webkit",
     "pages deploy",
   ]) {
     expect(buildWorkflow).not.toContain(deploymentMarker);
   }
-  expect(buildWorkflow).toContain(
-    "PLAYWRIGHT_USE_EXISTING_BUILD=1 pnpm site:test",
-  );
   expect(contributing).toContain(
     [
-      "corepack pnpm website:build",
       "corepack pnpm exec playwright install --with-deps chromium",
-      "corepack pnpm site:test",
+      "corepack pnpm website:check",
     ].join("\n"),
   );
   expect(contributing).toContain(
@@ -916,19 +936,20 @@ test("README publishing, canonical website builds, local QA, and OCI metadata st
     /WEBSITE_(?:BASE_URL|PUBLICATION_MODE)|SITE_URL|site:build:production/,
   );
   expect(contributing).toContain(
-    "Run `corepack pnpm site:visual` for the smaller desktop/mobile",
+    "Run `corepack pnpm website:visual` for the smaller desktop/mobile",
   );
   expect(contributing).toContain(
-    "`corepack pnpm site:lighthouse` when a release or",
+    "`corepack pnpm website:lighthouse` when a release or",
   );
   for (const command of [
     "corepack pnpm docs:tools",
     "corepack pnpm docs:check",
-    "corepack pnpm site:og:check",
-    "corepack pnpm site:check",
+    "corepack pnpm website:og:check",
+    "corepack pnpm website:typecheck",
     "corepack pnpm website:build",
     "corepack pnpm exec playwright install --with-deps chromium",
-    "corepack pnpm site:test",
+    "corepack pnpm website:test",
+    "corepack pnpm website:check",
     "corepack pnpm website:dev",
     "corepack pnpm website:preview",
   ]) {

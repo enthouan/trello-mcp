@@ -90,7 +90,7 @@ async function checkGeneratedImage() {
     manifest.imageSha256 !== sha256(image)
   ) {
     throw new Error(
-      "The generated Open Graph image is stale. Run `corepack pnpm site:og`.",
+      "The generated Open Graph image is stale. Run `corepack pnpm website:og`.",
     );
   }
 

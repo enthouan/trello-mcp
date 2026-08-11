@@ -23,24 +23,30 @@ Do not hand-edit generated documentation mirrors.
 Run the website checks from the repository root:
 
 ```bash
-corepack pnpm site:og:check
-corepack pnpm site:check
-corepack pnpm website:build
 corepack pnpm exec playwright install --with-deps chromium
-corepack pnpm site:test
+corepack pnpm website:check
 ```
 
-GitHub Actions creates one production artifact and runs the browser suite against that same
-`website/dist/` build. Chromium covers functional behavior, accessibility, responsive layouts,
-light and dark modes, internal links, metadata, and horizontal overflow. Screenshots and traces are
-retained on failure.
+`website:check` verifies generated documentation and the social image, runs Astro diagnostics,
+builds the production artifact, and exercises it in Chromium. The browser suite covers functional
+behavior, accessibility, responsive layouts, light and dark modes, internal links, metadata, and
+horizontal overflow. Screenshots and traces are retained on failure.
+
+Run an individual stage when diagnosing a failure:
+
+```bash
+corepack pnpm website:og:check
+corepack pnpm website:typecheck
+corepack pnpm website:build
+corepack pnpm website:test
+```
 
 The optional commands below are intended for substantial design or release review rather than the
 normal pull-request gate:
 
 ```bash
-corepack pnpm site:visual
-corepack pnpm site:lighthouse
+corepack pnpm website:visual
+corepack pnpm website:lighthouse
 ```
 
 ## Local development
@@ -65,10 +71,10 @@ The committed Open Graph image is rendered from `og-image.html` with Chromium. R
 and synchronization manifest after changing the template or renderer:
 
 ```bash
-corepack pnpm site:og
+corepack pnpm website:og
 ```
 
-`corepack pnpm site:og:check` verifies that the committed 1200 x 630 image matches its sources.
+`corepack pnpm website:og:check` verifies that the committed 1200 x 630 image matches its sources.
 
 ## Publication metadata
 

@@ -53,10 +53,11 @@ corepack pnpm build
 corepack pnpm test
 corepack pnpm test:coverage
 corepack pnpm docs:check
-corepack pnpm site:check
+corepack pnpm website:typecheck
 corepack pnpm website:build
-corepack pnpm site:test
-corepack pnpm site:lighthouse
+corepack pnpm website:test
+corepack pnpm website:lighthouse
+corepack pnpm website:check
 ```
 
 Use these as the normal verification gate before a PR is considered ready:
@@ -270,7 +271,7 @@ If changing CI:
 
 - Avoid dependency churn.
 - Keep top-level dependency ranges pinned to exact versions for release reproducibility.
-- Before upgrading TypeScript to 7, confirm that the current `@astrojs/check` peer range includes it and run `corepack pnpm site:check`; `@astrojs/check@0.9.10` currently requires TypeScript 5 or 6.
+- Before upgrading TypeScript to 7, confirm that the current `@astrojs/check` peer range includes it and run `corepack pnpm website:typecheck`; `@astrojs/check@0.9.10` currently requires TypeScript 5 or 6.
 - If a dependency update is required, update and commit `pnpm-lock.yaml`.
 - Be extra cautious with `@modelcontextprotocol/sdk` and TypeScript updates because SDK declaration changes can affect transport and tool typing.
 
@@ -284,13 +285,11 @@ corepack pnpm lint
 corepack pnpm build
 corepack pnpm test
 corepack pnpm docs:check
-corepack pnpm site:check
-corepack pnpm website:build
-corepack pnpm site:test
+corepack pnpm website:check
 ```
 
-Use `corepack pnpm site:visual` for the representative desktop/mobile,
-light/dark design matrix and `corepack pnpm site:lighthouse` for release-time or
+Use `corepack pnpm website:visual` for the representative desktop/mobile,
+light/dark design matrix and `corepack pnpm website:lighthouse` for release-time or
 substantial layout/performance validation.
 
 For tool catalog changes, also run:

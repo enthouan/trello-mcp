@@ -15,11 +15,8 @@ corepack pnpm typecheck
 corepack pnpm lint
 corepack pnpm test:coverage
 corepack pnpm build
-corepack pnpm docs:check
-corepack pnpm site:check
-corepack pnpm website:build
 corepack pnpm exec playwright install --with-deps chromium
-corepack pnpm site:test
+corepack pnpm website:check
 ```
 
 ## Documentation website
@@ -46,8 +43,8 @@ Cloudflare Pages should run `corepack pnpm website:build` and publish
 variable is required.
 
 The normal pull-request gate uses Chromium with screenshots retained only on
-failure. Run `corepack pnpm site:visual` for the smaller desktop/mobile,
-light/dark design matrix, or `corepack pnpm site:lighthouse` when a release or
+failure. Run `corepack pnpm website:visual` for the smaller desktop/mobile,
+light/dark design matrix, or `corepack pnpm website:lighthouse` when a release or
 substantial layout change needs an explicit performance audit.
 
 Before changing generated website pages, update their canonical source or
