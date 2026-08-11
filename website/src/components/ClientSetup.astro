@@ -46,6 +46,11 @@ import VerifySetup from "./VerifySetup.astro";
   </Tabs>
 
   <noscript>
+    <style>
+      [data-client-setups] > starlight-tabs {
+        display: none !important;
+      }
+    </style>
     <p>
       JavaScript is disabled. All client recipes are expanded below; copy configuration values
       manually.
@@ -59,6 +64,9 @@ import VerifySetup from "./VerifySetup.astro";
             <strong>Where to configure it:</strong> {client.configLocation}
           </p>
           <Code code={client.code} lang={client.language} meta={`title="${client.configTitle}"`} />
+          <p>
+            <strong>Protect the Trello credentials:</strong> {client.secretNote}
+          </p>
           <p>
             <strong>Reload the client:</strong> {client.reload}
           </p>

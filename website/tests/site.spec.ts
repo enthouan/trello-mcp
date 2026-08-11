@@ -832,6 +832,7 @@ test("README publishing, canonical website builds, local QA, and OCI metadata st
     releaseWorkflow,
     buildWorkflow,
     contributing,
+    websiteReadme,
     packageSource,
     websitePackageSource,
     workspaceSource,
@@ -850,6 +851,7 @@ test("README publishing, canonical website builds, local QA, and OCI metadata st
       "utf8",
     ),
     readFile(new URL("../../CONTRIBUTING.md", import.meta.url), "utf8"),
+    readFile(new URL("../README.md", import.meta.url), "utf8"),
     readFile(new URL("../../package.json", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
     readFile(new URL("../../pnpm-workspace.yaml", import.meta.url), "utf8"),
@@ -875,6 +877,19 @@ test("README publishing, canonical website builds, local QA, and OCI metadata st
   expect(readme).toContain(
     "docker compose -f docker-compose.local.yml up --build -d --wait --wait-timeout 120",
   );
+  expect(readme).toContain("[trello-mcp.com](https://trello-mcp.com/)");
+  for (const route of [
+    "/getting-started/",
+    "/getting-started/trello-api-key/",
+    "/getting-started/clients/",
+    "/reference/tools/",
+    "/reference/api-coverage/",
+    "/guides/security/",
+    "/guides/operations/",
+    "/guides/troubleshooting/",
+  ]) {
+    expect(readme).toContain(`${CANONICAL_WEBSITE_ORIGIN}${route}`);
+  }
   expect(releaseWorkflow).toContain(
     `org.opencontainers.image.url=\${{ github.server_url }}/\${{ github.repository }}`,
   );
@@ -972,6 +987,25 @@ test("README publishing, canonical website builds, local QA, and OCI metadata st
   );
   expect(contributing).toContain(
     "`corepack pnpm site:lighthouse` when a release or",
+  );
+  for (const command of [
+    "corepack pnpm docs:tools",
+    "corepack pnpm docs:check",
+    "corepack pnpm site:og:check",
+    "corepack pnpm site:check",
+    "corepack pnpm website:build",
+    "corepack pnpm site:test",
+    "corepack pnpm website:dev",
+    "corepack pnpm website:preview",
+  ]) {
+    expect(websiteReadme).toContain(command);
+  }
+  expect(websiteReadme).toContain(CANONICAL_WEBSITE_URL);
+  expect(websiteReadme).toContain("X-Robots-Tag: noindex");
+  expect(websiteReadme).toContain("public/_redirects");
+  expect(websiteReadme).toContain("public/_headers");
+  expect(websiteReadme).not.toMatch(
+    /WEBSITE_(?:BASE_URL|PUBLICATION_MODE)|SITE_URL|site:build:production/,
   );
   expect(cloudflareHeaders.trim()).toBe(
     [
@@ -1336,6 +1370,28 @@ test("onboarding remains complete without client-side enhancement", async ({
       waitUntil: "domcontentloaded",
     });
     expect(response?.status()).toBe(200);
+    const clientSetups = page.locator("[data-client-setups]");
+    const enhancedTabs = clientSetups.locator(
+      ':scope > starlight-tabs[data-sync-key="mcp-client"]',
+    );
+    await expect(enhancedTabs).toHaveCount(1);
+    await expect(enhancedTabs).toBeHidden();
+    const fallbackSections = clientSetups.locator(
+      'section[aria-labelledby^="no-script-"]',
+    );
+    await expect(fallbackSections).toHaveCount(5);
+    await expect(fallbackSections.locator("h3[id^='no-script-']")).toHaveText([
+      "Codex",
+      "Claude Code",
+      "Claude Desktop",
+      "VS Code",
+      "OpenCode",
+    ]);
+    await expect(
+      fallbackSections.getByText("Protect the Trello credentials:", {
+        exact: true,
+      }),
+    ).toHaveCount(5);
     await expect(
       page.getByRole("heading", { name: "Codex", exact: true }),
     ).toBeVisible();

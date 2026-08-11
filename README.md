@@ -14,6 +14,19 @@ This project exists to make it easier for MCP-compatible LLM clients to interfac
 
 Looking for Trello's official hosted MCP server? Visit [Trello MCP](https://trello.com/mcp) and use the endpoint documented by Trello: `https://mcp.trello.com/v1`.
 
+## Documentation
+
+The complete project documentation is available at [trello-mcp.com](https://trello-mcp.com/):
+
+- [Get started](https://trello-mcp.com/getting-started/)
+- [Create a Trello API key and token](https://trello-mcp.com/getting-started/trello-api-key/)
+- [Set up your MCP client](https://trello-mcp.com/getting-started/clients/)
+- [Browse the tool catalog](https://trello-mcp.com/reference/tools/)
+- [Review API coverage and non-goals](https://trello-mcp.com/reference/api-coverage/)
+- [Understand Security & Data](https://trello-mcp.com/guides/security/)
+- [Operate a running deployment](https://trello-mcp.com/guides/operations/)
+- [Troubleshoot an installation](https://trello-mcp.com/guides/troubleshooting/)
+
 ## Features
 
 ### Board Discovery
