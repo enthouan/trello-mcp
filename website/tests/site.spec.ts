@@ -994,6 +994,7 @@ test("README publishing, canonical website builds, local QA, and OCI metadata st
     "corepack pnpm site:og:check",
     "corepack pnpm site:check",
     "corepack pnpm website:build",
+    "corepack pnpm exec playwright install --with-deps chromium",
     "corepack pnpm site:test",
     "corepack pnpm website:dev",
     "corepack pnpm website:preview",

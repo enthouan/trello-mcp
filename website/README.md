@@ -26,7 +26,7 @@ Run the website checks from the repository root:
 corepack pnpm site:og:check
 corepack pnpm site:check
 corepack pnpm website:build
-corepack pnpm exec playwright install chromium
+corepack pnpm exec playwright install --with-deps chromium
 corepack pnpm site:test
 ```
 
