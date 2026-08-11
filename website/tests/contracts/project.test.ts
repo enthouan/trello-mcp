@@ -43,9 +43,9 @@ describe("website package and command boundaries", () => {
       name: "trello-mcp-website",
       private: true,
       scripts: {
-        dev: "ASTRO_DEV_BACKGROUND=0 astro dev",
+        dev: "cross-env ASTRO_DEV_BACKGROUND=0 astro dev",
         build: "astro build",
-        preview: "ASTRO_PREVIEW_BACKGROUND=0 astro preview",
+        preview: "cross-env ASTRO_PREVIEW_BACKGROUND=0 astro preview",
         typecheck: "astro check --minimumFailingSeverity warning",
       },
     });
@@ -56,6 +56,7 @@ describe("website package and command boundaries", () => {
       "@fortawesome/free-brands-svg-icons": "7.3.1",
       "@fortawesome/free-solid-svg-icons": "7.3.1",
       astro: "7.2.0",
+      "cross-env": "10.1.0",
       sharp: "0.35.3",
       typescript: "6.0.3",
     });
@@ -143,6 +144,7 @@ describe("website package and command boundaries", () => {
     const workflow = await source(
       repositoryFile(".github/workflows/build-and-test.yml"),
     );
+    const dockerignore = await source(repositoryFile(".dockerignore"));
 
     expect(workflow).toContain("pnpm website:check");
     expect(
@@ -159,6 +161,15 @@ describe("website package and command boundaries", () => {
     ).toHaveLength(1);
     expect(workflow).toMatch(
       /name: website-qa[\s\S]*website\/playwright-report\/[\s\S]*website\/test-results\/[\s\S]*retention-days: 14/,
+    );
+    expect(workflow).toMatch(
+      /check:\n\s+if: always\(\)\n\s+needs: \[test, website\][\s\S]*TEST_RESULT: \$\{\{ needs\.test\.result \}\}[\s\S]*WEBSITE_RESULT: \$\{\{ needs\.website\.result \}\}[\s\S]*test "\$TEST_RESULT" = success[\s\S]*test "\$WEBSITE_RESULT" = success/,
+    );
+    expect(workflow).toMatch(
+      /docker:\n\s+if: github\.event_name == 'pull_request'[\s\S]*docker compose --env-file \.env\.example config --quiet[\s\S]*docker compose --env-file \.env\.example -f docker-compose\.local\.yml config --quiet[\s\S]*platforms: linux\/amd64,linux\/arm64[\s\S]*push: false[\s\S]*outputs: type=cacheonly/,
+    );
+    expect(dockerignore.split(/\r?\n/)).toEqual(
+      expect.arrayContaining(["website", "pnpm-workspace.yaml"]),
     );
     for (const marker of [
       "pnpm website:visual",

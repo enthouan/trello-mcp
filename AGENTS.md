@@ -243,6 +243,7 @@ The GitHub Actions workflow named `Build and Test` runs:
 - Chromium website, accessibility, navigation, metadata, and responsive checks,
   plus a focused desktop-light WebKit homepage smoke check
 - screenshots retained on failure for ordinary CI
+- Docker Compose validation and a non-publishing multi-platform image build on pull requests
 
 The `Release` workflow publishes Docker images to GHCR from `main` and `v*` tags.
 

@@ -16,6 +16,10 @@ coverage
 .vitest
 *.tsbuildinfo
 
+# Documentation website and its build/test artifacts
+website
+pnpm-workspace.yaml
+
 # Local environment and secrets
 .env
 .env.*

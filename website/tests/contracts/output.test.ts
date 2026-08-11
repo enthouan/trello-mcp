@@ -190,6 +190,9 @@ describe("SEO and machine-readable publication output", () => {
     expect(source).toContain("your MCP client.");
     expect(source).toContain("Self-hosted, auditable Trello automation.");
     expect(source).toContain("Independent community project");
+    expect(source).toMatch(
+      /<span>77 tools<\/span>[\s\S]*<span>stdio<\/span>[\s\S]*<span>Streamable HTTP<\/span>/,
+    );
     expect(source).toContain("--og-accent: #0052cc;");
     expect(source).toContain('<svg viewBox="0 0 64 64"');
     expect(source).not.toContain("<img");
