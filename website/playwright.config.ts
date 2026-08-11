@@ -9,14 +9,13 @@ const baseURL = (process.env.PLAYWRIGHT_BASE_URL ?? localBaseUrl).replace(
   "",
 );
 const repositoryRoot = fileURLToPath(new URL("..", import.meta.url));
-const useExistingBuild = process.env.PLAYWRIGHT_USE_EXISTING_BUILD === "1";
 const visualQa =
   process.env.VISUAL_QA === "1" ||
   process.argv.some((argument) => argument.endsWith("visual.spec.ts"));
 
 export default defineConfig({
   testDir: "./tests",
-  testIgnore: visualQa ? [] : [/visual\.spec\.ts$/],
+  testMatch: visualQa ? ["visual.spec.ts"] : ["browser/**/*.spec.ts"],
   outputDir: "./test-results",
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
@@ -44,16 +43,34 @@ export default defineConfig({
     video: "off",
   },
   projects: [
-    {
-      name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
-    },
+    ...(visualQa
+      ? [
+          {
+            name: "chromium",
+            use: { ...devices["Desktop Chrome"] },
+          },
+        ]
+      : [
+          {
+            name: "chromium",
+            testIgnore: /webkit-smoke\.spec\.ts$/,
+            use: { ...devices["Desktop Chrome"] },
+          },
+          {
+            name: "webkit-desktop-light",
+            testMatch: /webkit-smoke\.spec\.ts$/,
+            use: {
+              ...devices["Desktop Safari"],
+              colorScheme: "light" as const,
+            },
+          },
+        ]),
   ],
   ...(process.env.PLAYWRIGHT_BASE_URL
     ? {}
     : {
         webServer: {
-          command: `${useExistingBuild ? "" : "corepack pnpm website:build && "}corepack pnpm website:preview --host ${host} --port ${port}`,
+          command: `corepack pnpm website:preview --host ${host} --port ${port}`,
           cwd: repositoryRoot,
           reuseExistingServer: false,
           timeout: 120_000,

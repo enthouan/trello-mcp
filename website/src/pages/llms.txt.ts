@@ -1,5 +1,6 @@
 import { getCollection } from "astro:content";
 import type { APIRoute } from "astro";
+import { REPOSITORY_URL } from "../data/repository.js";
 
 export const prerender = true;
 
@@ -45,7 +46,7 @@ export const GET: APIRoute = async ({ site }) => {
     "",
     "## Source",
     "",
-    "- [GitHub repository](https://github.com/enthouan/trello-mcp)",
+    `- [GitHub repository](${REPOSITORY_URL})`,
     "- [Official Trello MCP](https://trello.com/mcp), hosted at https://mcp.trello.com/v1",
     "",
   ].join("\n");

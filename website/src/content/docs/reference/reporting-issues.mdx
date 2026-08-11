@@ -4,6 +4,7 @@ description: "Choose the right support channel and prepare a useful, sanitized t
 ---
 
 import { Aside, Steps } from "@astrojs/starlight/components";
+import RepositoryLink from "../../../components/RepositoryLink.astro";
 
 <Aside type="caution" title="Sanitize every report">
   Never include Trello API keys, Trello tokens, MCP bearer tokens, authorization headers, credential-bearing URLs, private Trello data, raw environment output, or unredacted logs in a public issue, discussion, screenshot, or reproduction.
@@ -62,3 +63,5 @@ Support is best effort. There is no service-level agreement, guaranteed response
 The maintainers may ask for a minimal reproduction against the latest release or `main`, sanitized logs, exact commands, or a smaller Trello workflow before investigating. Private deployments, reverse proxies, host firewalls, MCP client behavior, custom Docker setups, and local filesystem permissions may need to be debugged by the operator.
 
 This project is independent and unofficial. It is not affiliated with, endorsed by, sponsored by, or operated by Trello or Atlassian.
+
+<RepositoryLink showIssueLink />

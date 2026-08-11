@@ -12,7 +12,7 @@ corepack pnpm typecheck
 corepack pnpm lint
 corepack pnpm test:coverage
 corepack pnpm build
-corepack pnpm exec playwright install --with-deps chromium
+corepack pnpm exec playwright install --with-deps chromium webkit
 corepack pnpm website:check
 ```
 
@@ -39,8 +39,9 @@ Cloudflare Pages should run `corepack pnpm website:build` and publish
 `website/dist`. The canonical URL is built in, so no website environment
 variable is required.
 
-The normal pull-request gate uses Chromium with screenshots retained only on
-failure. Run `corepack pnpm website:visual` for the smaller desktop/mobile,
+The normal pull-request gate runs the complete browser suite in Chromium plus a
+focused desktop-light homepage smoke check in WebKit, with screenshots retained
+only on failure. Run `corepack pnpm website:visual` for the smaller desktop/mobile,
 light/dark design matrix, or `corepack pnpm website:lighthouse` when a release or
 substantial layout change needs an explicit performance audit.
 

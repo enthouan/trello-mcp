@@ -50,7 +50,7 @@ const paths = {
     import.meta.url,
   ),
   siteContributing: new URL(
-    "../website/src/content/docs/reference/contributing.md",
+    "../website/src/content/docs/reference/contributing.mdx",
     import.meta.url,
   ),
   siteHowItWorks: new URL(
@@ -102,6 +102,13 @@ type GeneratedFile = {
 };
 
 const obsoleteGeneratedFiles = [
+  {
+    label: "website/src/content/docs/reference/contributing.md",
+    path: new URL(
+      "../website/src/content/docs/reference/contributing.md",
+      import.meta.url,
+    ),
+  },
   {
     label: "website/src/content/docs/concepts/how-it-works.mdx",
     path: paths.siteLegacyHowItWorks,
@@ -832,12 +839,25 @@ function supportSiteBody(source: string): string {
 
   return [
     'import { Aside, Steps } from "@astrojs/starlight/components";',
+    'import RepositoryLink from "../../../components/RepositoryLink.astro";',
     "",
     '<Aside type="caution" title="Sanitize every report">',
     "  Never include Trello API keys, Trello tokens, MCP bearer tokens, authorization headers, credential-bearing URLs, private Trello data, raw environment output, or unredacted logs in a public issue, discussion, screenshot, or reproduction.",
     "</Aside>",
     "",
     withSteps,
+    "",
+    "<RepositoryLink showIssueLink />",
+  ].join("\n");
+}
+
+function repositorySiteBody(source: string): string {
+  return [
+    'import RepositoryLink from "../../../components/RepositoryLink.astro";',
+    "",
+    source,
+    "",
+    "<RepositoryLink />",
   ].join("\n");
 }
 
@@ -1026,13 +1046,15 @@ async function expectedFiles(): Promise<GeneratedFile[]> {
     },
     {
       path: paths.siteContributing,
-      label: "website/src/content/docs/reference/contributing.md",
+      label: "website/src/content/docs/reference/contributing.mdx",
       contents: starlightPage(
         "Contributing",
         "Run the project checks, update canonical documentation, follow the Trello tool pattern, and prepare focused contributions safely.",
-        rewriteSiteLinks(
-          withoutDocumentTitle(contributing, "CONTRIBUTING.md"),
-          "CONTRIBUTING.md",
+        repositorySiteBody(
+          rewriteSiteLinks(
+            withoutDocumentTitle(contributing, "CONTRIBUTING.md"),
+            "CONTRIBUTING.md",
+          ),
         ),
       ),
     },

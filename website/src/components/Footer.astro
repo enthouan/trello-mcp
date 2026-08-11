@@ -3,11 +3,13 @@
 import LastUpdated from "@astrojs/starlight/components/LastUpdated.astro";
 // biome-ignore lint/correctness/noUnusedImports: Astro renders this component in the template below.
 import Pagination from "@astrojs/starlight/components/Pagination.astro";
+// biome-ignore lint/correctness/noUnusedImports: Astro renders this value in the template below.
+import { REPOSITORY_URL } from "../data/repository.js";
+// biome-ignore lint/correctness/noUnusedImports: Astro renders this component in the template below.
+import CodeBlockEnhancements from "./CodeBlockEnhancements.astro";
 
 // biome-ignore lint/correctness/noUnusedVariables: Astro renders this value in the template below.
 const base = import.meta.env.BASE_URL;
-// biome-ignore lint/correctness/noUnusedVariables: Astro renders this value in the template below.
-const repositoryUrl = "https://github.com/enthouan/trello-mcp";
 // biome-ignore lint/correctness/noUnusedVariables: Astro renders this value in the template below.
 const roadmapUrl =
   "https://trello.com/b/GnKmvuHz/trello-mcp-enthouan-trello-mcp";
@@ -28,7 +30,7 @@ const roadmapUrl =
         <a href={roadmapUrl} rel="external">Roadmap</a>
         <a href={`${base}reference/reporting-issues/`}>Help</a>
         <a href={`${base}guides/security/`}>Security &amp; Data</a>
-        <a href={repositoryUrl} rel="external">GitHub</a>
+        <a href={REPOSITORY_URL} rel="external">GitHub</a>
       </nav>
     </div>
 
@@ -54,6 +56,8 @@ const roadmapUrl =
     </div>
   </div>
 </footer>
+
+<CodeBlockEnhancements />
 
 <style>
   @layer starlight.core {

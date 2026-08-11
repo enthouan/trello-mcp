@@ -6,9 +6,9 @@ description: Technical reference, contribution guidance, issue reporting, releas
 import {
   Aside,
   CardGrid,
-  LinkButton,
   LinkCard,
 } from '@astrojs/starlight/components';
+import RepositoryLink from '../../../components/RepositoryLink.astro';
 
 `trello-mcp` is a self-hostable, MIT-licensed open-source project. It exposes the same Trello tool
 catalog through local stdio and Streamable HTTP while leaving deployment, credentials, logs, and
@@ -114,6 +114,4 @@ sponsored by Trello or Atlassian.
 
 For Trello's official managed service, use the current [Trello MCP documentation](https://support.atlassian.com/trello/docs/connect-trello-to-ai-assistants-with-trello-mcp/).
 
-<LinkButton href="https://github.com/enthouan/trello-mcp" variant="primary" icon="github">
-  View the source repository
-</LinkButton>
+<RepositoryLink />

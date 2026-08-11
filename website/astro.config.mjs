@@ -3,8 +3,8 @@ import { unified } from "@astrojs/markdown-remark";
 import starlight from "@astrojs/starlight";
 import { defineConfig } from "astro/config";
 import { CANONICAL_WEBSITE_URL } from "./src/data/publication.js";
+import { REPOSITORY_URL } from "./src/data/repository.js";
 
-const repositoryUrl = "https://github.com/enthouan/trello-mcp";
 const socialImageUrl = new URL("social-card.png", CANONICAL_WEBSITE_URL).href;
 /** @type {Array<{ tag: "meta"; attrs: Record<string, string> }>} */
 const socialImageHead = [
@@ -140,7 +140,7 @@ export default defineConfig({
         {
           icon: "github",
           label: "trello-mcp on GitHub",
-          href: repositoryUrl,
+          href: REPOSITORY_URL,
         },
       ],
       sidebar: [

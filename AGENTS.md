@@ -55,6 +55,7 @@ corepack pnpm test:coverage
 corepack pnpm docs:check
 corepack pnpm website:typecheck
 corepack pnpm website:build
+corepack pnpm website:contracts
 corepack pnpm website:test
 corepack pnpm website:lighthouse
 corepack pnpm website:check
@@ -239,7 +240,8 @@ The GitHub Actions workflow named `Build and Test` runs:
 - build
 - test coverage
 - Astro content/type checks and the production website build
-- Chromium website, accessibility, navigation, metadata, and responsive checks
+- Chromium website, accessibility, navigation, metadata, and responsive checks,
+  plus a focused desktop-light WebKit homepage smoke check
 - screenshots retained on failure for ordinary CI
 
 The `Release` workflow publishes Docker images to GHCR from `main` and `v*` tags.
@@ -271,7 +273,10 @@ If changing CI:
 
 - Avoid dependency churn.
 - Keep top-level dependency ranges pinned to exact versions for release reproducibility.
-- Before upgrading TypeScript to 7, confirm that the current `@astrojs/check` peer range includes it and run `corepack pnpm website:typecheck`; `@astrojs/check@0.9.10` currently requires TypeScript 5 or 6.
+- Keep the root runtime toolchain on TypeScript 7. The private website workspace
+  intentionally pins TypeScript 6.0.3 because `@astrojs/check@0.9.10` currently
+  requires TypeScript 5 or 6; do not downgrade the root package to satisfy that
+  website-only peer dependency.
 - If a dependency update is required, update and commit `pnpm-lock.yaml`.
 - Be extra cautious with `@modelcontextprotocol/sdk` and TypeScript updates because SDK declaration changes can affect transport and tool typing.
 

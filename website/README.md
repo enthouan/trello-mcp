@@ -23,14 +23,15 @@ Do not hand-edit generated documentation mirrors.
 Run the website checks from the repository root:
 
 ```bash
-corepack pnpm exec playwright install --with-deps chromium
+corepack pnpm exec playwright install --with-deps chromium webkit
 corepack pnpm website:check
 ```
 
-`website:check` verifies generated documentation and the social image, runs Astro diagnostics,
-builds the production artifact, and exercises it in Chromium. The browser suite covers functional
-behavior, accessibility, responsive layouts, light and dark modes, internal links, metadata, and
-horizontal overflow. Screenshots and traces are retained on failure.
+`website:check` verifies generated documentation and the social image, runs Astro diagnostics, and
+builds one production artifact. Fast Vitest contracts inspect that artifact for publication,
+metadata, content, catalog, and source-correspondence guarantees. Focused Playwright files then
+preview the same artifact for visitor behavior, accessibility, navigation, and responsive checks.
+Screenshots and traces are retained on failure.
 
 Run an individual stage when diagnosing a failure:
 
@@ -38,8 +39,13 @@ Run an individual stage when diagnosing a failure:
 corepack pnpm website:og:check
 corepack pnpm website:typecheck
 corepack pnpm website:build
+corepack pnpm website:contracts
 corepack pnpm website:test
 ```
+
+Both `website:contracts` and `website:test` build first when run directly. The internal
+`website:contracts:run` and `website:test:run` stages intentionally reuse an existing `website/dist`
+artifact and are composed by `website:check` to avoid duplicate builds.
 
 The optional commands below are intended for substantial design or release review rather than the
 normal pull-request gate:
