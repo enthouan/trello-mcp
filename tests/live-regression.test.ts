@@ -336,7 +336,7 @@ describe("live regression suite", () => {
       fake.calls.find((call) => call.name === "card_attachment_add_url")?.input,
     ).toEqual(
       expect.objectContaining({
-        url: "https://dummyimage.com/600x400/0052cc/ffffff.png",
+        url: "https://trello-mcp.com/social-card.png",
       }),
     );
     expect(fake.state.cards.size).toBe(0);
