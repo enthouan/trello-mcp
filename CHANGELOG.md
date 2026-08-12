@@ -1,5 +1,48 @@
 # Changelog
 
+## v0.9.0
+
+Public-launch readiness and release-candidate work with a production
+documentation site, hardened public contribution and release surfaces, and
+refreshed validation and tooling.
+
+### Documentation Website
+
+- Add the Starlight documentation site with getting-started, reference, and guide content; a runtime-backed searchable 77-tool catalog; canonical metadata; social imagery; redirects and headers; robots and LLM endpoints; and responsive, accessibility, navigation, contract, and Lighthouse validation.
+- Add canonical configuration, Trello API key, architecture and request-flow, workflow, operations, and troubleshooting guides with deterministic website mirrors and freshness checks.
+
+### Client Setup And Compatibility
+
+- Add sanitized setup recipes for Claude Desktop, Claude Code, Codex CLI, VS Code, OpenCode, MCP Inspector, and manual clients over stdio and bearer-protected Streamable HTTP.
+- Record dated compatibility evidence separately for documentation review, connection, tool discovery, and live Trello use, with contract tests for setup recipes and generated mirrors.
+
+### Runtime And Security
+
+- Return 404 for HTTP paths other than health endpoints and `/mcp` before authentication or body parsing, while continuing to accept query strings on `/mcp`.
+- Limit failed-tool logs to generic messages plus safe error and resource metadata so private identifiers and upstream details are not exposed.
+- Clarify the public input descriptions for `card_checklist_update` and `list_create.pos` without changing the 77-tool surface.
+
+### API Coverage And Repository Readiness
+
+- Finalize the Trello REST coverage matrix across all 18 official groups and all 77 registered tools, with endpoint-family detail, explicit coverage states, roadmap links, and contract tests.
+- Add public bug, documentation, and feature Issue Forms; disable blank issues; route sensitive reports to the security policy; and strengthen sanitized support, contribution, and release guidance.
+- Remove pre-publication and machine-local assumptions, ignore local AI and MCP configuration that may contain credentials, and align public-facing repository and roadmap wording.
+
+### CI, Release, And Supply-Chain Hardening
+
+- Pin every external GitHub Action to a verified immutable commit SHA with exact-version comments, plus semantic pin-consistency regression tests.
+- Expand pull-request validation with website QA, both Compose configuration checks, and a non-publishing multi-platform image build; align OCI source metadata with this repository.
+- Remediate the transitive Hono dependency at 4.12.34.
+
+### Live Validation
+
+- Replace the third-party dummy attachment image with the project-owned social card while retaining cleanup assertions.
+
+### Packaging And Tooling
+
+- Restrict the published package to built runtime files, `README.md`, `CHANGELOG.md`, and `LICENSE`; keep the website in a private, non-publishable workspace outside the runtime package and image.
+- Update the MCP SDK from 1.29.0 to 1.30.0, Biome from 2.5.5 to 2.5.7, tsx from 4.23.1 to 4.23.11, and the root TypeScript compiler from 6.0.3 to 7.0.2; add the pinned Astro, Starlight, Playwright, accessibility, and Lighthouse documentation toolchain while retaining TypeScript 6.0.3 in the website workspace for compatibility.
+
 ## v0.8.1
 
 Dependency maintenance release with refreshed development tooling and CI setup.
