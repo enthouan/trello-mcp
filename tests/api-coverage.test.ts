@@ -36,14 +36,39 @@ function section(source: string, start: string, end: string): string {
   return source.slice(startIndex + start.length, endIndex);
 }
 
+function tableRows(source: string): string[][] {
+  return source
+    .split("\n")
+    .filter((line) => line.startsWith("| ") && line.endsWith(" |"))
+    .map((line) =>
+      line
+        .slice(1, -1)
+        .split("|")
+        .map((cell) => cell.trim()),
+    )
+    .filter((row) => row.length >= 5);
+}
+
+function toolNames(source: string): string[] {
+  return [...source.matchAll(/`([a-z][a-z0-9_]+)`/g)].flatMap((match) =>
+    match[1] === undefined ? [] : [match[1]],
+  );
+}
+
 describe("canonical Trello REST API coverage", () => {
   it("documents every registered MCP tool", async () => {
     const coverage = await canonicalCoverage();
     expect(coverage).toContain(
       `all ${allTools.length} tools currently registered through \`allTools\``,
     );
+    const rows = tableRows(coverage);
     const documentedNames = new Set(
-      [...coverage.matchAll(/`([a-z][a-z0-9_]+)`/g)].map((match) => match[1]),
+      rows.flatMap((row) => toolNames(row[2] ?? "")),
+    );
+    const deferredNames = new Set(
+      rows
+        .filter((row) => /Deferred|Not planned/.test(row[1] ?? ""))
+        .flatMap((row) => toolNames(row.slice(2).join(" "))),
     );
     const registeredNames = allTools.map(({ name }) => name);
 
@@ -51,6 +76,9 @@ describe("canonical Trello REST API coverage", () => {
     expect(
       registeredNames.filter((name) => !documentedNames.has(name)),
     ).toEqual([]);
+    expect(registeredNames.filter((name) => deferredNames.has(name))).toEqual(
+      [],
+    );
   });
 
   it("lists each official REST API group once in the top-level matrix", async () => {
