@@ -772,7 +772,10 @@ TRELLO_RETRY_MAX_DELAY_MS=5000
 
 ## Contributing
 
-PRs are welcome. Keep changes focused, add tests for behavior changes, and avoid committing secrets or generated output.
+PRs are welcome. Keep changes focused, add tests for behavior changes, and avoid
+committing secrets or local build and test output. When canonical documentation
+or public tool data changes, run `corepack pnpm docs:tools` and include the
+legitimate checked-in generated documentation mirrors.
 
 Before opening a PR, run:
 

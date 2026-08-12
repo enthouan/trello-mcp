@@ -7,7 +7,7 @@
 | Situation | Where to go |
 | --- | --- |
 | Reproducible server bug, documentation problem, or focused feature request | Open a GitHub issue in this repository. |
-| Vulnerability, credential exposure, authentication bypass, or a report that requires private details | Follow [SECURITY.md](SECURITY.md) and use GitHub private vulnerability reporting. Do not open a public issue. |
+| Vulnerability, credential exposure, authentication bypass, or a report that requires private details | Follow [SECURITY.md](SECURITY.md) and use GitHub private vulnerability reporting. If that is unavailable, open only a short non-sensitive public request for a private reporting path. |
 | Trello account access, billing, Workspace administration, credential generation, upstream API availability, or Trello-enforced rate limits | Use the official Atlassian or Trello support channel. |
 | Reverse proxy, TLS, firewall, custom container platform, or private-host networking problem | Start with the platform or network operator. This project can document its interfaces, but cannot support every deployment stack. |
 
@@ -36,11 +36,12 @@
 
 ## Security reports
 
-Do not open a public issue for vulnerabilities, credential leaks,
-authentication bypasses, or exposure problems. Follow
-[SECURITY.md](SECURITY.md) and use GitHub private vulnerability reporting from
-the repository's Security tab. If that action is unavailable, do not publish
-sensitive details in an issue or discussion.
+Follow [SECURITY.md](SECURITY.md) and use GitHub private vulnerability reporting
+from the repository's Security tab for vulnerabilities, credential leaks,
+authentication bypasses, or exposure problems. If that action is unavailable,
+open only a short non-sensitive public summary asking for a private reporting
+path. Do not include vulnerability details, reproduction steps, credentials,
+private data, or other sensitive context in that issue or a discussion.
 
 ## Support boundaries
 

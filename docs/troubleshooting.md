@@ -72,7 +72,7 @@ from its root:
 corepack pnpm build
 ```
 
-Then confirm the client uses an absolute path to this worktree's
+Then confirm the client uses an absolute path to this repository checkout's
 `dist/index.js`. Rebuild after changing branches or pulling source changes.
 
 ### The configured port is unavailable
@@ -246,9 +246,9 @@ HTTPS and access controls.
 ### The image does not contain a local change
 
 `docker-compose.yml` pulls `ghcr.io/enthouan/trello-mcp`; it does not build the
-worktree. Use `docker-compose.local.yml` for source changes. For reproducible
-published deployments, set `TRELLO_MCP_IMAGE_TAG` to an exact `X.Y.Z` release
-instead of `latest`, then recreate the service.
+checked-out source. Use `docker-compose.local.yml` for source changes. For
+reproducible published deployments, set `TRELLO_MCP_IMAGE_TAG` to an exact
+`X.Y.Z` release instead of `latest`, then recreate the service.
 
 ### Attachment uploads fail in Compose
 

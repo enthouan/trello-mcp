@@ -99,7 +99,7 @@ described in [Trello Workflows](/guides/workflows/).
 | --- | --- | --- |
 | Local `stdio` | The MCP client launches a child process. No HTTP listener opens. | One local desktop or command-line client. |
 | Direct Node.js — Streamable HTTP | A persistent process listens on the configured port. A firewall, container publisher, or reverse proxy controls reachability. | A service deployment whose network boundary you manage explicitly. |
-| Docker Compose — Streamable HTTP | The container listens internally on `0.0.0.0:3000`; Docker publishes it on host loopback by default. | Local or operator-managed deployments shared by HTTP-capable clients. |
+| Docker Compose — Streamable HTTP | The container accepts connections on internal port `3000`; Docker publishes it on host loopback by default. | Local or operator-managed deployments shared by HTTP-capable clients. |
 
 All three expose the same tool catalog. The choice changes how a client reaches
 the server and where credentials live, not which Trello operations are
