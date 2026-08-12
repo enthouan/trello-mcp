@@ -28,16 +28,14 @@ body:
       description: Select every Trello object or API area involved.
       multiple: true
       options:
-        - Boards
+        - Boards and workspaces
         - Lists
         - Cards
         - Checklists
         - Labels
         - Members
-        - Workspaces
         - Custom fields
-        - Search
-        - Actions
+        - Search and actions
         - Attachments
         - Other
     validations:
