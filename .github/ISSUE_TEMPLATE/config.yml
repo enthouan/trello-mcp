@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security-sensitive report
+    url: https://github.com/enthouan/trello-mcp/security/policy
+    about: Follow the security policy for vulnerabilities, credential exposure, or reports that require private details.
+  - name: Support and reporting guidance
+    url: https://github.com/enthouan/trello-mcp/blob/main/SUPPORT.md
+    about: Review support boundaries and the sanitized setup context needed for a useful report.

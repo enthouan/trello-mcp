@@ -1,0 +1,54 @@
+name: Documentation issue
+description: Report missing, unclear, stale, or incorrect documentation.
+title: "[Docs] "
+labels:
+  - documentation
+body:
+  - type: markdown
+    attributes:
+      value: |
+        > [!IMPORTANT]
+        > Security-sensitive reports, including vulnerabilities or credential exposure, do not belong in public issues. Follow the [security policy](https://github.com/enthouan/trello-mcp/security/policy) instead.
+
+        Never paste a `.env` file. Sanitize snippets, logs, configuration, URLs, and screenshots, and omit credentials and private Trello data.
+
+  - type: input
+    id: affected_page
+    attributes:
+      label: Affected page or section
+      description: Provide the documentation URL, repository path, or section heading.
+      placeholder: "Example: docs/client-setup.md, Set up your MCP client > Local stdio"
+    validations:
+      required: true
+
+  - type: textarea
+    id: intended_task
+    attributes:
+      label: Intended task
+      description: Explain what you were trying to learn or accomplish.
+      placeholder: What task brought you to this documentation?
+    validations:
+      required: true
+
+  - type: textarea
+    id: documentation_problem
+    attributes:
+      label: Documentation problem
+      description: Describe what is missing, unclear, stale, or incorrect and how it affected you.
+      placeholder: What should the documentation explain or show differently?
+    validations:
+      required: true
+
+  - type: textarea
+    id: current_snippet
+    attributes:
+      label: Sanitized current snippet
+      description: Paste the relevant command, configuration, or wording when useful, with all credentials and private details removed.
+      placeholder: Include only the smallest relevant, fully sanitized excerpt.
+
+  - type: textarea
+    id: suggested_correction
+    attributes:
+      label: Suggested correction
+      description: Share a proposed wording, example, or structural change if you have one.
+      placeholder: How would you improve this documentation?

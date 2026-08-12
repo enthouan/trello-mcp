@@ -1,0 +1,86 @@
+name: Feature request
+description: Propose a focused Trello or MCP workflow not covered by existing tools.
+title: "[Feature] "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        > [!IMPORTANT]
+        > Security-sensitive reports, including vulnerabilities or credential exposure, do not belong in public issues. Follow the [security policy](https://github.com/enthouan/trello-mcp/security/policy) instead.
+
+        Never paste a `.env` file. Sanitize examples, logs, configuration, URLs, and screenshots, and omit credentials and private Trello data.
+
+  - type: textarea
+    id: desired_workflow
+    attributes:
+      label: Desired capability or workflow
+      description: Describe the outcome you want and why it would be useful.
+      placeholder: What should a user be able to accomplish with trello-mcp?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: trello_domains
+    attributes:
+      label: Trello domain
+      description: Select every Trello object or API area involved.
+      multiple: true
+      options:
+        - Boards
+        - Lists
+        - Cards
+        - Checklists
+        - Labels
+        - Members
+        - Workspaces
+        - Custom fields
+        - Search
+        - Actions
+        - Attachments
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: existing_tool_gap
+    attributes:
+      label: Existing tool gap
+      description: Explain why the current tools cannot complete this workflow or where they fall short.
+      placeholder: Which tools did you consider, and what capability is missing?
+    validations:
+      required: true
+
+  - type: input
+    id: trello_api_reference
+    attributes:
+      label: Official Trello API reference
+      description: Link to the relevant official Trello REST endpoint or documentation, if known.
+      placeholder: https://developer.atlassian.com/cloud/trello/rest/
+
+  - type: textarea
+    id: proposed_mcp_behavior
+    attributes:
+      label: Proposed MCP behavior
+      description: If you have a concrete design, describe the tool behavior, expected inputs, and result shape.
+      placeholder: Describe a possible tool name, inputs, behavior, and expected result.
+
+  - type: dropdown
+    id: live_validation
+    attributes:
+      label: Live Trello validation
+      description: Would this feature likely require opt-in validation against a real Trello board?
+      options:
+        - Likely
+        - Unlikely
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: compatibility_concerns
+    attributes:
+      label: Compatibility concerns
+      description: Note any relevant Streamable HTTP, stdio, Docker, or MCP client compatibility concerns.
+      placeholder: Describe any transport, packaging, or client constraints to consider.

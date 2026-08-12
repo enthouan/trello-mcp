@@ -1,0 +1,135 @@
+name: Bug report
+description: Report a reproducible trello-mcp problem with sanitized setup details.
+title: "[Bug] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        > [!IMPORTANT]
+        > Security-sensitive reports, including vulnerabilities or credential exposure, do not belong in public issues. Follow the [security policy](https://github.com/enthouan/trello-mcp/security/policy) instead.
+
+        Never paste a `.env` file. Sanitize logs and configuration before sharing them: remove Trello API keys and tokens, MCP auth tokens, authorization headers, credential-bearing URLs, private Trello data, sensitive local paths, and other private deployment details.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Bug summary
+      description: Describe the failure and its impact in a few sentences.
+      placeholder: What stopped working, and what were you trying to accomplish?
+    validations:
+      required: true
+
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and actual behavior
+      description: Explain what you expected and what happened instead.
+      placeholder: |
+        Expected:
+        Actual:
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction_steps
+    attributes:
+      label: Steps to reproduce
+      description: Provide the smallest safe sequence that triggers the problem, including its frequency if intermittent.
+      placeholder: |
+        1. Start trello-mcp with...
+        2. Connect the MCP client using...
+        3. Call the tool or endpoint...
+        4. Observe...
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: trello-mcp version
+      description: Provide a release version, Git tag, commit SHA, or Docker image tag.
+      placeholder: "Example: v0.8.1, main at abc1234, or ghcr.io/enthouan/trello-mcp:0.8.1"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install_method
+    attributes:
+      label: Installation method
+      description: Select the closest match for how trello-mcp is running.
+      options:
+        - Docker image
+        - Docker Compose
+        - Local Node.js and pnpm
+        - MCP client-managed process
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Runtime and client environment
+      description: "Include only what applies: OS and architecture, Node.js and pnpm versions, and MCP client or integration name and version."
+      placeholder: |
+        OS and architecture:
+        Node.js and pnpm versions:
+        MCP client or integration and version:
+    validations:
+      required: true
+
+  - type: dropdown
+    id: transport
+    attributes:
+      label: Transport
+      description: Which MCP transport is in use?
+      options:
+        - Streamable HTTP
+        - stdio
+        - Not sure
+    validations:
+      required: true
+
+  - type: input
+    id: failure_target
+    attributes:
+      label: Failing tool or endpoint
+      description: Name the MCP tool or HTTP endpoint involved, if applicable.
+      placeholder: "Example: card_get, /mcp, /healthz, or /readyz"
+
+  - type: textarea
+    id: sanitized_configuration
+    attributes:
+      label: Sanitized configuration and deployment details
+      description: List only relevant setting names and non-secret values. For Docker or Compose, include the compose variant, platform, image tag, and healthcheck behavior when applicable.
+      placeholder: |
+        Relevant settings (names and non-secret values only):
+        Docker or Compose context:
+        Platform and image tag:
+        Healthcheck result:
+
+  - type: textarea
+    id: sanitized_logs
+    attributes:
+      label: Sanitized logs or error output
+      description: Remove credentials, authorization headers, query strings, private Trello data, sensitive paths, and other private deployment details before pasting output.
+      placeholder: Paste the smallest relevant, fully sanitized excerpt.
+      render: shell
+
+  - type: textarea
+    id: troubleshooting
+    attributes:
+      label: Troubleshooting already attempted
+      description: Note checks already tried, including whether the problem reproduces on the latest release or current main.
+      placeholder: Describe what you tried and what changed, if anything.
+
+  - type: checkboxes
+    id: redaction_confirmation
+    attributes:
+      label: Public issue safety confirmation
+      description: Confirm the report is safe to publish before submitting it.
+      options:
+        - label: I confirm this report contains no Trello API key or token, MCP auth token, authorization header, `.env` contents, credential-bearing URL, private Trello data, sensitive path, or unredacted log or configuration.
+          required: true
