@@ -1,0 +1,107 @@
+name: Bug report
+description: Report a reproducible problem or request a private reporting path without sensitive details.
+title: "[Bug] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        > [!IMPORTANT]
+        > Security-sensitive reports, including vulnerabilities or credential exposure, do not belong in public issues. Follow the [security policy](https://github.com/enthouan/trello-mcp/security/policy) and use GitHub private vulnerability reporting when available.
+
+        If private vulnerability reporting is unavailable, the security policy permits only a short, non-sensitive public summary asking for a private reporting path. Select that fallback below and leave unrelated optional fields blank.
+
+        For a regular bug report, complete every diagnostic field below that applies to your installation and failure.
+
+        Never paste a `.env` file. Sanitize logs and configuration before sharing them: remove Trello API keys and tokens, MCP auth tokens, authorization headers, credential-bearing URLs, private Trello data, sensitive local paths, and other private deployment details.
+
+  - type: dropdown
+    id: report_context
+    attributes:
+      label: Report context
+      description: Select whether this is a normal bug report or the limited public fallback described in the security policy.
+      options:
+        - Reproducible bug report
+        - Security policy fallback (non-sensitive summary only)
+    validations:
+      required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Public summary
+      description: Summarize the bug and its impact. For the security-policy fallback, state only that you need a private reporting path and the general affected area.
+      placeholder: Describe the problem without credentials, private Trello data, exploit details, or other sensitive information.
+    validations:
+      required: true
+
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and actual behavior
+      description: Explain what you expected and what happened instead.
+      placeholder: |
+        Expected:
+        Actual:
+  - type: textarea
+    id: reproduction_steps
+    attributes:
+      label: Steps to reproduce
+      description: Provide the smallest safe sequence that triggers the problem, including its frequency if intermittent.
+      placeholder: |
+        1. Start trello-mcp with...
+        2. Connect the MCP client using...
+        3. Call the tool or endpoint...
+        4. Observe...
+
+  - type: textarea
+    id: version_installation
+    attributes:
+      label: Version and installation
+      description: Provide the release, Git tag, commit SHA, or image tag and the installation method, such as Docker image, Docker Compose, local Node.js and pnpm, or an MCP client-managed process.
+      placeholder: |
+        trello-mcp version, tag, SHA, or image tag:
+        Installation method:
+
+  - type: textarea
+    id: runtime_client_transport
+    attributes:
+      label: Runtime, client, and transport
+      description: Include only what applies to this installation and failure.
+      placeholder: |
+        OS and architecture:
+        Node.js and pnpm versions (source installs only):
+        MCP transport (Streamable HTTP, stdio, or not sure):
+        MCP client or integration and version:
+
+  - type: textarea
+    id: failure_deployment_context
+    attributes:
+      label: Failing surface and sanitized deployment context
+      description: Name the failing tool or endpoint and list relevant setting names with non-secret values. For Docker or Compose, include the variant, platform, image tag, and healthcheck behavior when applicable.
+      placeholder: |
+        Failing tool or endpoint:
+        Relevant settings (names and non-secret values only):
+        Docker or Compose context:
+        Platform and image tag:
+        Healthcheck result:
+
+  - type: textarea
+    id: logs_troubleshooting
+    attributes:
+      label: Sanitized diagnostics and troubleshooting
+      description: Include the smallest relevant log or error excerpt and what you tried, including results on the latest release or current main. Remove every credential and private detail.
+      placeholder: |
+        Sanitized log or error excerpt:
+        Troubleshooting attempted:
+        Latest release or current main result:
+
+  - type: checkboxes
+    id: redaction_confirmation
+    attributes:
+      label: Public issue safety confirmation
+      description: Confirm the report is safe to publish before submitting it.
+      options:
+        - label: "I confirm: no credentials/auth headers, private Trello data, credential-bearing URLs, sensitive paths, or unredacted logs."
+          required: true
