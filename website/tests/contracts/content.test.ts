@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { REPOSITORY_URL } from "../../src/data/repository.js";
+import { TOOL_COUNT } from "../../src/data/tool-catalog.js";
 import {
   DISCLAIMER,
   HERO_TAGLINE,
@@ -33,6 +34,27 @@ function headingTexts(
 function routeText(result: Awaited<ReturnType<typeof readRoute>>) {
   return normalizedVisibleText(result.document);
 }
+
+const OFFICIAL_REST_GROUPS = [
+  "Actions",
+  "Applications",
+  "Batch",
+  "Boards",
+  "Cards",
+  "Checklists",
+  "CustomFields",
+  "Emoji",
+  "Enterprises",
+  "Labels",
+  "Lists",
+  "Members",
+  "Notifications",
+  "Organizations",
+  "Plugins",
+  "Search",
+  "Tokens",
+  "Webhooks",
+] as const;
 
 describe("independent-project and support content", () => {
   it("shows the independent-project notice only where intended", async () => {
@@ -449,9 +471,9 @@ describe("information architecture output", () => {
     }
   });
 
-  it("keeps concise API coverage headings and all legacy anchors", async () => {
+  it("keeps complete API coverage scope, statuses, groups, and legacy anchors", async () => {
     const page = await readRoute("/reference/api-coverage/");
-    const groupNames = [
+    const detailedGroupNames = [
       "Actions",
       "Boards",
       "Cards",
@@ -462,9 +484,56 @@ describe("information architecture output", () => {
       "Organizations",
       "Tokens",
     ];
-    expect(headingTexts(page.document, 3)).toEqual(groupNames);
+    const text = routeText(page);
+    for (const marker of [
+      `all ${TOOL_COUNT} tools currently registered through allTools`,
+      "v1.0 provides broad Trello workflow coverage",
+      "not a one-to-one Trello REST proxy",
+      "v1.0 intentionally does not promise Enterprise administration",
+    ]) {
+      expect(text).toContain(marker);
+    }
+
+    const tables = elements(
+      page.document,
+      (element) => element.tagName === "table",
+    );
+    const firstColumn = (table: (typeof tables)[number]) =>
+      elements(table, (element) => element.tagName === "tr")
+        .slice(1)
+        .map((row) =>
+          normalizedText(
+            required(
+              elements(row, (element) => element.tagName === "td")[0],
+              "table row first cell",
+            ),
+          ),
+        );
+    const headers = (table: (typeof tables)[number]) =>
+      elements(table, (element) => element.tagName === "th").map(
+        normalizedText,
+      );
+    const statusLegend = required(
+      tables.find(
+        (table) => headers(table).slice(0, 2).join("|") === "Status|Meaning",
+      ),
+      "API coverage status legend",
+    );
+    expect(firstColumn(statusLegend)).toEqual([
+      "✅ Supported",
+      "🟡 Partially supported",
+      "⏳ Deferred",
+      "🚫 Not planned",
+    ]);
+    const coverageMatrix = required(
+      tables.find((table) => headers(table)[0] === "Trello REST API group"),
+      "top-level API coverage matrix",
+    );
+    expect(firstColumn(coverageMatrix)).toEqual(OFFICIAL_REST_GROUPS);
+
+    expect(headingTexts(page.document, 3)).toEqual(detailedGroupNames);
     expect(routeText(page)).not.toContain("API Group:");
-    for (const groupName of groupNames) {
+    for (const groupName of detailedGroupNames) {
       expect(
         findById(page.document, `api-group-${groupName.toLowerCase()}`),
       ).toHaveLength(1);
