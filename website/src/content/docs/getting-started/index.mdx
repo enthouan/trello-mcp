@@ -1,0 +1,88 @@
+---
+title: Install and run
+description: Create Trello credentials, choose a transport and installation path, configure your MCP client, then verify the connection.
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+import ClientSetup from "../../../components/ClientSetup.astro";
+import InstallMethods from "../../../components/InstallMethods.astro";
+
+<Aside type="note" title="Independent integration for Trello">
+  trello-mcp is an independent, community-maintained project. It is not an official Trello or Atlassian product, service, or MCP implementation, and it is not affiliated with, endorsed by, or sponsored by Trello or Atlassian.
+
+  Looking for Trello's official MCP server? Visit [Trello MCP](https://trello.com/mcp).
+</Aside>
+
+Start with the smallest deployment shape that fits where your MCP client runs. Local stdio opens no network listener. Docker Compose and Streamable HTTP provide a persistent service when you need one.
+
+<span id="before-you-begin" class="legacy-anchor" aria-hidden="true"></span>
+
+## Prerequisites
+
+- A Trello account with an [API key and token](/getting-started/trello-api-key/).
+- Docker with Docker Compose, or Node.js 24.x with the repository's pinned pnpm version.
+- An MCP client that supports Streamable HTTP or stdio.
+
+<Aside type="caution" title="Treat the Trello token like a password">
+  `TRELLO_TOKEN` can read and change resources visible to the member who authorized it. Keep both Trello credentials in a private client configuration, ignored `.env`, or deployment secret, and revoke the token at Trello if it leaks.
+</Aside>
+
+<span id="verify-safely" class="legacy-anchor" aria-hidden="true"></span>
+
+## Common path
+
+<Steps>
+
+1. **Create the Trello credentials.** [Create an API key and token](/getting-started/trello-api-key/), then keep `TRELLO_API_KEY` and `TRELLO_TOKEN` in an ignored `.env`, client secret store, or deployment secret.
+
+2. **Build or start the server.** Use local stdio for a client-launched process, the published Docker Compose service for a persistent installation, or the local Compose build when you want to run checked-out source over HTTP.
+
+3. **Configure the MCP client.** For stdio, use an absolute path to the built `dist/index.js`. For Streamable HTTP, point the client at the running `/mcp` endpoint and add its separate bearer token when `MCP_AUTH_TOKEN` is configured.
+
+4. **Restart and verify.** Restart the client, confirm that it discovers the trello-mcp tools, then review and approve only the supplied read-only `auth_whoami` call. Health endpoints alone verify the process, not the complete MCP and Trello path.
+
+</Steps>
+
+<Aside type="caution" title="Protect Streamable HTTP">
+  Keep Docker Compose published to `127.0.0.1` for same-machine use. If you deliberately make it reachable from a network, add `MCP_AUTH_TOKEN`, HTTPS, and suitable network access controls.
+</Aside>
+
+<span id="install-and-distribution" class="legacy-anchor" aria-hidden="true"></span>
+<span id="docker-streamable-http" class="legacy-anchor" aria-hidden="true"></span>
+<span id="local-docker-build" class="legacy-anchor" aria-hidden="true"></span>
+<span id="local-stdio" class="legacy-anchor" aria-hidden="true"></span>
+
+## Choose a transport, then an installation
+
+First choose the trust boundary between the MCP client and trello-mcp. Both transports expose the same tool catalog.
+
+| Transport | Choose it when | Server shape |
+| --- | --- | --- |
+| Local stdio | The MCP client and a built checkout run on the same machine. The client launches the server as a child process, and no network listener opens. | Build the source once, then configure the client with absolute executable and entry paths. |
+| Streamable HTTP | The server should run continuously or serve a separately managed client. | Prefer the published image with an exact `X.Y.Z` tag. Build the image locally when you specifically want to run checked-out source. |
+
+The copy-paste shell commands below are labeled for macOS/Linux. Windows users can use WSL2 or the PowerShell commands in the detailed HTTP guides. The stdio build commands work in PowerShell as written.
+
+<InstallMethods />
+
+<span id="connect-a-client" class="legacy-anchor" aria-hidden="true"></span>
+
+## Configure your client
+
+The five quick recipes below configure Codex, Claude Code, Claude Desktop, VS Code, or OpenCode for **local stdio**. If you chose Streamable HTTP, use the [complete client setup guide](/getting-started/clients/) and select that transport for your client. For MCP Inspector and other clients, use the [manual-client guidance](/getting-started/clients/#mcp-inspector-and-manual-clients).
+
+<ClientSetup />
+
+The recipes reflect the current [client setup guide](/getting-started/clients/) and its documented evidence. They are not all represented as live compatibility tests. See the [compatibility record](/getting-started/compatibility/) for the exact client versions, transports, and test boundaries.
+
+<span id="next-steps" class="legacy-anchor" aria-hidden="true"></span>
+
+## Next
+
+- [Docker Compose](/getting-started/docker/) for the published-image operator path and tag guidance.
+- [Streamable HTTP](/getting-started/http/) for the endpoint, local source-build route, and network boundary.
+- [stdio](/getting-started/stdio/) for desktop and local MCP clients.
+- [Trello API key](/getting-started/trello-api-key/) before configuring an installation.
+- [Set up your MCP client](/getting-started/clients/) for the full recipes and current official-documentation links.
+- [Security and data flow](/guides/security/) before widening network access.
+- [Operate trello-mcp](/guides/operations/) for upgrades, rollbacks, logs, and credential rotation.

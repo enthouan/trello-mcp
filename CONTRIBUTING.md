@@ -12,7 +12,42 @@ corepack pnpm typecheck
 corepack pnpm lint
 corepack pnpm test:coverage
 corepack pnpm build
+corepack pnpm exec playwright install --with-deps chromium webkit
+corepack pnpm website:check
 ```
+
+## Documentation website
+
+The public documentation site uses Astro Starlight under `website/`. Canonical
+long-form project documentation remains in `docs/`; the checked-in website
+copies and tool catalog are generated deterministically.
+
+```bash
+corepack pnpm docs:tools
+corepack pnpm website:dev
+```
+
+Every website build targets the canonical origin `https://trello-mcp.com/` and
+includes production canonical metadata. To inspect the built artifact locally:
+
+```bash
+corepack pnpm website:build
+corepack pnpm website:preview
+```
+
+Cloudflare Pages should run `corepack pnpm website:build` and publish
+`website/dist`. The canonical URL is built in, so no website environment
+variable is required.
+
+The normal pull-request gate runs the complete browser suite in Chromium plus a
+focused desktop-light homepage smoke check in WebKit, with screenshots retained
+only on failure. Run `corepack pnpm website:visual` for the smaller desktop/mobile,
+light/dark design matrix, or `corepack pnpm website:lighthouse` when a release or
+substantial layout change needs an explicit performance audit.
+
+Before changing generated website pages, update their canonical source or
+`src/trello/tools.ts`, then run `corepack pnpm docs:tools`. Use
+`corepack pnpm docs:check` to confirm the generated output is current.
 
 
 ## Codex cloud setup

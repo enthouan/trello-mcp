@@ -52,6 +52,13 @@ corepack pnpm lint
 corepack pnpm build
 corepack pnpm test
 corepack pnpm test:coverage
+corepack pnpm docs:check
+corepack pnpm website:typecheck
+corepack pnpm website:build
+corepack pnpm website:contracts
+corepack pnpm website:test
+corepack pnpm website:lighthouse
+corepack pnpm website:check
 ```
 
 Use these as the normal verification gate before a PR is considered ready:
@@ -74,7 +81,7 @@ Use `corepack pnpm test:coverage` when changing core behavior, error handling, o
 ## Formatting And Linting
 
 - Biome is the formatter/linter.
-- The configured Biome version is `@biomejs/biome@2.4.16`; keep it aligned with `biome.json`.
+- The configured Biome version is `@biomejs/biome@2.5.7`; keep it aligned with `biome.json`.
 - Run `corepack pnpm lint` to check formatting and lint rules.
 - To format, run:
 
@@ -112,9 +119,11 @@ corepack pnpm exec biome check --write path/to/file.ts
 - `src/utils/logger.ts`: Pino logger and redaction.
 - `tests/`: Vitest unit tests.
 - `scripts/generate-tool-docs.ts`: regenerates the README tool catalog.
+- `website/`: Astro Starlight workspace, generated documentation mirrors, production-preview tests, and visual/Lighthouse QA.
+- `website/package.json`: Astro/Starlight dependencies and website lifecycle scripts.
 - `scripts/codex/setup.sh`: Codex cloud fresh-container setup.
 - `scripts/codex/maintenance.sh`: Codex cloud cached-container maintenance.
-- `.github/workflows/build-and-test.yml`: Build and Test workflow.
+- `.github/workflows/build-and-test.yml`: Build, test, and website QA workflow.
 - `.github/workflows/release.yml`: GHCR Docker image publishing.
 
 ## Architecture Rules
@@ -217,7 +226,8 @@ Avoid:
 ## Documentation Rules
 
 - Keep README quick-start and environment tables current.
-- If MCP tools are added, removed, renamed, or their key inputs change, run `corepack pnpm docs:tools` and commit the README update.
+- If MCP tools are added, removed, renamed, or their key inputs change, run `corepack pnpm docs:tools` and commit the README and generated website catalog updates.
+- Canonical long-form documentation remains under `docs/`; use `corepack pnpm docs:tools` to refresh deterministic website mirrors and `corepack pnpm docs:check` to verify they are current.
 - Keep `.env.example` limited to supported environment variables.
 
 ## CI And Release
@@ -229,8 +239,21 @@ The GitHub Actions workflow named `Build and Test` runs:
 - lint
 - build
 - test coverage
+- Astro content/type checks and the production website build
+- Chromium website, accessibility, navigation, metadata, and responsive checks,
+  plus a focused desktop-light WebKit homepage smoke check
+- screenshots retained on failure for ordinary CI
+- Docker Compose validation and a non-publishing multi-platform image build on pull requests
 
 The `Release` workflow publishes Docker images to GHCR from `main` and `v*` tags.
+
+Cloudflare Pages handles production website builds and deployment outside GitHub
+Actions. Keep `Build and Test` focused on validation; it must not require
+Cloudflare credentials or invoke a production deployment.
+
+Configure Cloudflare Pages to run `corepack pnpm website:build` and publish
+`website/dist`. The canonical production URL is built in, so no website
+environment variable is required.
 
 If changing CI:
 
@@ -251,6 +274,10 @@ If changing CI:
 
 - Avoid dependency churn.
 - Keep top-level dependency ranges pinned to exact versions for release reproducibility.
+- Keep the root runtime toolchain on TypeScript 7. The private website workspace
+  intentionally pins TypeScript 6.0.3 because `@astrojs/check@0.9.10` currently
+  requires TypeScript 5 or 6; do not downgrade the root package to satisfy that
+  website-only peer dependency.
 - If a dependency update is required, update and commit `pnpm-lock.yaml`.
 - Be extra cautious with `@modelcontextprotocol/sdk` and TypeScript updates because SDK declaration changes can affect transport and tool typing.
 
@@ -263,7 +290,13 @@ corepack pnpm typecheck
 corepack pnpm lint
 corepack pnpm build
 corepack pnpm test
+corepack pnpm docs:check
+corepack pnpm website:check
 ```
+
+Use `corepack pnpm website:visual` for the representative desktop/mobile,
+light/dark design matrix and `corepack pnpm website:lighthouse` for release-time or
+substantial layout/performance validation.
 
 For tool catalog changes, also run:
 

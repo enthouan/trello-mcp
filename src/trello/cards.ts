@@ -733,7 +733,7 @@ export const cardTools = [
   defineTool({
     name: "card_checklist_update",
     description:
-      "Use when renaming a Trello card checklist or changing the checklist's position on its card.",
+      "Use when renaming a Trello card checklist or changing the checklist's position on its card. Provide at least one of name or pos.",
     inputSchema: CardChecklistUpdateInput,
     handler: async ({ checklistId, name, pos }, { trello }) => {
       if (name === undefined && pos === undefined) {

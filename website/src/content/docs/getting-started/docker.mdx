@@ -1,0 +1,95 @@
+---
+title: Docker Compose
+description: Run the published trello-mcp image as a loopback-published Compose service, or build the image locally.
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+import InstallMethod from "../../../components/InstallMethod.astro";
+import VerifySetup from "../../../components/VerifySetup.astro";
+
+Use the operator Compose file to run the published container image. The application listens on port `3000` inside the container so Docker can forward it, while the host publishes only to `127.0.0.1` by default.
+
+<InstallMethod method="docker" />
+
+## Configure the deployment
+
+<Steps>
+
+1. **Create `.env`.** Copy `.env.example`; Compose reads it for variable interpolation and passes only supported runtime values to the container.
+
+2. **Set both Trello credentials.** [Create an API key and token](/getting-started/trello-api-key/), then store `TRELLO_API_KEY` and `TRELLO_TOKEN` in `.env`.
+
+3. **Choose an image tag.** Set `TRELLO_MCP_IMAGE_TAG` to an exact published `X.Y.Z` release for a reproducible deployment. Use `latest` only when you intentionally want the newest image built from `main`.
+
+4. **Start and verify the process.** Run `docker compose up -d --wait --wait-timeout 120`, inspect `docker compose ps`, then request both health endpoints on loopback. The health-aware wait prevents verification from racing a cold image pull or container startup.
+
+</Steps>
+
+### Windows PowerShell
+
+Use an exact published image tag here too:
+
+```powershell title="Windows PowerShell"
+git clone https://github.com/enthouan/trello-mcp.git
+Set-Location trello-mcp
+Copy-Item .env.example .env
+# Set both Trello credentials and TRELLO_MCP_IMAGE_TAG=X.Y.Z in .env
+notepad .env
+if (-not (Select-String -Path .env -Pattern '^TRELLO_API_KEY=(?!replace-me$).+$' -Quiet)) {
+  throw 'Set TRELLO_API_KEY to a non-placeholder value in .env before starting.'
+}
+if (-not (Select-String -Path .env -Pattern '^TRELLO_TOKEN=(?!replace-me$).+$' -Quiet)) {
+  throw 'Set TRELLO_TOKEN to a non-placeholder value in .env before starting.'
+}
+if (-not (Select-String -Path .env -Pattern '^TRELLO_MCP_IMAGE_TAG=\d+\.\d+\.\d+$' -Quiet)) {
+  throw 'Set TRELLO_MCP_IMAGE_TAG to an exact published X.Y.Z release before starting.'
+}
+docker compose up -d --wait --wait-timeout 120
+docker compose ps
+Invoke-RestMethod http://127.0.0.1:3000/healthz
+Invoke-RestMethod http://127.0.0.1:3000/readyz
+```
+
+<Aside type="caution" title="The host bind and container listener are different">
+  Compose publishes `127.0.0.1:3000:3000` on the host by default. That loopback publication is the local safety boundary even though the process accepts connections on the container's internal interface. `TRELLO_MCP_HOST_BIND_IP` changes the Docker host publication; it does not configure the Node.js listener.
+</Aside>
+
+## Install and distribution
+
+The published OCI image is `ghcr.io/enthouan/trello-mcp`.
+
+| Tag | Update behavior |
+| --- | --- |
+| `X.Y.Z` | Pins one exact release. This is the recommended choice for reproducible deployments. |
+| `X.Y` | Moves to the newest patch release in that minor line. |
+| `latest` | Follows the current `main` branch build and can change whenever `main` publishes. |
+| `sha-<commit>` | Pins the image produced for one exact commit. |
+
+## Change host exposure deliberately
+
+Use `TRELLO_MCP_HOST_PORT` for the published host port. Set `TRELLO_MCP_HOST_BIND_IP=0.0.0.0` or a LAN address only when wider access is intentional, `MCP_AUTH_TOKEN` is set, and a reverse proxy or equivalent boundary supplies TLS and access control.
+
+Health and readiness stay unauthenticated for orchestration checks. Do not expose them with sensitive reverse-proxy diagnostics or assume the bearer token protects those routes.
+
+## Local Docker build
+
+To run Streamable HTTP from the checked-out source instead of the GHCR image, use the local Compose file:
+
+```bash
+docker compose -f docker-compose.local.yml up --build -d --wait --wait-timeout 120
+```
+
+This builds the repository's `Dockerfile` as `trello-mcp:local`, waits up to two minutes for the configured health check, and keeps the host publication on `127.0.0.1:3000` by default. Connect the MCP client to `http://127.0.0.1:3000/mcp`.
+
+## Verify through MCP
+
+The process checks are:
+
+```bash
+curl http://127.0.0.1:3000/healthz
+curl http://127.0.0.1:3000/readyz
+```
+
+They do not exercise MCP discovery or the Trello credentials. Connect a client to the `/mcp` endpoint, then verify the complete read-only path.
+
+<VerifySetup />

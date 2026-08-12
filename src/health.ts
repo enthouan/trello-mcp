@@ -32,6 +32,19 @@ export function handleHealth(
   return false;
 }
 
+export function rejectNonMcpPath(
+  req: IncomingMessage,
+  res: ServerResponse,
+): boolean {
+  const [pathname] = (req.url ?? "/").split("?", 1);
+  if (pathname === "/mcp") {
+    return false;
+  }
+
+  writeJson(res, 404, { error: "not found" });
+  return true;
+}
+
 export function writeJson(
   res: ServerResponse,
   statusCode: number,

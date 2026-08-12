@@ -1,0 +1,117 @@
+---
+title: Reference
+description: Technical reference, contribution guidance, issue reporting, release resources, and security policies for trello-mcp.
+---
+
+import {
+  Aside,
+  CardGrid,
+  LinkCard,
+} from '@astrojs/starlight/components';
+import RepositoryLink from '../../../components/RepositoryLink.astro';
+
+`trello-mcp` is a self-hostable, MIT-licensed open-source project. It exposes the same Trello tool
+catalog through local stdio and Streamable HTTP while leaving deployment, credentials, logs, and
+network boundaries under the operator's control.
+
+<Aside type="note" title="Pre-1.0, with documented contracts">
+  Registered tool names and input schemas, curated behavior labels, client recipes, and security
+  boundaries are treated as public contracts. Changes to those surfaces should be documented,
+  regenerated, and tested together.
+</Aside>
+
+## Technical reference
+
+<CardGrid>
+  <LinkCard
+    title="Configuration"
+    description="Review every runtime and Compose setting, default, and deployment boundary."
+    href="configuration/"
+  />
+  <LinkCard
+    title="Tool catalog"
+    description="Browse every registered tool, input schema, behavior label, scope, and result shape."
+    href="tools/"
+  />
+  <LinkCard
+    title="API coverage"
+    description="See which Trello REST API groups are supported, partial, deferred, or out of scope."
+    href="api-coverage/"
+  />
+</CardGrid>
+
+## Repository policies
+
+<CardGrid>
+  <LinkCard
+    title="Contributing"
+    description="Set up a checkout, follow the Trello tool pattern, and run the project checks."
+    href="contributing/"
+  />
+  <LinkCard
+    title="Reporting issues and support"
+    description="Choose the right channel and prepare a safe, reproducible report."
+    href="reporting-issues/"
+  />
+  <LinkCard
+    title="Security policy"
+    description="See supported versions and report vulnerabilities through the private channel."
+    href="security-policy/"
+  />
+</CardGrid>
+
+## Documentation contracts
+
+- The [tool catalog](tools/) reads names, descriptions, and input definitions from the same
+  registered tool definitions and Zod schemas used by the server. Curated categories and behavior
+  labels are checked to cover every tool.
+- [API coverage](api-coverage/) records supported, partial, deferred, and out-of-scope Trello REST
+  API groups without implying that every endpoint is exposed.
+- [Client compatibility](../getting-started/compatibility/) records dated connection, discovery,
+  and live-validation evidence separately from documentation-reviewed recipes.
+
+Canonical long-form documentation remains under [`docs/`](https://github.com/enthouan/trello-mcp/tree/main/docs).
+`CONTRIBUTING.md`, `SUPPORT.md`, and `SECURITY.md` remain canonical for their generated policy
+pages. Run `corepack pnpm docs:tools` after changing those sources; edit generated website pages
+through their canonical source.
+
+## Project and release resources
+
+- [Releases](https://github.com/enthouan/trello-mcp/releases) and the
+  [changelog](https://github.com/enthouan/trello-mcp/blob/main/CHANGELOG.md) record published
+  versions and project changes.
+- [Issues](https://github.com/enthouan/trello-mcp/issues) track bugs, focused feature requests, and
+  documentation fixes.
+- The [public roadmap](https://trello.com/b/GnKmvuHz/trello-mcp-enthouan-trello-mcp) shows current project direction.
+- The [MIT License](https://github.com/enthouan/trello-mcp/blob/main/LICENSE) defines reuse and
+  distribution terms.
+- [`llms.txt`](/llms.txt) provides a generated, machine-readable index of the public documentation.
+
+## Documentation and support
+
+- [Security & Data](../guides/security/) covers credentials, transports, logs, attachment uploads,
+  and safer tool use.
+- [Operations](../guides/operations/) covers inspection, exact-version upgrades, rollback,
+  credential rotation, and shutdown.
+- [Troubleshooting](../guides/troubleshooting/) covers startup, client, Docker, Trello API,
+  rate-limit, and attachment failures.
+- [FAQ](../guides/faq/) explains hosting, official status, data access, destructive tools, privacy,
+  and support boundaries.
+- [Reporting issues and support](reporting-issues/) explains what belongs in a public issue and
+  what must instead use private vulnerability reporting.
+
+<span id="live-validation" class="legacy-anchor" aria-hidden="true"></span>
+
+Normal tests and website checks are offline and require no Trello credentials. The opt-in live
+smoke and regression suites are guarded maintainer workflows for a confirmed disposable Trello
+board; they are not normal first-run verification.
+
+## Independent project and official alternative
+
+`trello-mcp` is an independent, community-maintained project. It is not an official Trello or
+Atlassian product, service, or MCP implementation, and it is not affiliated with, endorsed by, or
+sponsored by Trello or Atlassian.
+
+For Trello's official managed service, use the current [Trello MCP documentation](https://support.atlassian.com/trello/docs/connect-trello-to-ai-assistants-with-trello-mcp/).
+
+<RepositoryLink />

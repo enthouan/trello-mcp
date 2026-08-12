@@ -4,7 +4,7 @@ This page records concrete MCP client evidence for `trello-mcp`. It is a dated
 validation record, not a promise that every client has been fully exercised on
 every release.
 
-Last updated: 2026-08-07.
+Last updated: 2026-08-09.
 
 ## Evidence labels
 
@@ -19,15 +19,17 @@ The table keeps four different claims separate:
 - **Live Trello workflow** means a tool actually contacted Trello. Startup,
   health checks, initialization, and `tools/list` do not contact Trello.
 
-No row is promoted from one state to another by inference alone. The OpenCode
-row expressly labels the one owner-approved assumption in this validation pass.
+No row is promoted from one state to another by inference alone. VS Code is a
+documentation-reviewed recipe, not client-run evidence. The OpenCode row
+expressly labels the one owner-approved assumption in the 2026-08-07 validation
+pass.
 
 ## 2026-08-07 validation environment
 
 - Host: macOS `26.6` (`25G72`), Apple silicon (`arm64`).
 - Runtime: Node.js `24.17.0`, pnpm `10.34.1` through Corepack.
 - Server: a clean build of the issue branch, with no runtime changes from its
-  `origin/main` baseline.
+  `origin/main` base at the time of validation.
 - Tool surface: 77 registered tools.
 - Discovery credentials: dummy Trello values. No Trello tool was invoked during
   discovery.
@@ -38,27 +40,25 @@ row expressly labels the one owner-approved assumption in this validation pass.
 
 | Client | Official docs reviewed | Installed client and transport | Client connected | Tools discovered | Live Trello workflow | Restart requirement, limitation, or blocker |
 | --- | --- | --- | --- | --- | --- | --- |
-| Claude Desktop | Yes, 2026-08-07: [desktop extensions](https://support.claude.com/en/articles/10949351-getting-started-with-local-mcp-servers-on-claude-desktop) and [manual JSON](https://modelcontextprotocol.io/docs/2026-07-28/develop/connect-local-servers) | Claude Desktop `1.26832.0`; macOS; `stdio` | Yes. A full app launch initialized the existing user-local `trello` entry and connected to the built server. | Yes. Claude Desktop issued `tools/list` successfully. The exact 77-tool count was corroborated against the same built artifact with Inspector; Claude Desktop's log does not print the result body. | No. No Trello tool was called. | Fully quit and reopen after config changes. Current official guidance emphasizes MCPB desktop extensions, but this repository has no `.mcpb` package; the tested manual `stdio` entry remains the documented path. No HTTP bearer path is claimed. |
-| Claude Code | Yes, 2026-08-07: [MCP documentation](https://code.claude.com/docs/en/mcp) | Claude Code `2.1.212`; macOS; `stdio` and Streamable HTTP with bearer auth | Yes on both transports. | Yes. `/mcp` displayed all 77 tools for each temporary entry. | No. No Trello tool was called. | Start a new session if an active one does not reload configuration. Temporary entries were removed and the pre-test config was restored byte for byte. |
 | Codex CLI | Yes, 2026-08-07: [MCP documentation](https://learn.chatgpt.com/docs/extend/mcp) | Codex CLI `0.146.0` (Homebrew); macOS; `stdio` and Streamable HTTP with bearer auth | Yes on both transports through session-only configuration. | Yes. `/mcp` displayed all 77 tools for each entry. | No. No Trello tool was called. | The default asdf `codex` shim on this host had no configured version, so validation used the explicit Homebrew binary. Session-only configuration left the shared config unchanged. |
-| OpenCode V2 | Yes, 2026-08-07: [MCP servers](https://opencode.ai/v2/docs/mcp-servers) | Not installed; current `stdio` and Streamable HTTP configurations reviewed and syntax-checked | Assumed for this release; not directly run. | Assumed for this release; not directly run. | No. | The owner explicitly accepted current official-documentation and syntax validation in place of direct client installation and testing. Current V2 requires entries under `mcp.servers`, uses `disabled` rather than `enabled`, and groups MCP tools in Code Mode by default. Relaunch after config edits. |
+| Claude Code | Yes, 2026-08-07: [MCP documentation](https://code.claude.com/docs/en/mcp) | Claude Code `2.1.212`; macOS; `stdio` and Streamable HTTP with bearer auth | Yes on both transports. | Yes. `/mcp` displayed all 77 tools for each temporary entry. | No. No Trello tool was called. | Start a new session if an active one does not reload configuration. Temporary entries were removed and the pre-test config was restored byte for byte. |
+| Claude Desktop | Yes, 2026-08-07: [desktop extensions](https://support.claude.com/en/articles/10949351-getting-started-with-local-mcp-servers-on-claude-desktop) and [manual JSON](https://modelcontextprotocol.io/docs/2026-07-28/develop/connect-local-servers) | Claude Desktop `1.26832.0`; macOS; `stdio` | Yes. A full app launch initialized the existing user-local `trello` entry and connected to the built server. | Yes. Claude Desktop issued `tools/list` successfully. The exact 77-tool count was corroborated against the same built artifact with Inspector; Claude Desktop's log does not print the result body. | No. No Trello tool was called. | Fully quit and reopen after config changes. Current official guidance emphasizes MCPB desktop extensions, but this repository has no `.mcpb` package; the tested manual `stdio` entry remains the documented path. No HTTP bearer path is claimed. |
+| VS Code | Yes, 2026-08-09: [MCP server guide](https://code.visualstudio.com/docs/agent-customization/mcp-servers) and [configuration reference](https://code.visualstudio.com/docs/agents/reference/mcp-configuration) | Not exercised for this record; current `stdio` and Streamable HTTP configurations reviewed and syntax-checked | Not tested. | Not tested. | No. No Trello tool was called. | Use **MCP: List Servers** to start, restart, and inspect output. The documented password-input recipes target desktop VS Code; Agent Host does not forward servers that require interactive inputs. |
+| OpenCode | Yes, 2026-08-07: [MCP servers](https://opencode.ai/v2/docs/mcp-servers) | Not installed; current `stdio` and Streamable HTTP configurations reviewed and syntax-checked | Not tested. | Not tested. | No. | The current configuration requires entries under `mcp.servers`, uses `disabled` rather than `enabled`, and groups MCP tools in Code Mode by default. Relaunch after config edits. |
 | MCP Inspector | Yes, 2026-08-07: [Inspector documentation](https://modelcontextprotocol.io/docs/tools/inspector) | `@modelcontextprotocol/inspector` `2.0.0`; Node.js `24.17.0`; `stdio` and Streamable HTTP with bearer auth | Yes on both transports. | Yes. `tools/list` returned exactly 77 tools on both transports. | No. No Trello tool was called. | No restart required. The guide uses an ignored, read-only Inspector config so credentials do not appear in process arguments. `--cli` must be the first Inspector argument. Version 2.0.0 requires Node.js `22.19.0` or newer. |
 
 ## Named-client test details
 
-### Claude Desktop
+### Codex
 
-The installed app was launched with its existing user-local `stdio`
-configuration. Its MCP log recorded successful server startup, initialization,
-and `tools/list`. The configured server artifact was byte-identical to the build
-enumerated independently as 77 tools. The MCP transport was then closed without
-changing its configuration.
+The Homebrew Codex CLI was launched with session-only configuration overrides;
+the shared `~/.codex/config.toml` was not edited. The `stdio` and bearer-protected
+Streamable HTTP entries both initialized, and `/mcp` enumerated all 77 tools for
+each one.
 
-The current Claude Desktop documentation centers on installable `.mcpb` desktop
-extensions. This repository does not contain an MCPB manifest or package, so a
-one-click extension could not be tested without expanding the issue into a new
-packaging deliverable. The guide states that limitation plainly and documents
-the tested manual `stdio` path.
+The explicit Homebrew binary was used because the unrelated default asdf shim
+did not have a Codex version configured in this checkout. That local shim issue
+does not affect the documented TOML or `codex mcp` syntax.
 
 ### Claude Code
 
@@ -76,24 +76,34 @@ Separate temporary user entries confirmed that `claude mcp list` also reported
 both connections healthy. All temporary files and entries were removed after
 validation, and the original user configuration was restored exactly.
 
-### Codex
+### Claude Desktop
 
-The Homebrew Codex CLI was launched with session-only configuration overrides;
-the shared `~/.codex/config.toml` was not edited. The `stdio` and bearer-protected
-Streamable HTTP entries both initialized, and `/mcp` enumerated all 77 tools for
-each one.
+The installed app was launched with its existing user-local `stdio`
+configuration. Its MCP log recorded successful server startup, initialization,
+and `tools/list`. The configured server artifact was byte-identical to the build
+enumerated independently as 77 tools. The MCP transport was then closed without
+changing its configuration.
 
-The explicit Homebrew binary was used because the unrelated default asdf shim
-did not have a Codex version configured in this checkout. That local shim issue
-does not affect the documented TOML or `codex mcp` syntax.
+The current Claude Desktop documentation centers on installable `.mcpb` desktop
+extensions. This repository does not contain an MCPB manifest or package, so a
+one-click extension could not be tested without expanding the issue into a new
+packaging deliverable. The guide states that limitation plainly and documents
+the tested manual `stdio` path.
 
-### OpenCode V2
+### VS Code
 
-OpenCode V2 was not installed on the validation host. Its current official
+VS Code was not run for this compatibility record. Microsoft's current MCP
+server guide and configuration reference were reviewed on 2026-08-09, and the
+guide's `stdio` and Streamable HTTP JSON examples were syntax-checked. The
+password inputs, user-profile configuration, trust prompt, server commands, and
+Agent Host limitation therefore remain configuration evidence only.
+
+### OpenCode
+
+OpenCode was not installed on the validation host. Its current official
 documentation was reviewed, and every JSON example was syntax-checked. Direct
-connection and tool-discovery validation were explicitly waived for this
-release; the configuration is treated as supported on that owner-approved
-basis.
+connection and tool-discovery validation were not performed, so this record
+makes no client-compatibility claim beyond documentation and syntax review.
 
 ### MCP Inspector
 
@@ -135,12 +145,13 @@ write-side validation against an ordinary board.
 
 ## Documentation and visual review
 
-The canonical [MCP Client Setup guide](client-setup.md) contains the sanitized
+The canonical [Set up your MCP client guide](client-setup.md) contains the sanitized
 configurations used by this compatibility record. JSON snippets were checked
 with `jq`; Codex TOML entries were loaded by the actual Codex CLI; and the
 Inspector commands were executed against the built server.
 
 No client screenshot was committed. The genuine installed-client views also
-contained unrelated user configuration and did not explain the security
-boundary as clearly as a diagram. The reusable transport chooser contains no
-credentials, private UI, machine-specific paths, or third-party product logos.
+contained unrelated user configuration and would expose details unrelated to
+the sanitized configuration examples. The public documentation uses only
+purpose-built diagrams with no credentials, private UI, or machine-specific
+paths.

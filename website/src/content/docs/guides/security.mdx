@@ -1,0 +1,129 @@
+---
+title: Security and data flow
+description: Understand how trello-mcp handles credentials, Trello data, transports, logs, attachment uploads, and write operations.
+---
+
+import {
+  Card,
+  CardGrid,
+  LinkCard,
+  Steps,
+} from "@astrojs/starlight/components";
+
+`trello-mcp` runs inside infrastructure you control. The project maintainers do not operate a hosted service for this repository, receive runtime Trello data from your deployment, or collect telemetry from it.
+
+:::caution[Your deployment is the security boundary]
+The server can read and change every Trello resource allowed by its configured token and exposed tools. Your MCP client, client configuration, host, network, reverse proxy, secrets storage, logs, and backups are all part of the security boundary.
+:::
+
+## Data flow
+
+<Steps>
+
+1. **An MCP client sends a tool request.**
+
+   With `stdio`, the client launches the server locally and communicates through the child process. With Streamable HTTP, the client sends requests to your deployment's `/mcp` endpoint.
+
+2. **Your trello-mcp process validates and handles the request.**
+
+   Configuration, tool input, and Trello API responses are validated with Zod. The server uses the `TRELLO_API_KEY` and `TRELLO_TOKEN` supplied by the operator.
+
+3. **The server calls Trello.**
+
+   Runtime Trello requests go from your deployment to Trello's REST API over HTTPS. Trello permissions and the configured member's board and workspace visibility determine which resources the request can reach.
+
+4. **The result returns through your deployment.**
+
+   Trello data is returned to the MCP client as JSON-serializable tool output. Your client, hosting platform, reverse proxy, and logging configuration may process or retain that data under their own policies.
+
+</Steps>
+
+```text title="Runtime data path"
+MCP client
+    │  stdio or Streamable HTTP
+    ▼
+your trello-mcp deployment
+    │  HTTPS with your API key and token
+    ▼
+Trello REST API
+```
+
+## What is—and is not—handled by the project
+
+<CardGrid>
+  <Card title="Credentials">
+    You provide one Trello API key and token pair through the server environment or MCP client configuration. The server does not implement OAuth redirects, token creation, refresh, revocation, or another credential-management service. Follow the [Trello API credentials guide](/getting-started/trello-api-key/) to create and protect them.
+  </Card>
+  <Card title="Runtime data">
+    The process handles tool inputs and the Trello objects returned for the tools you call. Local attachment bytes are handled only when uploads are explicitly enabled and the upload tool is called.
+  </Card>
+  <Card title="Project telemetry">
+    This repository does not collect deployment telemetry. Pulling an image can contact GHCR, and repository or support activity can involve GitHub, but those are separate from runtime application telemetry.
+  </Card>
+  <Card title="Logs">
+    Structured logs use operational fields such as request id, tool name, duration, and error type. The logger redacts known credential, authorization, URL, path, and query fields.
+  </Card>
+</CardGrid>
+
+Do not treat redaction as permission to log sensitive payloads. The project avoids logging raw environments, MCP request or response bodies, credential-bearing URLs, and private Trello content. Operators still control log destinations, access, retention, and backups.
+
+## Choose the transport boundary
+
+| Mode | Boundary | Credential location | Network considerations |
+| --- | --- | --- | --- |
+| `stdio` | The MCP client launches a local child process. The server does not open its HTTP listener. | Usually the MCP client configuration or the process environment. | Protect the local client configuration and shell environment. Logs go to stderr so stdout remains protocol-only. |
+| Streamable HTTP | The server exposes `/mcp` as a long-running HTTP service. | The server environment; clients may also need the optional MCP bearer token. | The Docker Compose default binds the published port to `127.0.0.1`. Any broader exposure needs intentional host binding, firewall rules, HTTPS, and suitable proxy or network access controls. |
+
+When `MCP_AUTH_TOKEN` is set, every HTTP request to `/mcp` must include `Authorization: Bearer <token>`. This shared secret protects the MCP endpoint only. It is not a Trello credential, does not add TLS, and does not replace reverse-proxy authentication or network controls. `/healthz` and `/readyz` remain unauthenticated for health checks.
+
+:::danger[Do not publish plain HTTP]
+Keep the Docker Compose loopback default for local use. If clients must connect over a network, use HTTPS and an access-controlled reverse proxy or an equivalent trusted-network design. A bearer token sent over plain HTTP can be observed in transit.
+:::
+
+## Writes, deletions, and untrusted content
+
+The tool surface includes reads and mutations. It can create and update Trello objects, move or archive cards and lists, and delete cards, labels, attachments, checklists, checklist items, and comments. `card_delete` and `label_delete` explicitly instruct the MCP client to use them only for an explicit permanent-deletion request; archiving is the reversible alternative for cards.
+
+The server does **not** currently provide a universal read-only mode, inspect Trello content for prompt injection, or require server-side confirmation before every write. Treat card descriptions, comments, attachment metadata, and other Trello content as untrusted input to an AI client.
+
+For safer use:
+
+<Steps>
+
+1. Start with the read-only `auth_whoami` and `auth_token_info` diagnostics.
+2. Discover and inspect the target board, list, card, member, or workspace before changing it.
+3. Ask the client to show the intended target and operation before writes.
+4. Enable the MCP client's tool-approval or confirmation controls when available.
+5. Prefer archive operations over permanent deletion when the workflow allows it.
+6. Use a disposable board for experiments or broad mutation testing.
+
+</Steps>
+
+## Local attachment uploads
+
+URL attachments work without filesystem access. Server-local file uploads are disabled unless `TRELLO_ATTACHMENT_UPLOAD_ROOT` is set to an absolute directory.
+
+When enabled, the client supplies a path on the server host or inside the container. The server resolves the path and symlinks, rejects directories, and rejects files outside the configured root before sending file bytes to Trello. Limit that directory to files intended for upload, use restrictive filesystem permissions, prefer a read-only container mount, and remove sensitive staging files when they are no longer needed.
+
+## Deployment checklist
+
+- Use Trello credentials with no more visibility and permissions than the workflow needs.
+- Keep `.env` files and MCP client configurations out of source control.
+- Keep HTTP on loopback unless a broader network path is intentional and protected.
+- Set `MCP_AUTH_TOKEN` for HTTP clients that support bearer headers, in addition to HTTPS and network controls.
+- Leave local attachment uploads disabled unless they are required.
+- Review client, proxy, host, log, volume, and backup retention before using private Trello data.
+- Rotate or revoke exposed Trello credentials, and replace an exposed MCP bearer token immediately.
+
+<CardGrid>
+  <LinkCard
+    title="Security policy"
+    description="Supported versions, vulnerability reporting, sensitive data, and threat-model notes."
+    href="/reference/security-policy/"
+  />
+  <LinkCard
+    title="Privacy policy"
+    description="Runtime data, external services, and operator-controlled retention."
+    href="https://github.com/enthouan/trello-mcp/blob/main/PRIVACY.md"
+  />
+</CardGrid>

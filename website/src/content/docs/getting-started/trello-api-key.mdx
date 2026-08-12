@@ -1,0 +1,179 @@
+---
+title: "Trello API key"
+description: "Create a Trello app, generate an API key, authorize a token, store both credentials safely, and verify them with trello-mcp."
+---
+
+import {
+  LinkButton,
+  Steps,
+} from "@astrojs/starlight/components";
+
+`trello-mcp` needs two credentials from Trello: `TRELLO_API_KEY` identifies the
+app you register, and `TRELLO_TOKEN` authorizes access as a Trello member. You
+create both on Trello's website; this project does not create, refresh, or
+revoke them for you.
+
+:::note[This guide sends you to Trello]
+Trello and Atlassian operate the app
+portal and authorization screens linked below. Some official pages still
+call apps "Power-Ups," but the current developer portal labels this area
+**Apps**.
+:::
+
+## Before you begin
+
+- Sign in to the Trello account that the server should use.
+- Decide whether that account should be your everyday member or a dedicated
+  automation member with access only to selected boards and Workspaces.
+- To create or manage the app, the signed-in member must be an admin of the
+  Workspace that owns it or an app collaborator. App-management access is
+  separate from the Trello account access granted by the token.
+- Have a local ignored `.env` file, MCP client configuration, or secrets manager
+  ready. Do not paste credentials into this website, chat, screenshots, issues,
+  or pull requests.
+
+:::caution[The token is broad account access]
+Trello tokens can be issued for one
+hour, one day, 30 days, or without a scheduled expiration. A token remains
+usable until it expires or is revoked, and it can reach boards and Workspaces
+the member gains access to later when those resources fall within the granted
+scope. Treat the token like a password and use a dedicated Trello member when
+you need a narrower boundary.
+:::
+
+## Create the credentials
+
+<LinkButton href="https://trello.com/apps/admin" variant="primary" icon="external">
+  Open Trello App Admin Portal
+</LinkButton>
+
+<Steps>
+
+1. **Open Trello's App Admin Portal.**
+
+   Sign in, then open [trello.com/apps/admin](https://trello.com/apps/admin). On
+   a first visit, Trello may ask you to complete its Joint Development Agreement
+   before you can create an app.
+
+2. **Create or select an app.**
+
+   Select an existing app you control, or choose **New** and complete Trello's
+   required name, Workspace, contact, and author fields. The iframe connector
+   URL applies only to apps using Power-Up capabilities; `trello-mcp` does not
+   need those capabilities or a connector URL.
+
+   For this server, the app record exists to own the API key. You do not need to
+   publish it in Trello's Power-Up directory or enable it on a board.
+
+3. **Generate the API key.**
+
+   Open the app's **API Key** tab and select **Generate a new API Key**. Copy the
+   displayed key into your local secret storage as `TRELLO_API_KEY`.
+
+4. **Authorize a token for the correct Trello member.**
+
+   On the same API Key page, select the **Token** link near the key. Trello will
+   show the member, requested permissions, and access duration. Confirm that the
+   correct account is shown, review the permissions, and choose **Allow** only
+   if they match the access you intend to give the server.
+
+   If an app admin generated the key for a separate automation member, complete
+   this authorization screen while signed in as that automation member. The
+   token represents the member that approves this screen, not the app admin who
+   generated the key.
+
+5. **Copy the token into local secret storage.**
+
+   After authorization, Trello redirects to a page containing the token. Store
+   it as `TRELLO_TOKEN`. Do not put the key or token in a command URL, shell
+   history, source file, screenshot, or public report.
+
+6. **Configure trello-mcp with placeholders replaced locally.**
+
+   In the repository's ignored `.env` file:
+
+   ```dotenv
+   TRELLO_API_KEY=your-api-key
+   TRELLO_TOKEN=your-token
+   ```
+
+   For local `stdio`, the same two environment variables can instead live in a
+   protected MCP client configuration. Continue with
+   [Set up your MCP client](/getting-started/clients/) after creating the credentials.
+
+7. **Verify without changing Trello data.**
+
+   Start the server and connect your MCP client. Call the read-only
+   `auth_whoami` tool to confirm the member, then `auth_token_info` to inspect
+   the token owner, expiration, and permissions. Do not use a write tool as the
+   first connectivity test.
+
+</Steps>
+
+## Know which value is which
+
+| Setting | Issued by | Purpose | Handling |
+| --- | --- | --- | --- |
+| `TRELLO_API_KEY` | Trello App Admin Portal | Identifies the app making Trello REST API requests. Trello documents the key as publicly accessible and says it does not grant account access by itself. | Keep it in local configuration with the token, and do not include it in public troubleshooting material. |
+| `TRELLO_TOKEN` | Trello authorization screen | Authorizes requests as the consenting Trello member, within the granted scope and that member's visibility. | Secret. Treat it like a password. Never commit, log, screenshot, or share it. |
+| `MCP_AUTH_TOKEN` | You, optionally | Protects this project's Streamable HTTP `/mcp` endpoint. It is not sent to Trello and is unrelated to Trello authorization. | Use a separate strong secret and HTTPS whenever HTTP is exposed beyond loopback. |
+
+## Revoke or replace a token
+
+If a token is exposed, no longer needed, or tied to the wrong member:
+
+<Steps>
+
+1. Open [your Trello account settings](https://trello.com/u/my/account).
+2. Find the **Applications** section and revoke the relevant authorization.
+3. Return to the app's **API Key** tab and use the **Token** link to authorize a
+   replacement.
+4. Replace `TRELLO_TOKEN` wherever the server is configured, restart the
+   process, and run `auth_whoami` again.
+
+</Steps>
+
+Revoking a Trello token does not replace the separate `MCP_AUTH_TOKEN`. Rotate
+that value independently if the HTTP bearer secret is exposed.
+
+## Troubleshooting
+
+### There is no API Key tab
+
+Confirm that you selected an app you administer and that your Trello member is a
+Workspace admin or an app collaborator. If the portal is asking for Power-Up
+implementation details, return to **Basic Information**; this server needs the
+app record and API key, not enabled Power-Up capabilities.
+
+### Trello will not create or authorize a token
+
+Confirm the active Trello account and review any organization restrictions on
+API token creation. Managed-account policies can be outside this project's
+control; ask the Trello or organization administrator when the authorization
+screen is blocked.
+
+### trello-mcp reports invalid credentials
+
+- Remove accidental whitespace or quotation marks from the stored values.
+- Confirm the token was authorized from the same app/API key you configured.
+- Restart the server after changing its environment.
+- Run `auth_whoami` and `auth_token_info` again before attempting any write.
+
+## Official Trello references
+
+- [Get started with Trello's REST API](https://support.atlassian.com/trello/docs/getting-started-with-trello-rest-api/)
+  covers the account-level key and token flow.
+- [App Admin Portal guide](https://developer.atlassian.com/cloud/trello/guides/power-ups/managing-apps/)
+  documents current app fields and the API Key tab.
+- [Trello REST API introduction](https://developer.atlassian.com/cloud/trello/guides/rest-api/api-introduction/)
+  explains API keys, member tokens, authorization, and requests.
+- [Revoke a Trello token](https://support.atlassian.com/trello/docs/revoking-a-trello-token/)
+  explains how to remove an application's access from account settings.
+- [Trello developer changelog](https://developer.atlassian.com/cloud/trello/changelog/)
+  is the source to check if Trello changes this authorization flow.
+
+## Continue setup
+
+- [Run and verify trello-mcp](/getting-started/).
+- [Connect an MCP client](/getting-started/clients/).
+- [Review the security boundary](/reference/security-policy/).

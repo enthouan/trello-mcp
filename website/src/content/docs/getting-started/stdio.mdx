@@ -1,0 +1,51 @@
+---
+title: stdio
+description: Let a local desktop MCP client launch trello-mcp as a child process without a network listener.
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+import InstallMethod from "../../../components/InstallMethod.astro";
+import VerifySetup from "../../../components/VerifySetup.astro";
+
+Stdio is the smallest trust boundary: the MCP client launches the compiled server and communicates over its standard input and output streams. No network listener is opened.
+
+## Build the server
+
+Local source builds require Node.js 24 and the repository's pinned pnpm version:
+
+```bash
+git clone https://github.com/enthouan/trello-mcp.git
+cd trello-mcp
+corepack enable
+corepack prepare pnpm@10.34.1 --activate
+corepack pnpm install --frozen-lockfile
+corepack pnpm build
+```
+
+<InstallMethod method="stdio" />
+
+## Configure a client
+
+<Steps>
+
+1. **Build the server.** Run the commands above after cloning the repository.
+
+2. **Use absolute executable and entry paths.** Point the client at this checkout's `dist/index.js`. Desktop apps may also need the absolute path to `node` because they inherit a smaller `PATH` than a shell.
+
+3. **Set the transport and credentials.** [Create a Trello API key and token](/getting-started/trello-api-key/), then pass `TRANSPORT=stdio`, `TRELLO_API_KEY`, and `TRELLO_TOKEN` in the child-process environment.
+
+4. **Restart the client.** Reopen it so the process configuration is reloaded and the server's tools are rediscovered.
+
+</Steps>
+
+<Aside type="caution" title="Keep the client configuration private">
+  `MCP_AUTH_TOKEN` is not needed for stdio because there is no HTTP endpoint. The client configuration still contains or forwards `TRELLO_TOKEN`, which grants the authorized member's Trello access. Never commit or share it.
+</Aside>
+
+The server writes diagnostics to stderr because stdout is reserved for MCP protocol messages.
+
+## Verify through MCP
+
+After the client reports that `trello-mcp` is connected and its tools are discovered, verify a read-only account call.
+
+<VerifySetup />

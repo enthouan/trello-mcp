@@ -1,24 +1,31 @@
-# Trello MCP Server
+# trello-mcp
 
 A self-hostable [Model Context Protocol](https://modelcontextprotocol.io/) server that lets MCP-compatible clients work with [Trello](https://trello.com/) cards, lists, labels, attachments, checklists, members, and card activity.
 
-I built this for my own Trello workflows, but it is intentionally self-hostable and reusable. Feel free to adapt it for your own setup, open issues, or send PRs with improvements.
+The project is intentionally self-hostable and reusable. Contributions, adaptations, and focused issue reports are welcome.
 
-The roadmap is, of course, tracked on Trello, and `trello-mcp` helps keep it up to date: [trello-mcp roadmap](https://trello.com/b/GnKmvuHz/trello-mcp).
+The roadmap is, of course, tracked on Trello, and `trello-mcp` helps keep it up to date: [trello-mcp roadmap](https://trello.com/b/GnKmvuHz/trello-mcp-enthouan-trello-mcp).
 
 ## Disclaimer
 
-This is an independent, unofficial open source project. It is not affiliated with, associated with, authorized by, endorsed by, or sponsored by [Trello](https://trello.com/), [Atlassian](https://www.atlassian.com/), or any related company. Trello, Atlassian, and related names, logos, product names, and trademarks belong to their respective owners.
+trello-mcp is an independent, community-maintained project. It is not an official Trello or Atlassian product, service, or MCP implementation, and it is not affiliated with, endorsed by, or sponsored by Trello or Atlassian.
 
 This project exists to make it easier for MCP-compatible LLM clients to interface with Trello through Trello's [public API](https://developer.atlassian.com/cloud/trello/guides/rest-api/api-introduction/) and user-provided API credentials.
 
-## Personal Note
+Looking for Trello's official hosted MCP server? Visit [Trello MCP](https://trello.com/mcp) and use the endpoint documented by Trello: `https://mcp.trello.com/v1`.
 
-I have been using Trello since the early launch-era, pre-Atlassian days, across college, work, and day-to-day life. I have always found ways to integrate it into my workflow in one form or another.
+## Documentation
 
-As I have been using AI and LLM tools more often, having a reliable MCP server for Trello became necessary. I have built many small bridge scripts before, but this repository is my first attempt to make the integration clean, reusable, and self-hostable. Other Trello MCP solutions already exist; I built this because I was not fully satisfied with the options I tried, and because I wanted to learn how to build an MCP server from scratch.
+The complete project documentation is available at [trello-mcp.com](https://trello-mcp.com/):
 
-Most of this project was built with Codex under my close supervision.
+- [Get started](https://trello-mcp.com/getting-started/)
+- [Create a Trello API key and token](https://trello-mcp.com/getting-started/trello-api-key/)
+- [Set up your MCP client](https://trello-mcp.com/getting-started/clients/)
+- [Browse the tool catalog](https://trello-mcp.com/reference/tools/)
+- [Review API coverage and non-goals](https://trello-mcp.com/reference/api-coverage/)
+- [Understand Security & Data](https://trello-mcp.com/guides/security/)
+- [Operate a running deployment](https://trello-mcp.com/guides/operations/)
+- [Troubleshoot an installation](https://trello-mcp.com/guides/troubleshooting/)
 
 ## Features
 
@@ -79,14 +86,9 @@ Most of this project was built with Codex under my close supervision.
 
 ### 1. Get Trello API Credentials
 
-Trello API keys are created from a Power-Up or integration. Each person running this server should use their own Trello account and token.
+Trello API keys are created from an app in Trello's App Admin Portal. Each person running this server should use their own Trello account and token. Follow the dedicated [Trello API credentials guide](docs/trello-api-key.md) for the current, security-focused walkthrough.
 
-1. Visit [Trello Power-Up admin](https://trello.com/power-ups/admin) and create a new Power-Up or integration.
-2. Fill in the required form fields. A name like `Trello MCP` is fine. If Trello asks for an iframe connector URL, use `https://localhost`; this server does not use that URL.
-3. Open the Power-Up's **API key** tab.
-4. Generate an API key if one does not already exist, then copy it.
-5. Use the **Token** link near the API key to authorize access for your Trello account.
-6. Copy the generated token.
+In short: create or select an app at [trello.com/apps/admin](https://trello.com/apps/admin), generate a key from its **API Key** tab, then use the nearby **Token** link to review and authorize access for the intended Trello member.
 
 You will use those values as:
 
@@ -129,7 +131,7 @@ TRELLO_MCP_NETWORK=trello-mcp_network
 Start the published image:
 
 ```bash
-docker compose up -d
+docker compose up -d --wait --wait-timeout 120
 ```
 
 The default `docker-compose.yml` uses:
@@ -138,25 +140,26 @@ The default `docker-compose.yml` uses:
 ghcr.io/enthouan/trello-mcp:latest
 ```
 
-Docker Compose values such as image tag, host bind IP, host port, and network name can be overridden with environment variables or the `.env` file. The compose files document their defaults at the top; for example, `TRELLO_MCP_IMAGE_TAG` defaults to the `latest` tag in `docker-compose.yml` (`latest` follows the `main` branch, and release tags such as `0.4` and `0.4.1` are available for versioned deployments), `TRELLO_MCP_HOST_BIND_IP` defaults to `127.0.0.1` for local-only access, `TRELLO_MCP_HOST_PORT` defaults to `3000` and maps that host port to the container's fixed internal `3000` listener, while `TRELLO_MCP_NETWORK` defaults to `trello-mcp_network`. Set `TRELLO_MCP_HOST_BIND_IP=0.0.0.0` only when you intentionally want Docker to publish the service on all host interfaces, such as for LAN access.
+Docker Compose values such as image tag, host bind IP, host port, and network name can be overridden with environment variables or the `.env` file. The compose files document their defaults at the top; for example, `TRELLO_MCP_IMAGE_TAG` defaults to the `latest` tag in `docker-compose.yml` (`latest` follows the `main` branch, and release tags such as `X.Y` and `X.Y.Z` are available for versioned deployments), `TRELLO_MCP_HOST_BIND_IP` defaults to `127.0.0.1` for local-only access, `TRELLO_MCP_HOST_PORT` defaults to `3000` and maps that host port to the container's fixed internal `3000` listener, while `TRELLO_MCP_NETWORK` defaults to `trello-mcp_network`. Set `TRELLO_MCP_HOST_BIND_IP=0.0.0.0` only when you intentionally want Docker to publish the service on all host interfaces, such as for LAN access.
 
 Set `MCP_AUTH_TOKEN` to require `Authorization: Bearer <token>` on HTTP MCP requests to `/mcp`. Leave it unset for the default unauthenticated local behavior. Health and readiness endpoints remain unauthenticated for container and reverse-proxy checks.
 
 Keep the Trello rate-limit and retry values at their defaults unless logs show `trello rate limit wait` or `trello request rate limited; retrying` during large workflows. Lower the capacity for shared tokens or constrained deployments; raise it carefully only after narrowing the workflow's board, card, field, and pagination scope.
 
-Published Docker image tags use these conventions:
+For reproducible deployments, prefer an exact `X.Y.Z` tag. Published Docker
+image tags use these conventions:
 
 | Tag | Use case |
 | --- | --- |
 | `latest` | Follows the current `main` branch build. Use it when you intentionally want the newest main-branch image. |
-| `X.Y` | Follows the newest patch release in a minor line, such as `0.4` moving to the image built from the latest `v0.4.Z` tag. |
-| `X.Y.Z` | Pins to one exact release, such as `0.4.1`. Use this for the most reproducible deployments. |
+| `X.Y` | Follows the newest patch release in a minor line, moving to the image built from the latest matching `vX.Y.Z` tag. |
+| `X.Y.Z` | Pins to one exact release. Use this for the most reproducible deployments. |
 | `sha-<commit>` | Pins to one exact commit image from the release workflow. Use this for debugging or audit trails. |
 
 You can also run the published image directly without Compose:
 
 ```bash
-docker run --rm -p 3000:3000 \
+docker run --rm -p 127.0.0.1:3000:3000 \
   -e TRELLO_API_KEY=your-api-key \
   -e TRELLO_TOKEN=your-token \
   ghcr.io/enthouan/trello-mcp:latest
@@ -177,7 +180,7 @@ cp .env.example .env
 Edit `.env` with your Trello credentials, then build and run locally:
 
 ```bash
-docker compose -f docker-compose.local.yml up --build
+docker compose -f docker-compose.local.yml up --build -d --wait --wait-timeout 120
 ```
 
 This uses `docker-compose.local.yml`, which builds from the local `Dockerfile` and tags the image as `trello-mcp:local`.
@@ -208,12 +211,10 @@ Choose the transport by where the server runs:
 | A built clone and the MCP client are on the same machine | `stdio` | A local command plus Trello credentials in the child-process environment |
 | The server runs in Docker, behind a reverse proxy, or on another host | Streamable HTTP | An `/mcp` URL plus an optional bearer token; Trello credentials stay on the server |
 
-![Transport chooser showing local stdio and service-oriented Streamable HTTP paths](docs/assets/client-setup/transport-chooser.svg)
-
-The [MCP Client Setup guide](docs/client-setup.md) has current, sanitized
-examples for Claude Desktop, Claude Code, Codex CLI, OpenCode V2, MCP Inspector,
-and other manual clients. It also covers restart requirements, HTTP bearer
-support, secret handling, and tested limitations.
+The [Set up your MCP client guide](docs/client-setup.md) has current, sanitized
+examples for Claude Desktop, Claude Code, Codex CLI, VS Code, OpenCode, MCP
+Inspector, and other manual clients. It also covers restart
+requirements, HTTP bearer support, secret handling, and tested limitations.
 
 For dated client versions and evidence, see
 [MCP Client Compatibility](docs/mcp-client-compatibility.md).
@@ -235,13 +236,13 @@ from the client. Do not make a write-side Trello call just to prove setup.
 
 ## Trello Credentials
 
-This server currently uses Trello API key + token authentication. See Trello's [REST API getting started guide](https://support.atlassian.com/trello/docs/getting-started-with-trello-rest-api/) and [API introduction](https://developer.atlassian.com/cloud/trello/guides/rest-api/api-introduction/) for the official credential flow.
+This server currently uses Trello API key + token authentication. Follow the dedicated [Trello API credentials guide](docs/trello-api-key.md) for a security-focused walkthrough, with links to Trello's official App Admin Portal, authorization, and revocation documentation.
 
 Use the read-only `auth_whoami` and `auth_token_info` tools to verify which Trello member the configured credentials authenticate as and to inspect the configured token's owner, expiration, and permissions. These tools are diagnostics only; this server does not implement OAuth redirects, token creation, token refresh, token revocation, or other token lifecycle management.
 
-## MCP Client Setup
+## Set up your MCP client
 
-Use the canonical [MCP Client Setup guide](docs/client-setup.md) for transport
+Use the canonical [Set up your MCP client guide](docs/client-setup.md) for transport
 selection and client-specific configuration. Keep Trello credentials in the
 `stdio` child environment or on the HTTP server; an HTTP client needs only the
 `/mcp` endpoint and, when `MCP_AUTH_TOKEN` is enabled, a supported bearer-header
@@ -252,6 +253,10 @@ official-doc review from a real client connection, tool discovery, and an actual
 Trello workflow.
 
 ## Environment
+
+See the [configuration reference](docs/configuration.md) for deployment-specific
+applicability, secret handling, rate-limit tuning, Compose controls, and local
+attachment-upload requirements.
 
 | Variable | Required | Default | Description |
 | --- | --- | --- | --- |
@@ -418,6 +423,9 @@ The `Release` workflow builds the published multi-architecture Docker image for 
 
 Once connected to an MCP client, ask for Trello actions in natural language:
 
+For inspect-first multi-tool sequences with explicit proposal, approval, and
+verification stages, follow the [workflow guide](docs/workflows.md).
+
 ```text
 Show me my Trello boards.
 Show me the lists on my job scout board.
@@ -474,7 +482,7 @@ TRELLO_ATTACHMENT_UPLOAD_ROOT=/Users/you/trello-uploads \
 For Docker, mount the upload directory into the container and set the root to the container path:
 
 ```bash
-docker run --rm -p 3000:3000 \
+docker run --rm -p 127.0.0.1:3000:3000 \
   -v "$PWD/trello-uploads:/uploads:ro" \
   -e TRELLO_ATTACHMENT_UPLOAD_ROOT=/uploads \
   -e TRELLO_API_KEY=your-api-key \
@@ -511,6 +519,8 @@ See [docs/api-coverage.md](docs/api-coverage.md) for the Trello REST API group c
 ## Tool Catalog
 
 <!-- tools:start -->
+**77 tools** are registered. Names, descriptions, and key inputs are generated from `allTools`.
+
 | Name | When to use | Key inputs |
 | --- | --- | --- |
 | `auth_whoami` | Use as a read-only credential diagnostic to confirm which Trello member the configured API key and token authenticate as. | fields |
@@ -562,7 +572,7 @@ See [docs/api-coverage.md](docs/api-coverage.md) for the Trello REST API group c
 | `card_attachment_delete` | Use when removing a specific attachment from a card by attachment id. | cardId, attachmentId |
 | `card_checklists` | Use when viewing all checklists and checklist items currently on a card. | cardId |
 | `card_checklist_create` | Use when adding a new checklist to an existing card, optionally copied from another checklist. | cardId, name, sourceChecklistId |
-| `card_checklist_update` | Use when renaming a Trello card checklist or changing the checklist's position on its card. | checklistId, name, pos |
+| `card_checklist_update` | Use when renaming a Trello card checklist or changing the checklist's position on its card. Provide at least one of name or pos. | checklistId, name, pos |
 | `card_checklist_delete` | Use when deleting an entire checklist from a Trello card. | cardId, checklistId |
 | `card_checklist_item_create` | Use when adding a new item to an existing Trello checklist on a card. | checklistId, name, pos, checked, due, dueReminder, memberId |
 | `card_checklist_items` | Use when listing the items in one Trello checklist, including complete and incomplete items by default. | checklistId, filter, fields |
@@ -599,6 +609,10 @@ corepack pnpm docs:tools
 ```
 
 ## Architecture
+
+Read [How trello-mcp works](docs/how-it-works.md) for the complete request
+lifecycle, transport and credential boundaries, HTTP sessions, validation,
+rate limiting, retries, and result handling.
 
 ```text
 MCP client
@@ -708,13 +722,17 @@ The setup script enables Corepack, activates the pinned pnpm version, installs d
 
 ## Troubleshooting
 
+Start with the complete [troubleshooting guide](docs/troubleshooting.md) for a
+boundary-by-boundary diagnosis of startup, stdio, HTTP sessions, Docker,
+Trello API, rate-limit, and attachment failures.
+
 ### The server starts but my MCP client does not show tools
 
 - Confirm the client is using the right transport.
 - For stdio, set `TRANSPORT=stdio`.
 - For HTTP, point the client to `/mcp`, not `/healthz` or `/readyz`.
 - Follow the client-specific restart or reload step in the
-  [MCP Client Setup guide](docs/client-setup.md).
+  [Set up your MCP client guide](docs/client-setup.md).
 
 ### Trello says the credentials are invalid
 
