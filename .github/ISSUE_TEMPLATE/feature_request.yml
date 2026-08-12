@@ -10,7 +10,7 @@ body:
         > [!IMPORTANT]
         > Security-sensitive reports, including vulnerabilities or credential exposure, do not belong in public issues. Follow the [security policy](https://github.com/enthouan/trello-mcp/security/policy) instead.
 
-        Never paste a `.env` file. Sanitize examples, logs, configuration, URLs, and screenshots, and omit credentials and private Trello data.
+        Never paste a `.env` file. Sanitize examples, logs, configuration, URLs, and screenshots, and omit Trello API keys and tokens, MCP auth tokens, authorization headers, and private Trello data.
 
   - type: textarea
     id: desired_workflow
