@@ -1631,7 +1631,7 @@ async function runAttachmentRegression(
         cardId: card.id,
         name: `${context.prefix} URL attachment`,
         setCover: false,
-        url: "https://dummyimage.com/600x400/0052cc/ffffff.png",
+        url: "https://trello-mcp.com/social-card.png",
       }),
       "card_attachment_add_url",
     );
