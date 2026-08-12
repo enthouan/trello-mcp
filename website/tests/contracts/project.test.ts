@@ -22,12 +22,13 @@ async function directoryEntries(url: URL) {
 }
 
 describe("website package and command boundaries", () => {
-  it("keeps the website isolated in its private workspace", async () => {
+  it("keeps website dependencies in a non-publishable workspace", async () => {
     const rootPackage = JSON.parse(
       await source(repositoryFile("package.json")),
     ) as {
       dependencies: Record<string, string>;
       devDependencies: Record<string, string>;
+      files: string[];
     };
     const websitePackage = JSON.parse(
       await source(websiteFile("package.json")),
@@ -38,6 +39,7 @@ describe("website package and command boundaries", () => {
       devDependencies: Record<string, string>;
     };
     const workspace = await source(repositoryFile("pnpm-workspace.yaml"));
+    const websiteReadme = await source(websiteFile("README.md"));
 
     expect(websitePackage).toMatchObject({
       name: "trello-mcp-website",
@@ -61,6 +63,12 @@ describe("website package and command boundaries", () => {
       typescript: "6.0.3",
     });
     expect(workspace).toMatch(/^packages:\n\s+- website\s*$/);
+    expect(rootPackage.files).toEqual([
+      "dist",
+      "README.md",
+      "CHANGELOG.md",
+      "LICENSE",
+    ]);
 
     const runtimePackages = { ...rootPackage.dependencies };
     for (const packageName of [
@@ -79,6 +87,15 @@ describe("website package and command boundaries", () => {
       vitest: "4.1.10",
     });
     expect(websitePackage.devDependencies.typescript).toBe("6.0.3");
+    expect(websiteReadme).toMatch(
+      /The `"private": true` setting in `website\/package\.json` prevents accidental\s+registry publication/,
+    );
+    expect(websiteReadme).toMatch(
+      /remain outside the MCP runtime package\s+and production image/,
+    );
+    expect(websiteReadme).toContain(
+      "it does not require the GitHub repository to be private",
+    );
   });
 
   it("builds once in the aggregate check and supports build-first standalone QA", async () => {
@@ -292,6 +309,8 @@ describe("distribution and generated-source safety", () => {
     ) as {
       scripts: Record<string, string>;
     };
+    const readme = await source(repositoryFile("README.md"));
+    const contributing = await source(repositoryFile("CONTRIBUTING.md"));
 
     expect(packageSource.scripts["docs:check"]).toContain("--check");
     expect(
@@ -317,5 +336,13 @@ describe("distribution and generated-source safety", () => {
     ]) {
       expect(generator).toContain(outputPath);
     }
+    expect(readme).toContain(
+      "legitimate checked-in generated documentation mirrors",
+    );
+    expect(contributing).toContain(
+      "post-merge `main` Release workflow succeeds",
+    );
+    expect(contributing).toMatch(/annotated\s+`vX\.Y\.Z` tag/);
+    expect(contributing).toContain("merged `origin/main` release commit");
   });
 });

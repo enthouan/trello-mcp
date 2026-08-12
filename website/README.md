@@ -3,8 +3,9 @@
 The project website is an Astro Starlight documentation site kept separate from the MCP runtime.
 Starlight provides maintained documentation navigation, search, responsive layouts, themes,
 accessible code presentation, and content structure as the install and reference material grows.
-Its dependencies live in the private `website` workspace so the MCP server build and runtime do not
-install them.
+Its dependencies live in the separate `website` workspace and remain outside the MCP runtime package
+and production image. The `"private": true` setting in `website/package.json` prevents accidental
+registry publication of that package; it does not require the GitHub repository to be private.
 
 The sidebar is organized into **Get started**, **Guides**, and **Reference**. Canonical long-form
 documentation remains under `docs/`, while `docs/setup-recipes.ts` is the typed source for client and

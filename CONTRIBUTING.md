@@ -73,7 +73,11 @@ Follow [SECURITY.md](SECURITY.md) for vulnerabilities or reports that need priva
 
 ## Releases
 
-Publish releases by pushing a new semver tag in the form `vX.Y.Z`. Do not move or retag old releases.
+Prepare release metadata on a branch from `origin/main`, merge it through a
+reviewed release PR after the required checks pass, and verify that the
+post-merge `main` Release workflow succeeds. Then create and push an annotated
+`vX.Y.Z` tag that points at the merged `origin/main` release commit. Do not move
+or retag old releases.
 
 The release workflow publishes Docker images to GHCR with these tag conventions:
 

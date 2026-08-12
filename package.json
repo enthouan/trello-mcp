@@ -4,6 +4,12 @@
   "description": "Self-hostable Model Context Protocol server for Trello.",
   "type": "module",
   "license": "MIT",
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
   "engines": {
     "node": ">=24.0.0 <25.0.0"
   },

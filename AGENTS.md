@@ -172,6 +172,11 @@ Current public env vars:
 - `TRANSPORT`, optional, default `http`, valid values `http` or `stdio`.
 - `PORT`, optional, default `3000`.
 - `LOG_LEVEL`, optional, default `info`.
+- `TRELLO_RATE_LIMIT_CAPACITY`, optional, default `100`.
+- `TRELLO_RATE_LIMIT_REFILL_INTERVAL_MS`, optional, default `10000`.
+- `TRELLO_RETRY_MAX_ATTEMPTS`, optional, default `3`.
+- `TRELLO_RETRY_BASE_DELAY_MS`, optional, default `100`.
+- `TRELLO_RETRY_MAX_DELAY_MS`, optional, default `2000`.
 
 When changing config:
 
@@ -274,7 +279,7 @@ If changing CI:
 
 - Avoid dependency churn.
 - Keep top-level dependency ranges pinned to exact versions for release reproducibility.
-- Keep the root runtime toolchain on TypeScript 7. The private website workspace
+- Keep the root runtime toolchain on TypeScript 7. The separate, non-publishable website workspace
   intentionally pins TypeScript 6.0.3 because `@astrojs/check@0.9.10` currently
   requires TypeScript 5 or 6; do not downgrade the root package to satisfy that
   website-only peer dependency.

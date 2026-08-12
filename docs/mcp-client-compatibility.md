@@ -19,16 +19,15 @@ The table keeps four different claims separate:
 - **Live Trello workflow** means a tool actually contacted Trello. Startup,
   health checks, initialization, and `tools/list` do not contact Trello.
 
-No row is promoted from one state to another by inference alone. VS Code is a
-documentation-reviewed recipe, not client-run evidence. The OpenCode row
-expressly labels the one owner-approved assumption in the 2026-08-07 validation
-pass.
+No row is promoted from one state to another by inference alone. The VS Code
+and OpenCode rows record documentation and syntax review only; neither is
+presented as client-run connection evidence.
 
 ## 2026-08-07 validation environment
 
 - Host: macOS `26.6` (`25G72`), Apple silicon (`arm64`).
 - Runtime: Node.js `24.17.0`, pnpm `10.34.1` through Corepack.
-- Server: a clean build of the issue branch, with no runtime changes from its
+- Server: a clean build of the commit under validation, matching its
   `origin/main` base at the time of validation.
 - Tool surface: 77 registered tools.
 - Discovery credentials: dummy Trello values. No Trello tool was invoked during
@@ -40,7 +39,7 @@ pass.
 
 | Client | Official docs reviewed | Installed client and transport | Client connected | Tools discovered | Live Trello workflow | Restart requirement, limitation, or blocker |
 | --- | --- | --- | --- | --- | --- | --- |
-| Codex CLI | Yes, 2026-08-07: [MCP documentation](https://learn.chatgpt.com/docs/extend/mcp) | Codex CLI `0.146.0` (Homebrew); macOS; `stdio` and Streamable HTTP with bearer auth | Yes on both transports through session-only configuration. | Yes. `/mcp` displayed all 77 tools for each entry. | No. No Trello tool was called. | The default asdf `codex` shim on this host had no configured version, so validation used the explicit Homebrew binary. Session-only configuration left the shared config unchanged. |
+| Codex CLI | Yes, 2026-08-07: [MCP documentation](https://learn.chatgpt.com/docs/extend/mcp) | Codex CLI `0.146.0`; macOS; `stdio` and Streamable HTTP with bearer auth | Yes on both transports through session-only configuration. | Yes. `/mcp` displayed all 77 tools for each entry. | No. No Trello tool was called. | Session-only configuration left the shared config unchanged. |
 | Claude Code | Yes, 2026-08-07: [MCP documentation](https://code.claude.com/docs/en/mcp) | Claude Code `2.1.212`; macOS; `stdio` and Streamable HTTP with bearer auth | Yes on both transports. | Yes. `/mcp` displayed all 77 tools for each temporary entry. | No. No Trello tool was called. | Start a new session if an active one does not reload configuration. Temporary entries were removed and the pre-test config was restored byte for byte. |
 | Claude Desktop | Yes, 2026-08-07: [desktop extensions](https://support.claude.com/en/articles/10949351-getting-started-with-local-mcp-servers-on-claude-desktop) and [manual JSON](https://modelcontextprotocol.io/docs/2026-07-28/develop/connect-local-servers) | Claude Desktop `1.26832.0`; macOS; `stdio` | Yes. A full app launch initialized the existing user-local `trello` entry and connected to the built server. | Yes. Claude Desktop issued `tools/list` successfully. The exact 77-tool count was corroborated against the same built artifact with Inspector; Claude Desktop's log does not print the result body. | No. No Trello tool was called. | Fully quit and reopen after config changes. Current official guidance emphasizes MCPB desktop extensions, but this repository has no `.mcpb` package; the tested manual `stdio` entry remains the documented path. No HTTP bearer path is claimed. |
 | VS Code | Yes, 2026-08-09: [MCP server guide](https://code.visualstudio.com/docs/agent-customization/mcp-servers) and [configuration reference](https://code.visualstudio.com/docs/agents/reference/mcp-configuration) | Not exercised for this record; current `stdio` and Streamable HTTP configurations reviewed and syntax-checked | Not tested. | Not tested. | No. No Trello tool was called. | Use **MCP: List Servers** to start, restart, and inspect output. The documented password-input recipes target desktop VS Code; Agent Host does not forward servers that require interactive inputs. |
@@ -51,14 +50,10 @@ pass.
 
 ### Codex
 
-The Homebrew Codex CLI was launched with session-only configuration overrides;
-the shared `~/.codex/config.toml` was not edited. The `stdio` and bearer-protected
+Codex CLI `0.146.0` was launched with session-only configuration overrides; the
+shared `~/.codex/config.toml` was not edited. The `stdio` and bearer-protected
 Streamable HTTP entries both initialized, and `/mcp` enumerated all 77 tools for
 each one.
-
-The explicit Homebrew binary was used because the unrelated default asdf shim
-did not have a Codex version configured in this checkout. That local shim issue
-does not affect the documented TOML or `codex mcp` syntax.
 
 ### Claude Code
 

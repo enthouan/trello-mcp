@@ -97,4 +97,16 @@ describe("canonical Trello REST API coverage", () => {
     expect(documentedGroups).toEqual(OFFICIAL_REST_GROUPS);
     expect(new Set(documentedGroups).size).toBe(OFFICIAL_REST_GROUPS.length);
   });
+
+  it("keeps token lifecycle and webhook work in distinct roadmap states", async () => {
+    const coverage = await canonicalCoverage();
+    const tokens = section(coverage, "### Tokens", "## Non-goals");
+
+    expect(coverage).toContain(
+      "Token-scoped webhook listing is deferred with the Webhooks work below.",
+    );
+    expect(tokens).toContain("| Token lifecycle | 🚫 Not planned |");
+    expect(tokens).toContain("| Token-owned webhook listing | ⏳ Deferred |");
+    expect(tokens).not.toContain("Token lifecycle and owned webhooks");
+  });
 });

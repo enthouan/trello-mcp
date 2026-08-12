@@ -109,6 +109,9 @@ describe("independent-project and support content", () => {
       "corepack pnpm docs:tools",
       "Do not post Trello API keys",
       "vX.Y.Z",
+      "annotated",
+      "post-merge main Release workflow succeeds",
+      "merged origin/main release commit",
       "Star on GitHub",
     ]) {
       expect(routeText(contributing)).toContain(marker);
@@ -117,6 +120,8 @@ describe("independent-project and support content", () => {
       "Sanitize every report",
       "Check the focused documentation first",
       "Security reports",
+      "short non-sensitive public summary",
+      "Do not include vulnerability details",
       "Support boundaries",
       "Open an issue",
       "Star on GitHub",
@@ -259,6 +264,10 @@ describe("installation and onboarding content", () => {
       expect(text).not.toMatch(/\bCursor\b/);
       expect(text).not.toMatch(/OpenCode V\d/i);
     }
+    const compatibilityText = routeText(compatibility);
+    expect(compatibilityText).not.toMatch(
+      /owner-approved assumption|issue branch|\basdf\b|Homebrew/i,
+    );
   });
 });
 
@@ -365,6 +374,7 @@ describe("long-form operational content", () => {
       "The MCP client is part of the trust boundary",
       "Who owns what",
       "Choose the process boundary",
+      "accepts connections on internal port 3000",
       "sessionful Streamable HTTP",
       "Mcp-Session-Id",
       "TrelloClient",
@@ -487,9 +497,9 @@ describe("information architecture output", () => {
     const text = routeText(page);
     for (const marker of [
       `all ${TOOL_COUNT} tools currently registered through allTools`,
-      "v1.0 provides broad Trello workflow coverage",
+      "The v1.0 target is broad Trello workflow coverage",
       "not a one-to-one Trello REST proxy",
-      "v1.0 intentionally does not promise Enterprise administration",
+      "The v1.0 target intentionally excludes Enterprise administration",
     ]) {
       expect(text).toContain(marker);
     }
