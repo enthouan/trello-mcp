@@ -1,5 +1,5 @@
 name: Bug report
-description: Report a reproducible trello-mcp problem with sanitized setup details.
+description: Report a reproducible problem or request a private reporting path without sensitive details.
 title: "[Bug] "
 labels:
   - bug
@@ -8,16 +8,31 @@ body:
     attributes:
       value: |
         > [!IMPORTANT]
-        > Security-sensitive reports, including vulnerabilities or credential exposure, do not belong in public issues. Follow the [security policy](https://github.com/enthouan/trello-mcp/security/policy) instead.
+        > Security-sensitive reports, including vulnerabilities or credential exposure, do not belong in public issues. Follow the [security policy](https://github.com/enthouan/trello-mcp/security/policy) and use GitHub private vulnerability reporting when available.
+
+        If private vulnerability reporting is unavailable, the security policy permits only a short, non-sensitive public summary asking for a private reporting path. Select that fallback below and leave unrelated optional fields blank.
+
+        For a regular bug report, complete every diagnostic field below that applies to your installation and failure.
 
         Never paste a `.env` file. Sanitize logs and configuration before sharing them: remove Trello API keys and tokens, MCP auth tokens, authorization headers, credential-bearing URLs, private Trello data, sensitive local paths, and other private deployment details.
+
+  - type: dropdown
+    id: report_context
+    attributes:
+      label: Report context
+      description: Select whether this is a normal bug report or the limited public fallback described in the security policy.
+      options:
+        - Reproducible bug report
+        - Security policy fallback (non-sensitive summary only)
+    validations:
+      required: true
 
   - type: textarea
     id: summary
     attributes:
-      label: Bug summary
-      description: Describe the failure and its impact in a few sentences.
-      placeholder: What stopped working, and what were you trying to accomplish?
+      label: Public summary
+      description: Summarize the bug and its impact. For the security-policy fallback, state only that you need a private reporting path and the general affected area.
+      placeholder: Describe the problem without credentials, private Trello data, exploit details, or other sensitive information.
     validations:
       required: true
 
@@ -29,9 +44,6 @@ body:
       placeholder: |
         Expected:
         Actual:
-    validations:
-      required: true
-
   - type: textarea
     id: reproduction_steps
     attributes:
@@ -42,8 +54,6 @@ body:
         2. Connect the MCP client using...
         3. Call the tool or endpoint...
         4. Observe...
-    validations:
-      required: true
 
   - type: input
     id: version
@@ -51,8 +61,6 @@ body:
       label: trello-mcp version
       description: Provide a release version, Git tag, commit SHA, or Docker image tag.
       placeholder: "Example: v0.8.1, main at abc1234, or ghcr.io/enthouan/trello-mcp:0.8.1"
-    validations:
-      required: true
 
   - type: dropdown
     id: install_method
@@ -65,8 +73,6 @@ body:
         - Local Node.js and pnpm
         - MCP client-managed process
         - Other
-    validations:
-      required: true
 
   - type: textarea
     id: environment
@@ -77,8 +83,6 @@ body:
         OS and architecture:
         Node.js and pnpm versions:
         MCP client or integration and version:
-    validations:
-      required: true
 
   - type: dropdown
     id: transport
@@ -89,8 +93,6 @@ body:
         - Streamable HTTP
         - stdio
         - Not sure
-    validations:
-      required: true
 
   - type: input
     id: failure_target
