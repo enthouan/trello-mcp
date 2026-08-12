@@ -149,7 +149,7 @@ describe("website package and command boundaries", () => {
     expect(workflow).toContain("pnpm website:check");
     expect(
       workflow.match(
-        /actions\/setup-node@v7\n\s+with:\n\s+node-version-file: \.nvmrc\n\s+cache: pnpm/g,
+        /actions\/setup-node@[0-9a-f]{40} # v7\.0\.0\n\s+with:\n\s+node-version-file: \.nvmrc\n\s+cache: pnpm/g,
       ),
     ).toHaveLength(2);
     expect(workflow).toContain(
@@ -157,7 +157,9 @@ describe("website package and command boundaries", () => {
     );
     expect(workflow.match(/version: 10\.34\.1/g)).toHaveLength(2);
     expect(
-      workflow.match(/actions\/checkout@v7\n\s+with:\n\s+fetch-depth: 0/g),
+      workflow.match(
+        /actions\/checkout@[0-9a-f]{40} # v7\.0\.1\n\s+with:\n\s+fetch-depth: 0/g,
+      ),
     ).toHaveLength(1);
     expect(workflow).toMatch(
       /name: website-qa[\s\S]*website\/playwright-report\/[\s\S]*website\/test-results\/[\s\S]*retention-days: 14/,
