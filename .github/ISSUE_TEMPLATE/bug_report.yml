@@ -79,7 +79,7 @@ body:
     id: failure_deployment_context
     attributes:
       label: Failing surface and sanitized deployment context
-      description: Name the failing tool or endpoint and list only relevant setting names and non-secret values. For Docker or Compose, include its variant, platform, image tag, and healthcheck behavior when applicable.
+      description: Name the failing tool or endpoint and list relevant setting names with non-secret values. For Docker or Compose, include the variant, platform, image tag, and healthcheck behavior when applicable.
       placeholder: |
         Failing tool or endpoint:
         Relevant settings (names and non-secret values only):
@@ -91,7 +91,7 @@ body:
     id: logs_troubleshooting
     attributes:
       label: Sanitized diagnostics and troubleshooting
-      description: Include the smallest relevant log or error excerpt and checks already tried, including whether the problem reproduces on the latest release or current main. Remove credentials, authorization headers, query strings, private Trello data, sensitive paths, and other private deployment details.
+      description: Include the smallest relevant log or error excerpt and what you tried, including results on the latest release or current main. Remove every credential and private detail.
       placeholder: |
         Sanitized log or error excerpt:
         Troubleshooting attempted:
@@ -103,5 +103,5 @@ body:
       label: Public issue safety confirmation
       description: Confirm the report is safe to publish before submitting it.
       options:
-        - label: I confirm this report contains no Trello API key or token, MCP auth token, authorization header, `.env` contents, credential-bearing URL, private Trello data, sensitive path, or unredacted log or configuration.
+        - label: "I confirm: no credentials/auth headers, private Trello data, credential-bearing URLs, sensitive paths, or unredacted logs."
           required: true
