@@ -55,77 +55,47 @@ body:
         3. Call the tool or endpoint...
         4. Observe...
 
-  - type: input
-    id: version
+  - type: textarea
+    id: version_installation
     attributes:
-      label: trello-mcp version
-      description: Provide a release version, Git tag, commit SHA, or Docker image tag.
-      placeholder: "Example: v0.8.1, main at abc1234, or ghcr.io/enthouan/trello-mcp:0.8.1"
-
-  - type: dropdown
-    id: install_method
-    attributes:
-      label: Installation method
-      description: Select the closest match for how trello-mcp is running.
-      options:
-        - Docker image
-        - Docker Compose
-        - Local Node.js and pnpm
-        - MCP client-managed process
-        - Other
+      label: Version and installation
+      description: Provide the release, Git tag, commit SHA, or image tag and the installation method, such as Docker image, Docker Compose, local Node.js and pnpm, or an MCP client-managed process.
+      placeholder: |
+        trello-mcp version, tag, SHA, or image tag:
+        Installation method:
 
   - type: textarea
-    id: environment
+    id: runtime_client_transport
     attributes:
-      label: Runtime and client environment
-      description: "Include only what applies: OS and architecture, Node.js and pnpm versions, and MCP client or integration name and version."
+      label: Runtime, client, and transport
+      description: Include only what applies to this installation and failure.
       placeholder: |
         OS and architecture:
-        Node.js and pnpm versions:
+        Node.js and pnpm versions (source installs only):
+        MCP transport (Streamable HTTP, stdio, or not sure):
         MCP client or integration and version:
 
-  - type: dropdown
-    id: transport
-    attributes:
-      label: Transport
-      description: Which MCP transport is in use?
-      options:
-        - Streamable HTTP
-        - stdio
-        - Not sure
-
-  - type: input
-    id: failure_target
-    attributes:
-      label: Failing tool or endpoint
-      description: Name the MCP tool or HTTP endpoint involved, if applicable.
-      placeholder: "Example: card_get, /mcp, /healthz, or /readyz"
-
   - type: textarea
-    id: sanitized_configuration
+    id: failure_deployment_context
     attributes:
-      label: Sanitized configuration and deployment details
-      description: List only relevant setting names and non-secret values. For Docker or Compose, include the compose variant, platform, image tag, and healthcheck behavior when applicable.
+      label: Failing surface and sanitized deployment context
+      description: Name the failing tool or endpoint and list only relevant setting names and non-secret values. For Docker or Compose, include its variant, platform, image tag, and healthcheck behavior when applicable.
       placeholder: |
+        Failing tool or endpoint:
         Relevant settings (names and non-secret values only):
         Docker or Compose context:
         Platform and image tag:
         Healthcheck result:
 
   - type: textarea
-    id: sanitized_logs
+    id: logs_troubleshooting
     attributes:
-      label: Sanitized logs or error output
-      description: Remove credentials, authorization headers, query strings, private Trello data, sensitive paths, and other private deployment details before pasting output.
-      placeholder: Paste the smallest relevant, fully sanitized excerpt.
-      render: shell
-
-  - type: textarea
-    id: troubleshooting
-    attributes:
-      label: Troubleshooting already attempted
-      description: Note checks already tried, including whether the problem reproduces on the latest release or current main.
-      placeholder: Describe what you tried and what changed, if anything.
+      label: Sanitized diagnostics and troubleshooting
+      description: Include the smallest relevant log or error excerpt and checks already tried, including whether the problem reproduces on the latest release or current main. Remove credentials, authorization headers, query strings, private Trello data, sensitive paths, and other private deployment details.
+      placeholder: |
+        Sanitized log or error excerpt:
+        Troubleshooting attempted:
+        Latest release or current main result:
 
   - type: checkboxes
     id: redaction_confirmation
