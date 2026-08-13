@@ -82,7 +82,7 @@ describe("website package and command boundaries", () => {
     }
     expect(rootPackage.devDependencies).toMatchObject({
       "@playwright/test": "1.62.1",
-      parse5: "7.3.0",
+      parse5: "8.0.1",
       typescript: "7.0.2",
       vitest: "4.1.10",
     });
