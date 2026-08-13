@@ -446,3 +446,22 @@ jobs:
     ]);
   });
 });
+
+describe("GitHub-hosted live validation board safety", () => {
+  it("pins public workflow runs to the documented public disposable boards", async () => {
+    const [smoke, regression] = await Promise.all([
+      readFile(new URL("live-smoke.yml", workflowsDirectory), "utf8"),
+      readFile(new URL("live-regression.yml", workflowsDirectory), "utf8"),
+    ]);
+
+    expect(smoke).toContain('TRELLO_LIVE_SMOKE_BOARD_ID: "hUaItfNq"');
+    expect(smoke).toContain('TRELLO_LIVE_REQUIRE_PUBLIC_BOARD: "1"');
+    expect(smoke).not.toMatch(/board_ref|vars\.TRELLO_LIVE_SMOKE_BOARD_ID/);
+    expect(regression).toContain('TRELLO_LIVE_REGRESSION_BOARD_ID: "hUaItfNq"');
+    expect(regression).toContain(
+      'TRELLO_LIVE_REGRESSION_SECONDARY_BOARD_ID: "r9BpowfZ"',
+    );
+    expect(regression).toContain('TRELLO_LIVE_REQUIRE_PUBLIC_BOARD: "1"');
+    expect(regression).not.toMatch(/(?:secondary_)?board_ref/);
+  });
+});

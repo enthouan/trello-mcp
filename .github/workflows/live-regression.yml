@@ -3,16 +3,6 @@ name: Live Trello Regression
 on:
   workflow_dispatch:
     inputs:
-      board_ref:
-        description: "Disposable Trello regression board id, short link, or URL."
-        required: true
-        default: "hUaItfNq"
-        type: string
-      secondary_board_ref:
-        description: "Disposable secondary Trello board id, short link, or URL used for cross-board list moves."
-        required: false
-        default: "r9BpowfZ"
-        type: string
       domains:
         description: "Optional comma-separated regression domains to run."
         required: false
@@ -48,8 +38,9 @@ jobs:
       - run: pnpm regression:live
         env:
           TRELLO_LIVE_REGRESSION: "1"
-          TRELLO_LIVE_REGRESSION_BOARD_ID: ${{ inputs.board_ref }}
-          TRELLO_LIVE_REGRESSION_SECONDARY_BOARD_ID: ${{ inputs.secondary_board_ref }}
+          TRELLO_LIVE_REQUIRE_PUBLIC_BOARD: "1"
+          TRELLO_LIVE_REGRESSION_BOARD_ID: "hUaItfNq"
+          TRELLO_LIVE_REGRESSION_SECONDARY_BOARD_ID: "r9BpowfZ"
           TRELLO_LIVE_REGRESSION_DOMAINS: ${{ inputs.domains }}
           TRELLO_LIVE_REGRESSION_TOOLS: ${{ inputs.tools }}
           TRELLO_LIVE_REGRESSION_REPORT_JSON: reports/live-regression.json

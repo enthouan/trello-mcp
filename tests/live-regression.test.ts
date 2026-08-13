@@ -14,13 +14,14 @@ import {
   runLiveRegressionSuite,
   writeLiveRegressionJsonReport,
 } from "../scripts/live-regression.js";
-import type { SmokeToolInvoker } from "../scripts/live-smoke.js";
+import type { SmokeLogEvent, SmokeToolInvoker } from "../scripts/live-smoke.js";
 
 type FakeBoard = {
   closed: boolean;
   id: string;
   idOrganization: string | null;
   name: string;
+  prefs: { permissionLevel: string };
 };
 
 type FakeList = {
@@ -136,6 +137,7 @@ describe("live regression config", () => {
           "https://www.trello.com/b/GnKmvuHz/board",
         TRELLO_LIVE_REGRESSION_DOMAINS: "cards,attachments",
         TRELLO_LIVE_REGRESSION_REPORT_JSON: "reports/live.json",
+        TRELLO_LIVE_REQUIRE_PUBLIC_BOARD: "yes",
         TRELLO_LIVE_REGRESSION_SECONDARY_BOARD_URL:
           "https://trello.com/b/r9BpowfZ/secondary",
         TRELLO_LIVE_REGRESSION_TOOLS: "card_get,card_attachment_upload",
@@ -153,6 +155,7 @@ describe("live regression config", () => {
       domains: ["cards", "attachments"],
       jsonReportPath: "reports/live.json",
       logLevel: "debug",
+      requirePublicBoard: true,
       runId: "local-2026-06-14T10-11-12-123Z",
       secondaryBoardRef: "r9BpowfZ",
       tools: ["card_get", "card_attachment_upload"],
@@ -404,6 +407,92 @@ describe("live regression suite", () => {
       ]),
     );
     expect(result.cleanup.remainingOpenArtifacts).toEqual([]);
+  });
+
+  it("requires a public primary board before hosted regression output or writes", async () => {
+    const fake = createFakeRegressionInvoker({
+      boardPermissionLevel: "private",
+    });
+    const logs: SmokeLogEvent[] = [];
+
+    let thrown: unknown;
+    try {
+      await runLiveRegressionSuite({
+        boardRef: "board1",
+        invoke: fake.invoke,
+        log: (event) => logs.push(event),
+        requirePublicBoard: true,
+        runId: "public-primary-guard",
+      });
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(LiveRegressionRunError);
+    const result = (thrown as LiveRegressionRunError).result;
+    const output = JSON.stringify({ logs, result });
+    expect(output).not.toContain("Live Regression Board");
+    expect(output).not.toContain("board1");
+    expect(result.board).toEqual({ id: "unresolved", name: "unknown" });
+    expect(result.failures).toEqual([
+      "Configured live regression board must be public when TRELLO_LIVE_REQUIRE_PUBLIC_BOARD=1.",
+    ]);
+    expect(fake.calls.map(({ name }) => name)).toEqual([
+      "auth_whoami",
+      "auth_token_info",
+      "board_get",
+    ]);
+    expect(fake.state.cards.size).toBe(0);
+    expect(fake.state.labels.size).toBe(0);
+    expect(fake.state.lists.size).toBe(0);
+  });
+
+  it("requires a public secondary board before cross-board writes", async () => {
+    const fake = createFakeRegressionInvoker({
+      secondaryBoardPermissionLevel: "private",
+    });
+
+    let thrown: unknown;
+    try {
+      await runLiveRegressionSuite({
+        boardRef: "board1",
+        invoke: fake.invoke,
+        requirePublicBoard: true,
+        runId: "public-secondary-guard",
+        secondaryBoardRef: "board2",
+        tools: ["list_move_to_board"],
+      });
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(LiveRegressionRunError);
+    const result = (thrown as LiveRegressionRunError).result;
+    expect(JSON.stringify(result)).not.toContain("Live Regression Board 2");
+    expect(JSON.stringify(result)).not.toContain("board2");
+    expect(result.secondaryBoard).toBeUndefined();
+    expect(result.failures).toEqual([
+      "Configured secondary live regression board must be public when TRELLO_LIVE_REQUIRE_PUBLIC_BOARD=1.",
+    ]);
+    expect(fake.calls.map(({ name }) => name)).not.toContain("list_create");
+    expect(fake.calls.map(({ name }) => name)).not.toContain(
+      "list_move_to_board",
+    );
+  });
+
+  it("allows private disposable boards when the hosted guard is disabled", async () => {
+    const fake = createFakeRegressionInvoker({
+      boardPermissionLevel: "private",
+    });
+
+    const result = await runLiveRegressionSuite({
+      boardRef: "board1",
+      domains: ["auth"],
+      invoke: fake.invoke,
+      runId: "local-private-board",
+    });
+
+    expect(result.failures).toEqual([]);
   });
 
   it("supports targeted domain and tool filters without running unrelated write domains", async () => {
@@ -743,6 +832,42 @@ describe("live regression suite", () => {
     ).toEqual([]);
   });
 
+  it("does not use an unrelated visible workspace when the board has no organization", async () => {
+    const fake = createFakeRegressionInvoker({ boardHasWorkspace: false });
+
+    const result = await runLiveRegressionSuite({
+      boardRef: "board1",
+      domains: ["workspaces"],
+      invoke: fake.invoke,
+      runId: "board-without-workspace",
+    });
+
+    expect(result.coverage).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          status: "covered",
+          tool: "list_workspaces",
+        }),
+        expect.objectContaining({ status: "skipped", tool: "workspace_get" }),
+        expect.objectContaining({
+          status: "skipped",
+          tool: "workspace_boards",
+        }),
+        expect.objectContaining({
+          status: "skipped",
+          tool: "workspace_members",
+        }),
+      ]),
+    );
+    expect(fake.calls.map((call) => call.name)).not.toEqual(
+      expect.arrayContaining([
+        "workspace_get",
+        "workspace_boards",
+        "workspace_members",
+      ]),
+    );
+  });
+
   it("covers upload attachments only when upload file config is explicitly present", async () => {
     const fake = createFakeRegressionInvoker();
     const result = await runLiveRegressionSuite({
@@ -789,7 +914,9 @@ describe("live regression suite", () => {
 
     expect(thrown).toBeInstanceOf(LiveRegressionRunError);
     const result = (thrown as LiveRegressionRunError).result;
-    expect(result.failures).toEqual(["planned failure in card_update"]);
+    expect(result.failures).toEqual([
+      "Live Trello tool invocation failed: card_update.",
+    ]);
     expect(result.cleanup.completed).toEqual(
       expect.arrayContaining([
         expect.stringContaining("delete regression card"),
@@ -800,6 +927,119 @@ describe("live regression suite", () => {
     expect(
       Array.from(fake.state.lists.values()).every((list) => list.closed),
     ).toBe(true);
+  });
+
+  it("keeps raw private tool failures out of every regression output", async () => {
+    const privateIdentifiers = [
+      "member1",
+      "membership1",
+      "Ada Lovelace",
+      "workspace1",
+      "https://trello.com/w/regression",
+    ];
+    const failureMessage = [
+      "planned failure in card_member_remove",
+      "member-id member1",
+      "membership membership1",
+      "username u",
+      "full-name Ada Lovelace",
+      "workspace-id workspace1",
+      "workspace-name w",
+      "display-name W",
+      "workspace-url https://trello.com/w/regression",
+      "unlearned-private-value",
+    ].join("; ");
+    const fake = createFakeRegressionInvoker({
+      failOn: "card_member_remove",
+      failureMessage,
+      memberUsername: "u",
+      workspaceDisplayName: "W",
+      workspaceName: "w",
+    });
+    const logs: SmokeLogEvent[] = [];
+
+    let thrown: unknown;
+    try {
+      await runLiveRegressionSuite({
+        boardRef: "board1",
+        domains: ["workspaces", "members"],
+        invoke: fake.invoke,
+        log: (event) => logs.push(event),
+        runId: "private-identifiers",
+      });
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(LiveRegressionRunError);
+    const result = (thrown as LiveRegressionRunError).result;
+    const dir = await mkdtemp(join(tmpdir(), "trello-mcp-private-report-"));
+    tempDirs.push(dir);
+    const jsonPath = join(dir, "report.json");
+    await writeLiveRegressionJsonReport(result, jsonPath);
+    const outputs = [
+      await readFile(jsonPath, "utf8"),
+      formatLiveRegressionMarkdownSummary(result),
+      JSON.stringify(logs),
+    ];
+
+    for (const output of outputs) {
+      for (const identifier of privateIdentifiers) {
+        expect(output).not.toContain(identifier);
+      }
+      expect(output).not.toContain("username u");
+      expect(output).not.toContain("workspace-name w");
+      expect(output).not.toContain("display-name W");
+      expect(output).not.toContain("unlearned-private-value");
+      expect(output).toContain(
+        "Live Trello tool invocation failed: card_member_remove.",
+      );
+    }
+    const terminalReport = [
+      formatLiveRegressionReport(result),
+      ...result.failures.map((failure) => `Failure: ${failure}`),
+      ...result.cleanup.failures.map(
+        (failure) => `Cleanup failure: ${failure}`,
+      ),
+    ].join("\n");
+    for (const identifier of privateIdentifiers) {
+      expect(terminalReport).not.toContain(identifier);
+    }
+    expect(terminalReport).not.toContain("username u");
+    expect(terminalReport).not.toContain("workspace-name w");
+    expect(terminalReport).not.toContain("display-name W");
+    expect(terminalReport).not.toContain("unlearned-private-value");
+    const safeFailure =
+      "Live Trello tool invocation failed: card_member_remove.";
+    expect(terminalReport).toContain(safeFailure);
+    expect(result.failures).toEqual([safeFailure]);
+    expect(result.cleanup.attempted).toContain("remove regression card member");
+    expect(result.cleanup.attempted.join(" ")).not.toContain("member1");
+    expect(result.cleanup.failures[0]).toContain(
+      `remove regression card member: ${safeFailure}`,
+    );
+    expect(result.coverage).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          status: "covered",
+          tool: "list_workspaces",
+        }),
+        expect.objectContaining({
+          status: "missing",
+          tool: "card_member_remove",
+        }),
+      ]),
+    );
+    for (const tool of [
+      "member_get",
+      "member_boards",
+      "member_cards",
+      "member_workspaces",
+    ]) {
+      expect(
+        fake.calls.find((call) => call.name === tool)?.input.memberId,
+      ).toBe("me");
+    }
   });
 
   it("archives a moved list and checks the secondary board after a post-move failure", async () => {
@@ -823,7 +1063,7 @@ describe("live regression suite", () => {
     expect(thrown).toBeInstanceOf(LiveRegressionRunError);
     const result = (thrown as LiveRegressionRunError).result;
     expect(result.failures).toEqual([
-      "planned post-move failure in list_move_to_board",
+      "Live Trello tool invocation failed: list_move_to_board.",
     ]);
     expect(result.cleanup.completed).toEqual(
       expect.arrayContaining([
@@ -940,11 +1180,18 @@ describe("live regression suite", () => {
 
 function createFakeRegressionInvoker(
   options: {
+    boardHasWorkspace?: boolean;
+    boardPermissionLevel?: string;
     customFields?: unknown[];
     domains?: LiveRegressionDomain[];
     failAfterCreateOn?: string;
     failAfterMoveOn?: string;
     failOn?: string;
+    failureMessage?: string;
+    memberUsername?: string;
+    secondaryBoardPermissionLevel?: string;
+    workspaceDisplayName?: string;
+    workspaceName?: string;
     workspaceVisible?: boolean;
   } = {},
 ): {
@@ -965,14 +1212,24 @@ function createFakeRegressionInvoker(
   const board: FakeBoard = {
     closed: false,
     id: "board1",
-    idOrganization: options.workspaceVisible === false ? null : "workspace1",
+    idOrganization:
+      options.boardHasWorkspace === false || options.workspaceVisible === false
+        ? null
+        : "workspace1",
     name: "Live Regression Board",
+    prefs: { permissionLevel: options.boardPermissionLevel ?? "public" },
   };
   const secondaryBoard: FakeBoard = {
     closed: false,
     id: "board2",
-    idOrganization: options.workspaceVisible === false ? null : "workspace1",
+    idOrganization:
+      options.boardHasWorkspace === false || options.workspaceVisible === false
+        ? null
+        : "workspace1",
     name: "Live Regression Board 2",
+    prefs: {
+      permissionLevel: options.secondaryBoardPermissionLevel ?? "public",
+    },
   };
   const boards = new Map<string, FakeBoard>([
     [board.id, board],
@@ -981,13 +1238,13 @@ function createFakeRegressionInvoker(
   const member: FakeMember = {
     fullName: "Ada Lovelace",
     id: "member1",
-    username: "ada",
+    username: options.memberUsername ?? "ada",
   };
   const workspace = {
-    displayName: "Regression Workspace",
+    displayName: options.workspaceDisplayName ?? "Regression Workspace",
     id: "workspace1",
     idBoards: [...boards.keys()],
-    name: "regression-workspace",
+    name: options.workspaceName ?? "regression-workspace",
     url: "https://trello.com/w/regression",
     website: null,
   };
@@ -1009,7 +1266,7 @@ function createFakeRegressionInvoker(
   const invoke: SmokeToolInvoker = async (name, input) => {
     calls.push({ input, name });
     if (options.failOn === name) {
-      throw new Error(`planned failure in ${name}`);
+      throw new Error(options.failureMessage ?? `planned failure in ${name}`);
     }
 
     switch (name) {

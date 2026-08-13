@@ -1,6 +1,6 @@
 version: 2
 updates:
-  # Cadence and grouping are intentionally conservative before public launch:
+  # Cadence and grouping are intentionally conservative for review stability:
   # weekly checks, low PR limits, grouped minor/patch updates, and separate majors.
   - package-ecosystem: "npm"
     directory: "/"

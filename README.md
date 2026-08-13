@@ -293,6 +293,8 @@ corepack pnpm smoke:live
 
 You may use `TRELLO_LIVE_SMOKE_BOARD_URL` instead of `TRELLO_LIVE_SMOKE_BOARD_ID`; Trello `trello.com/b/...` board URLs are normalized to their short link, then the harness resolves the canonical board id with `board_get` before creating anything. Non-board URLs are rejected without logging their raw value or query string. `TRELLO_LIVE_SMOKE_RUN_ID` is optional and is included in temporary artifact names when set.
 
+Set `TRELLO_LIVE_REQUIRE_PUBLIC_BOARD=1` when output may be published. The harness then verifies Trello reports the board as public before recording its identity or performing writes. This is optional for local private disposable-board validation.
+
 Safety model:
 
 - The command exits before any Trello request unless `TRELLO_LIVE_SMOKE=1`, Trello credentials, and a smoke board id or URL are all present.
@@ -325,6 +327,8 @@ corepack pnpm regression:live
 ```
 
 Use `TRELLO_LIVE_REGRESSION_BOARD_URL` instead of `TRELLO_LIVE_REGRESSION_BOARD_ID` when a `trello.com/b/...` board URL is more convenient. Non-board URLs are rejected before any Trello request and without logging raw query strings.
+
+Set `TRELLO_LIVE_REQUIRE_PUBLIC_BOARD=1` when output or the JSON report may be published. The harness then verifies Trello reports every configured board as public before recording its identity or performing writes. Local private disposable-board runs can omit this flag and keep their output private.
 
 Set `TRELLO_LIVE_REGRESSION_SECONDARY_BOARD_ID` or `TRELLO_LIVE_REGRESSION_SECONDARY_BOARD_URL` when you want live coverage for cross-board list moves. The secondary board is optional for local runs; when it is absent, `list_move_to_board` is reported as an intentional runtime skip instead of missing coverage. When it is present, the suite resolves it with `board_get`, confirms the token can see it through `list_boards`, verifies it is open and different from the primary board, then moves only disposable lists between the two boards.
 
@@ -406,7 +410,7 @@ Before using it, configure a GitHub Environment named `live-smoke` with these se
 
 Use environment required reviewers if the repository has more than one maintainer or if the token can access anything beyond the smoke board. The workflow maps those secrets to `TRELLO_API_KEY` and `TRELLO_TOKEN` only for the `pnpm smoke:live` step. The job sets `environment.deployment: false`, so the GitHub Environment still scopes secrets and protection rules without creating Deployment records. Do not use `pull_request_target` for this workflow.
 
-The default smoke board is the public disposable test board short link `hUaItfNq`. Override it for same-repository PR runs with environment variable `TRELLO_LIVE_SMOKE_BOARD_ID`, or override `board_ref` when running manually from the Actions tab. A public board is acceptable for smoke testing when temporary artifact names and activity history can be visible, but public visibility does not remove the need for Trello credentials because the harness performs writes.
+The hosted smoke workflow is fixed to the public disposable test board short link `hUaItfNq` and sets `TRELLO_LIVE_REQUIRE_PUBLIC_BOARD=1`, so it fails before identity output or writes if Trello no longer reports that board as public. It does not accept a board override, so a maintainer cannot accidentally publish a private board's identifiers through public Actions logs or summaries. A public board is acceptable for smoke testing when temporary artifact names and activity history can be visible, but public visibility does not remove the need for Trello credentials because the harness performs writes. For another disposable board, use the local command above and keep private-board output out of public logs and artifacts.
 
 The broader `Live Trello Regression` workflow is manual-only and should be used for release candidates or focused live debugging, not as an ordinary PR gate. Configure a GitHub Environment named `live-regression` with:
 
@@ -415,7 +419,7 @@ The broader `Live Trello Regression` workflow is manual-only and should be used 
 | `TRELLO_LIVE_REGRESSION_API_KEY` | Trello API key for a dedicated regression-test Trello member. |
 | `TRELLO_LIVE_REGRESSION_TOKEN` | Trello token for that same member, with write access to the disposable regression board. |
 
-The manual workflow accepts optional `domains` and `tools` inputs and uploads `reports/live-regression.json` when the command produces it. It also sets `environment.deployment: false` because live regression is secret-backed validation, not an app deployment. Fork pull requests must not receive Trello credentials; keep live regression on `workflow_dispatch` or another explicitly secret-backed workflow.
+The hosted regression workflow is fixed to the public disposable primary and secondary boards `hUaItfNq` and `r9BpowfZ` and sets `TRELLO_LIVE_REQUIRE_PUBLIC_BOARD=1`, so it fails before identity output or writes if Trello no longer reports either board as public. It accepts optional `domains` and `tools` inputs and uploads `reports/live-regression.json` when the command produces it. To use different boards, run the command locally and do not publish a report for a private board. The workflow also sets `environment.deployment: false` because live regression is secret-backed validation, not an app deployment. Fork pull requests must not receive Trello credentials; keep live regression on `workflow_dispatch` or another explicitly secret-backed workflow.
 
 The `Release` workflow builds the published multi-architecture Docker image for `linux/amd64` and `linux/arm64` on pushes to `main` and `v*.*.*` tags. It can also be run manually from a branch with `push=false` to perform a no-push multi-platform validation before release-image changes merge. Leave `push=false` for dry runs; only use `push=true` when intentionally publishing to GHCR.
 

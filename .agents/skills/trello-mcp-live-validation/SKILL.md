@@ -50,7 +50,7 @@ Confirm the target board before mutations. For manual roadmap-board smoke passes
 https://trello.com/b/GnKmvuHz/trello-mcp-enthouan-trello-mcp
 ```
 
-For scripted smoke/regression validation, prefer a disposable board reserved for live validation. The GitHub workflow default is the disposable public board short link `hUaItfNq`, unless overridden by workflow input or environment variable.
+For scripted smoke/regression validation, prefer a disposable board reserved for live validation. The GitHub-hosted workflows are fixed to the public disposable boards documented below and set `TRELLO_LIVE_REQUIRE_PUBLIC_BOARD=1`, which verifies Trello still reports each board as public before identity output or writes. Local commands remain configurable for private disposable-board validation by omitting that flag and keeping the output private.
 
 Accept either a board id/short link or a `trello.com/b/...` URL. The scripts normalize board URLs to their short link and resolve the canonical board id with `board_get` before creating artifacts. In a manual MCP-session pass, do the same: resolve and record the real board id before any write.
 
@@ -187,7 +187,7 @@ If using GitHub Actions, include the workflow run URL and conclusion. If the loc
 
 Use the `Live Trello Smoke` workflow for remote PR, post-merge `main`, and release validation. It runs offline gates before the secret-backed `pnpm smoke:live` step, and fork PRs are skipped so Trello credentials are not exposed to untrusted code. Never convert this workflow to `pull_request_target`.
 
-Use the `Live Trello Regression` workflow for manual release-candidate or focused live debugging. It is intentionally manual-only and should not become a normal PR gate without an explicit project decision. Its default `secondary_board_ref` input points at the secondary disposable board so full workflow runs can cover `list_move_to_board`; override it only with another disposable board.
+Use the `Live Trello Regression` workflow for manual release-candidate or focused live debugging. It is intentionally manual-only and should not become a normal PR gate without an explicit project decision. The hosted workflow uses the public primary board `hUaItfNq` and public secondary board `r9BpowfZ` so full runs can cover `list_move_to_board`. Use the local command for other disposable boards, and keep private-board reports out of public Actions artifacts.
 
 Before asking GitHub Actions to run live validation, confirm the repository has the appropriate Environment and secrets:
 

@@ -105,8 +105,7 @@ state any filters in the PR/review handoff.
 
 ```bash
 gh workflow run "Live Trello Regression" --repo enthouan/trello-mcp \
-  --ref <RELEASE_BRANCH> \
-  -f board_ref=<DISPOSABLE_BOARD_ID_OR_SHORT_LINK>
+  --ref <RELEASE_BRANCH>
 gh run list --repo enthouan/trello-mcp --workflow "Live Trello Regression" \
   --branch <RELEASE_BRANCH> --event workflow_dispatch --limit 5 \
   --json databaseId,status,conclusion,createdAt,url,headBranch,headSha

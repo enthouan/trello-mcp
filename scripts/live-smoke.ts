@@ -25,6 +25,7 @@ type LiveSmokeClientConfig = Pick<
 export type LiveSmokeConfig = LiveSmokeClientConfig & {
   boardRef: string;
   logLevel: Config["LOG_LEVEL"];
+  requirePublicBoard: boolean;
   runId: string;
 };
 
@@ -67,6 +68,7 @@ export type LiveSmokeResult = {
 };
 
 type TrackedState = {
+  memberIdentifiers: Set<string>;
   boardResolved?: boolean;
   cardId?: string;
   labelApplied?: boolean;
@@ -131,6 +133,7 @@ export function loadLiveSmokeConfig(
     TRELLO_TOKEN: token as string,
     boardRef: boardRef as string,
     logLevel: parseLogLevel(env.LOG_LEVEL),
+    requirePublicBoard: isOptedIn(env.TRELLO_LIVE_REQUIRE_PUBLIC_BOARD),
     runId: smokeRunId(env.TRELLO_LIVE_SMOKE_RUN_ID, now),
   };
 
@@ -176,18 +179,35 @@ export async function runLiveSmokeFlow(options: {
   boardRef: string;
   invoke: SmokeToolInvoker;
   log?: (event: SmokeLogEvent) => void;
+  requirePublicBoard?: boolean;
+  runId: string;
+}): Promise<LiveSmokeResult> {
+  return runLiveSmokeFlowWithSafeInvoker({
+    ...options,
+    invoke: createPrivacySafeInvoker(options.invoke),
+  });
+}
+
+async function runLiveSmokeFlowWithSafeInvoker(options: {
+  boardRef: string;
+  invoke: SmokeToolInvoker;
+  log?: (event: SmokeLogEvent) => void;
+  requirePublicBoard?: boolean;
   runId: string;
 }): Promise<LiveSmokeResult> {
   const boardRef = boardIdentifier(options.boardRef, "boardRef");
   const prefix = `trello-mcp live smoke ${options.runId}`;
-  const state: TrackedState = {};
-  const result = emptyResult(options.runId, boardRef);
+  const state: TrackedState = { memberIdentifiers: new Set() };
+  const result = emptyResult(
+    options.runId,
+    options.requirePublicBoard === true ? "unresolved" : boardRef,
+  );
   let failure: unknown;
 
   options.log?.({
     level: "info",
     message: "Starting live Trello smoke test",
-    details: { boardRef, runId: options.runId },
+    details: { runId: options.runId },
   });
 
   try {
@@ -198,6 +218,7 @@ export async function runLiveSmokeFlow(options: {
       "auth_whoami",
     );
     const memberId = stringField(authMember, "id", "auth_whoami");
+    rememberMemberIdentifiers(state, authMember);
     state.memberId = memberId;
 
     await options.invoke("auth_token_info", {
@@ -207,9 +228,14 @@ export async function runLiveSmokeFlow(options: {
     const board = await objectResult(
       options.invoke("board_get", {
         boardId: boardRef,
-        fields: "name,closed,url",
+        fields: "name,closed,url,prefs",
       }),
       "board_get",
+    );
+    assertPublicBoardWhenRequired(
+      board,
+      options.requirePublicBoard === true,
+      "Configured live smoke board",
     );
     const boardId = stringField(board, "id", "board_get");
     const boardName = stringField(board, "name", "board_get");
@@ -221,7 +247,10 @@ export async function runLiveSmokeFlow(options: {
     verify(result, `authenticated and resolved board ${boardName}`);
 
     const visibleBoards = await arrayResult(
-      options.invoke("list_boards", { fields: "name,closed", filter: "open" }),
+      options.invoke("list_boards", {
+        fields: "name,closed",
+        filter: "open",
+      }),
       "list_boards",
     );
     assertContainsId(visibleBoards, boardId, "list_boards");
@@ -261,7 +290,8 @@ export async function runLiveSmokeFlow(options: {
       }),
       "board_members",
     );
-    await arrayResult(
+    rememberMemberIdentifiers(state, boardMembers);
+    const memberships = await arrayResult(
       options.invoke("board_memberships", {
         boardId,
         filter: "all",
@@ -270,6 +300,7 @@ export async function runLiveSmokeFlow(options: {
       }),
       "board_memberships",
     );
+    rememberMemberIdentifiers(state, memberships);
     verify(
       result,
       `read board discovery data (${existingLists.length} existing open lists)`,
@@ -610,7 +641,7 @@ export async function runLiveSmokeFlow(options: {
     verify(result, "created, updated, listed, and deleted a card comment");
   } catch (error) {
     failure = error;
-    const message = errorMessage(error);
+    const message = sanitizedSmokeErrorMessage(state, error);
     result.failures.push(message);
     options.log?.({
       level: "error",
@@ -628,7 +659,13 @@ export async function runLiveSmokeFlow(options: {
   }
 
   if (hasResolvedBoard(state)) {
-    await verifyNoOpenArtifacts(options.invoke, result, prefix, options.log);
+    await verifyNoOpenArtifacts(
+      options.invoke,
+      result,
+      prefix,
+      state,
+      options.log,
+    );
   }
 
   if (
@@ -718,21 +755,31 @@ async function cleanupLiveArtifacts(options: {
   const { invoke, result, state } = options;
 
   if (state.cardId && state.memberAssigned && state.memberId) {
-    await cleanupStep(result, options.log, "remove smoke card member", () =>
-      invoke("card_member_remove", {
-        cardId: state.cardId as string,
-        memberId: state.memberId as string,
-      }),
+    await cleanupStep(
+      result,
+      options.log,
+      state,
+      "remove smoke card member",
+      () =>
+        invoke("card_member_remove", {
+          cardId: state.cardId as string,
+          memberId: state.memberId as string,
+        }),
     );
     state.memberAssigned = false;
   }
 
   if (state.cardId && state.labelApplied && state.labelId) {
-    await cleanupStep(result, options.log, "remove smoke card label", () =>
-      invoke("card_label_remove", {
-        cardId: state.cardId as string,
-        labelId: state.labelId as string,
-      }),
+    await cleanupStep(
+      result,
+      options.log,
+      state,
+      "remove smoke card label",
+      () =>
+        invoke("card_label_remove", {
+          cardId: state.cardId as string,
+          labelId: state.labelId as string,
+        }),
     );
     state.labelApplied = false;
   }
@@ -741,14 +788,19 @@ async function cleanupLiveArtifacts(options: {
     await cleanupStep(
       result,
       options.log,
+      state,
       `delete smoke label ${label.id}`,
       () => invoke("label_delete", { labelId: label.id }),
     );
   }
 
   for (const card of [...result.created.cards].reverse()) {
-    await cleanupStep(result, options.log, `delete smoke card ${card.id}`, () =>
-      invoke("card_delete", { cardId: card.id }),
+    await cleanupStep(
+      result,
+      options.log,
+      state,
+      `delete smoke card ${card.id}`,
+      () => invoke("card_delete", { cardId: card.id }),
     );
   }
 
@@ -758,6 +810,7 @@ async function cleanupLiveArtifacts(options: {
       ...(options.log ? { log: options.log } : {}),
       prefix: options.prefix,
       result,
+      state,
     });
   }
 
@@ -765,6 +818,7 @@ async function cleanupLiveArtifacts(options: {
     await cleanupStep(
       result,
       options.log,
+      state,
       `archive smoke list ${list.id}`,
       () => invoke("list_archive", { closed: true, listId: list.id }),
     );
@@ -776,8 +830,9 @@ async function cleanupUntrackedOpenArtifacts(options: {
   log?: (event: SmokeLogEvent) => void;
   prefix: string;
   result: LiveSmokeResult;
+  state: TrackedState;
 }): Promise<void> {
-  const { invoke, prefix, result } = options;
+  const { invoke, prefix, result, state } = options;
   const trackedLabelIds = new Set(result.created.labels.map(({ id }) => id));
   const trackedCardIds = new Set(result.created.cards.map(({ id }) => id));
   const trackedListIds = new Set(result.created.lists.map(({ id }) => id));
@@ -814,7 +869,7 @@ async function cleanupUntrackedOpenArtifacts(options: {
       ),
     ]);
   } catch (error) {
-    const message = `discover untracked smoke artifacts: ${errorMessage(error)}`;
+    const message = `discover untracked smoke artifacts: ${sanitizedSmokeErrorMessage(state, error)}`;
     result.cleanup.failures.push(message);
     options.log?.({
       level: "warn",
@@ -832,6 +887,7 @@ async function cleanupUntrackedOpenArtifacts(options: {
     await cleanupStep(
       result,
       options.log,
+      state,
       `delete untracked smoke label ${label.id}`,
       () => invoke("label_delete", { labelId: label.id }),
     );
@@ -841,6 +897,7 @@ async function cleanupUntrackedOpenArtifacts(options: {
     await cleanupStep(
       result,
       options.log,
+      state,
       `delete untracked smoke card ${card.id}`,
       () => invoke("card_delete", { cardId: card.id }),
     );
@@ -850,6 +907,7 @@ async function cleanupUntrackedOpenArtifacts(options: {
     await cleanupStep(
       result,
       options.log,
+      state,
       `archive untracked smoke list ${list.id}`,
       () => invoke("list_archive", { closed: true, listId: list.id }),
     );
@@ -868,6 +926,7 @@ async function cleanupUntrackedOpenArtifacts(options: {
 async function cleanupStep(
   result: LiveSmokeResult,
   log: ((event: SmokeLogEvent) => void) | undefined,
+  state: TrackedState,
   label: string,
   action: () => Promise<unknown>,
 ): Promise<void> {
@@ -876,7 +935,7 @@ async function cleanupStep(
     await action();
     result.cleanup.completed.push(label);
   } catch (error) {
-    const message = `${label}: ${errorMessage(error)}`;
+    const message = `${label}: ${sanitizedSmokeErrorMessage(state, error)}`;
     result.cleanup.failures.push(message);
     log?.({
       level: "warn",
@@ -890,6 +949,7 @@ async function verifyNoOpenArtifacts(
   invoke: SmokeToolInvoker,
   result: LiveSmokeResult,
   prefix: string,
+  state: TrackedState,
   log?: (event: SmokeLogEvent) => void,
 ): Promise<void> {
   try {
@@ -932,7 +992,7 @@ async function verifyNoOpenArtifacts(
       );
     }
   } catch (error) {
-    const message = `cleanup verification: ${errorMessage(error)}`;
+    const message = `cleanup verification: ${sanitizedSmokeErrorMessage(state, error)}`;
     result.cleanup.failures.push(message);
     log?.({
       level: "warn",
@@ -1149,6 +1209,83 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+export function createPrivacySafeInvoker(
+  invoke: SmokeToolInvoker,
+): SmokeToolInvoker {
+  return async (name, input) => {
+    try {
+      return await invoke(name, input);
+    } catch (cause) {
+      throw new Error(`Live Trello tool invocation failed: ${name}.`, {
+        cause,
+      });
+    }
+  };
+}
+
+export function assertPublicBoardWhenRequired(
+  board: Record<string, unknown>,
+  required: boolean,
+  label: string,
+): void {
+  if (!required) {
+    return;
+  }
+  const prefs = board.prefs;
+  if (!isRecord(prefs) || prefs.permissionLevel !== "public") {
+    throw new Error(
+      `${label} must be public when TRELLO_LIVE_REQUIRE_PUBLIC_BOARD=1.`,
+    );
+  }
+}
+
+function rememberMemberIdentifiers(state: TrackedState, value: unknown): void {
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      rememberMemberIdentifiers(state, item);
+    }
+    return;
+  }
+  if (!isRecord(value)) {
+    return;
+  }
+  for (const field of ["id", "idMember", "username", "fullName", "avatarUrl"]) {
+    const identifier = value[field];
+    if (typeof identifier === "string" && identifier.length > 0) {
+      state.memberIdentifiers.add(identifier);
+    }
+  }
+  if (value.member !== undefined) {
+    rememberMemberIdentifiers(state, value.member);
+  }
+}
+
+function sanitizedSmokeErrorMessage(
+  state: TrackedState,
+  error: unknown,
+): string {
+  const identifiers = [...state.memberIdentifiers].sort(
+    (left, right) => right.length - left.length,
+  );
+  let message = errorMessage(error);
+  for (const identifier of identifiers) {
+    message = replaceIdentifier(message, identifier, "[member]");
+  }
+  return message;
+}
+
+function replaceIdentifier(
+  message: string,
+  identifier: string,
+  replacement: string,
+): string {
+  const escaped = identifier.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return message.replace(
+    new RegExp(`(?<![\\p{L}\\p{N}_-])${escaped}(?![\\p{L}\\p{N}_-])`, "gu"),
+    replacement,
+  );
+}
+
 function redactedMessage(error: unknown, secrets: readonly string[]): string {
   let message = errorMessage(error);
   for (const secret of secrets) {
@@ -1200,6 +1337,7 @@ async function main(): Promise<void> {
       boardRef: config.boardRef,
       invoke,
       log: printEvent,
+      requirePublicBoard: config.requirePublicBoard,
       runId: config.runId,
     });
     console.log(formatLiveSmokeSummary(result));
