@@ -175,7 +175,7 @@ test("homepage actions, marks, and hover feedback remain visitor-observable", as
   await expect(actions.nth(0)).toHaveAttribute("href", "/getting-started/");
   await expect(actions.nth(1)).toHaveAttribute("href", REPOSITORY_URL);
   await expect(actions.nth(1).locator("svg[aria-hidden='true']")).toHaveCount(
-    2,
+    1,
   );
 
   for (const theme of ["light", "dark"] as const) {
@@ -213,113 +213,141 @@ test("homepage actions, marks, and hover feedback remain visitor-observable", as
 });
 
 for (const viewport of [
-  { name: "desktop", width: 1440, height: 900 },
-  { name: "mobile", width: 390, height: 844 },
+  { name: "wide desktop", width: 1440, height: 900 },
+  { name: "navigation breakpoint", width: 800, height: 900 },
 ] as const) {
-  test(`homepage star count reserves stable ${viewport.name} action space`, async ({
+  test(`repository count reserves stable ${viewport.name} header space`, async ({
     page,
   }) => {
     let releaseResponse = () => {};
+    let markRequestStarted = () => {};
     const responseGate = new Promise<void>((resolve) => {
       releaseResponse = resolve;
     });
+    const requestStarted = new Promise<void>((resolve) => {
+      markRequestStarted = resolve;
+    });
     await page.route(REPOSITORY_API_URL, async (route) => {
+      markRequestStarted();
       await responseGate;
       await fulfillRepositoryMetadata(route);
     });
     await page.setViewportSize(viewport);
     const response = await page.goto("/", { waitUntil: "domcontentloaded" });
     expect(response?.status()).toBe(200);
+    await requestStarted;
     await page.evaluate(() => document.fonts.ready);
 
-    const action = page.locator(".hero [data-github-action]");
-    const actions = page.locator(".hero .actions");
-    const getStarted = page.getByRole("link", {
-      name: "Get started",
-      exact: true,
-    });
-    const originalContentGeometry = () =>
-      action.evaluate((element) => {
-        const icon = element.querySelector(":scope > svg");
-        const text = [...element.childNodes].find(
-          (node) =>
-            node.nodeType === Node.TEXT_NODE &&
-            node.textContent?.includes("View on GitHub"),
-        );
-        if (!icon || !text) return null;
-
-        const range = document.createRange();
-        range.selectNodeContents(text);
-        const iconBox = icon.getBoundingClientRect();
-        const textBox = range.getBoundingClientRect();
-        return {
-          icon: { x: iconBox.x, y: iconBox.y },
-          text: { x: textBox.x, y: textBox.y },
-        };
-      });
-    const [
-      actionBefore,
-      actionsBefore,
-      getStartedBefore,
-      originalContentBefore,
-    ] = await Promise.all([
+    const action = page.locator("header [data-repository-navigation]:visible");
+    const search = page.locator("header site-search button:visible");
+    const theme = page.locator("header starlight-theme-select select:visible");
+    const countSlot = action.locator("[data-repository-star-slot]");
+    await expect(countSlot).toHaveCSS("visibility", "hidden");
+    const [actionBefore, searchBefore, themeBefore] = await Promise.all([
       action.boundingBox(),
-      actions.boundingBox(),
-      getStarted.boundingBox(),
-      originalContentGeometry(),
+      search.boundingBox(),
+      theme.boundingBox(),
     ]);
     expect(actionBefore).not.toBeNull();
-    expect(actionsBefore).not.toBeNull();
-    expect(getStartedBefore).not.toBeNull();
-    expect(originalContentBefore).not.toBeNull();
+    expect(searchBefore).not.toBeNull();
+    expect(themeBefore).not.toBeNull();
 
     releaseResponse();
-    await expect(action.locator("[data-repository-star-count]")).toHaveText(
-      "1.2K",
-    );
-    const [actionAfter, actionsAfter, getStartedAfter, originalContentAfter] =
-      await Promise.all([
-        action.boundingBox(),
-        actions.boundingBox(),
-        getStarted.boundingBox(),
-        originalContentGeometry(),
-      ]);
+    await expect(countSlot).toHaveText("1.2K");
+    await expect(countSlot).toHaveCSS("visibility", "visible");
+    const [actionAfter, searchAfter, themeAfter] = await Promise.all([
+      action.boundingBox(),
+      search.boundingBox(),
+      theme.boundingBox(),
+    ]);
     expect(actionAfter).not.toBeNull();
-    expect(actionsAfter).not.toBeNull();
-    expect(getStartedAfter).not.toBeNull();
-    expect(originalContentAfter).not.toBeNull();
+    expect(searchAfter).not.toBeNull();
+    expect(themeAfter).not.toBeNull();
 
-    for (const property of ["x", "y", "width", "height"] as const) {
-      expect(
-        Math.abs(
-          (actionAfter?.[property] ?? 0) - (actionBefore?.[property] ?? 0),
-        ),
-        `GitHub action ${property} shifted`,
-      ).toBeLessThanOrEqual(1);
-    }
-    expect(
-      Math.abs((actionsAfter?.height ?? 0) - (actionsBefore?.height ?? 0)),
-    ).toBeLessThanOrEqual(1);
-    expect(
-      Math.abs((getStartedAfter?.x ?? 0) - (getStartedBefore?.x ?? 0)),
-    ).toBeLessThanOrEqual(1);
-    expect(
-      Math.abs((getStartedAfter?.y ?? 0) - (getStartedBefore?.y ?? 0)),
-    ).toBeLessThanOrEqual(1);
-    for (const part of ["icon", "text"] as const) {
-      for (const property of ["x", "y"] as const) {
+    for (const [name, before, after] of [
+      ["repository link", actionBefore, actionAfter],
+      ["search control", searchBefore, searchAfter],
+      ["theme control", themeBefore, themeAfter],
+    ] as const) {
+      for (const property of ["x", "y", "width", "height"] as const) {
         expect(
-          Math.abs(
-            (originalContentAfter?.[part][property] ?? 0) -
-              (originalContentBefore?.[part][property] ?? 0),
-          ),
-          `GitHub action ${part} ${property} shifted`,
+          Math.abs((after?.[property] ?? 0) - (before?.[property] ?? 0)),
+          `${name} ${property} changed`,
         ).toBeLessThanOrEqual(1);
       }
     }
-    await assertNoPageOverflow(page, `${viewport.name} GitHub star count`);
+    expect(actionAfter?.x ?? 0).toBeGreaterThanOrEqual(
+      (searchAfter?.x ?? 0) + (searchAfter?.width ?? 0) - 1,
+    );
+    expect(themeAfter?.x ?? 0).toBeGreaterThanOrEqual(
+      (actionAfter?.x ?? 0) + (actionAfter?.width ?? 0) - 1,
+    );
+    await assertNoPageOverflow(page, `${viewport.name} repository count`);
   });
 }
+
+test("repository count reserves stable mobile menu space", async ({ page }) => {
+  let releaseResponse = () => {};
+  let markRequestStarted = () => {};
+  const responseGate = new Promise<void>((resolve) => {
+    releaseResponse = resolve;
+  });
+  const requestStarted = new Promise<void>((resolve) => {
+    markRequestStarted = resolve;
+  });
+  await page.route(REPOSITORY_API_URL, async (route) => {
+    markRequestStarted();
+    await responseGate;
+    await fulfillRepositoryMetadata(route);
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  const response = await page.goto("/getting-started/", {
+    waitUntil: "domcontentloaded",
+  });
+  expect(response?.status()).toBe(200);
+  await requestStarted;
+  await page.evaluate(() => document.fonts.ready);
+  await page.locator("starlight-menu-button button").click();
+
+  const preferences = page.locator(".mobile-preferences:visible");
+  const action = preferences.locator("[data-repository-navigation]");
+  const theme = preferences.locator("starlight-theme-select select");
+  const countSlot = action.locator("[data-repository-star-slot]");
+  await expect(countSlot).toHaveCSS("visibility", "hidden");
+  const [preferencesBefore, actionBefore, themeBefore] = await Promise.all([
+    preferences.boundingBox(),
+    action.boundingBox(),
+    theme.boundingBox(),
+  ]);
+
+  releaseResponse();
+  await expect(countSlot).toHaveText("1.2K");
+  await expect(countSlot).toHaveCSS("visibility", "visible");
+  const [preferencesAfter, actionAfter, themeAfter] = await Promise.all([
+    preferences.boundingBox(),
+    action.boundingBox(),
+    theme.boundingBox(),
+  ]);
+
+  for (const [name, before, after] of [
+    ["preferences", preferencesBefore, preferencesAfter],
+    ["repository link", actionBefore, actionAfter],
+    ["theme control", themeBefore, themeAfter],
+  ] as const) {
+    expect(before, `${name} before loading`).not.toBeNull();
+    expect(after, `${name} after loading`).not.toBeNull();
+    for (const property of ["x", "y", "width", "height"] as const) {
+      expect(
+        Math.abs((after?.[property] ?? 0) - (before?.[property] ?? 0)),
+        `${name} ${property} changed`,
+      ).toBeLessThanOrEqual(1);
+    }
+  }
+  expect(themeAfter?.x ?? 0).toBeGreaterThanOrEqual(
+    (actionAfter?.x ?? 0) + (actionAfter?.width ?? 0) - 1,
+  );
+  await assertNoPageOverflow(page, "mobile menu repository count");
+});
 
 test("homepage proof and client cards reflow without clipping", async ({
   page,

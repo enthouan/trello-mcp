@@ -6,6 +6,7 @@ import {
 } from "../support/site.js";
 import {
   assertNoPageOverflow,
+  assertNoSeriousAccessibilityViolations,
   expect,
   gotoLoaded,
   monitorBrowserProblems,
@@ -275,6 +276,9 @@ test("mobile controls meet the WCAG 2.2 minimum touch-target size", async ({
   await gotoLoaded(page, "/getting-started/");
   const menu = page.locator("starlight-menu-button").first();
   await menu.locator("button").click();
+  await expect(
+    page.locator("#starlight__sidebar [data-repository-navigation]:visible"),
+  ).toHaveAccessibleName("trello-mcp source repository, 1.2K stars");
   const undersized = await page
     .locator(
       "button:visible, select:visible, summary:visible, nav a[href]:visible, a.sl-link-button:visible",
@@ -293,6 +297,10 @@ test("mobile controls meet the WCAG 2.2 minimum touch-target size", async ({
         .filter(({ height, width }) => height < 24 || width < 24),
     );
   expect(undersized).toEqual([]);
+  await assertNoSeriousAccessibilityViolations(
+    page,
+    "open mobile navigation with repository count",
+  );
 });
 
 test("all pages reflow at a 200%-zoom equivalent", async ({ page }) => {

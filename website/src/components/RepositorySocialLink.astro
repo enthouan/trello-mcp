@@ -1,0 +1,231 @@
+---
+import config from "virtual:starlight/user-config";
+// biome-ignore lint/correctness/noUnusedImports: Astro renders this component in the template below.
+import { Icon } from "@astrojs/starlight/components";
+// biome-ignore lint/correctness/noUnusedImports: Astro renders this value in the template below.
+import { REPOSITORY_URL } from "../data/repository.js";
+
+// biome-ignore lint/correctness/noUnusedVariables: Astro renders this value in the template below.
+const links = config.social || [];
+---
+
+{
+  links.map(({ label, href, icon }) => {
+    const isRepository = href === REPOSITORY_URL;
+
+    return (
+      <a
+        href={href}
+        rel={isRepository ? "me external" : "me"}
+        referrerpolicy={isRepository ? "no-referrer" : undefined}
+        class="sl-flex"
+        aria-label={label}
+        data-repository-navigation={isRepository || undefined}
+        data-repository-label={isRepository ? label : undefined}
+      >
+        <Icon name={icon} />
+        {isRepository && (
+          <span
+            class="star-count"
+            data-repository-star-slot
+            aria-hidden="true"
+          >
+            <Icon name="star" />
+            <span data-repository-star-value />
+          </span>
+        )}
+      </a>
+    );
+  })
+}
+
+<script>
+  import {
+    REPOSITORY_API_URL,
+    formatRepositoryStarCount,
+    formatRepositoryStarCountLabel,
+    isRepositoryStarCount,
+  } from "../data/repository.js";
+
+  const CACHE_KEY = "trello-mcp:repository-star-count";
+  const ATTEMPT_CACHE_VALUE = "attempted";
+
+  function availableSessionStorage(): Storage | undefined {
+    try {
+      const storage = globalThis.sessionStorage;
+      const probeKey = `${CACHE_KEY}:available`;
+      storage.setItem(probeKey, "1");
+      storage.removeItem(probeKey);
+      return storage;
+    } catch {
+      return undefined;
+    }
+  }
+
+  type CachedStarCount =
+    | { status: "count"; value: number }
+    | { status: "attempted" }
+    | { status: "miss" };
+
+  function cachedStarCount(storage: Storage): CachedStarCount {
+    try {
+      const cached = storage.getItem(CACHE_KEY);
+      if (cached === null) return { status: "miss" };
+      if (cached === ATTEMPT_CACHE_VALUE) return { status: "attempted" };
+
+      const value: unknown = JSON.parse(cached);
+      if (isRepositoryStarCount(value)) {
+        return { status: "count", value };
+      }
+
+      storage.removeItem(CACHE_KEY);
+      return { status: "miss" };
+    } catch {
+      return { status: "miss" };
+    }
+  }
+
+  function cacheAttempt(storage: Storage): boolean {
+    try {
+      storage.setItem(CACHE_KEY, ATTEMPT_CACHE_VALUE);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  function repositoryNavigations() {
+    return Array.from(
+      document.querySelectorAll<HTMLAnchorElement>(
+        "[data-repository-navigation]",
+      ),
+    );
+  }
+
+  function complete(actions: HTMLAnchorElement[]) {
+    for (const action of actions) {
+      action.dataset.repositoryStarState = "complete";
+    }
+  }
+
+  function showStarCount(actions: HTMLAnchorElement[], starCount: number) {
+    const visibleCount = formatRepositoryStarCount(starCount);
+    const accessibleCount = formatRepositoryStarCountLabel(starCount);
+    if (!visibleCount || !accessibleCount) return;
+
+    for (const action of actions) {
+      const countSlot = action.querySelector<HTMLElement>(
+        "[data-repository-star-slot]",
+      );
+      const countValue = action.querySelector<HTMLElement>(
+        "[data-repository-star-value]",
+      );
+      if (!countSlot || !countValue) continue;
+
+      countValue.textContent = visibleCount;
+      countSlot.dataset.repositoryStarCount = "";
+      const fallbackLabel =
+        action.dataset.repositoryLabel ?? "trello-mcp source repository";
+      action.setAttribute("aria-label", `${fallbackLabel}, ${accessibleCount}`);
+    }
+  }
+
+  async function enhanceRepositoryNavigation() {
+    const actions = repositoryNavigations().filter(
+      (action) => !action.dataset.repositoryStarState,
+    );
+    if (actions.length === 0) return;
+    for (const action of actions) {
+      action.dataset.repositoryStarState = "loading";
+    }
+
+    const storage = availableSessionStorage();
+    if (!storage) {
+      complete(actions);
+      return;
+    }
+
+    const cached = cachedStarCount(storage);
+    if (cached.status === "count") {
+      showStarCount(repositoryNavigations(), cached.value);
+      complete(repositoryNavigations());
+      return;
+    }
+    if (cached.status === "attempted") {
+      complete(actions);
+      return;
+    }
+
+    if (!cacheAttempt(storage)) {
+      complete(actions);
+      return;
+    }
+
+    try {
+      const response = await fetch(REPOSITORY_API_URL, {
+        credentials: "omit",
+        referrerPolicy: "no-referrer",
+      });
+      if (!response.ok) return;
+
+      const payload: unknown = await response.json();
+      if (typeof payload !== "object" || payload === null || Array.isArray(payload)) {
+        return;
+      }
+
+      const starCount = (payload as { stargazers_count?: unknown })
+        .stargazers_count;
+      if (!isRepositoryStarCount(starCount)) return;
+
+      try {
+        storage.setItem(CACHE_KEY, JSON.stringify(starCount));
+      } catch {
+        return;
+      }
+      showStarCount(repositoryNavigations(), starCount);
+    } catch {
+      // The static repository navigation link is the intentional fallback.
+    } finally {
+      complete(repositoryNavigations());
+    }
+  }
+
+  document.addEventListener("astro:page-load", () => {
+    void enhanceRepositoryNavigation();
+  });
+  void enhanceRepositoryNavigation();
+</script>
+
+<style>
+  @layer starlight.core {
+    a {
+      align-items: center;
+      gap: 0.4rem;
+      margin: -0.5em;
+      padding: 0.5em;
+      color: var(--sl-color-text-accent);
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    a:hover {
+      color: var(--sl-color-white);
+    }
+
+    .star-count {
+      display: inline-flex;
+      gap: 0.2rem;
+      align-items: center;
+      flex: 0 0 3.25rem;
+      inline-size: 3.25rem;
+      font-size: var(--sl-text-sm);
+      font-weight: 600;
+      line-height: 1;
+      visibility: hidden;
+    }
+
+    .star-count[data-repository-star-count] {
+      visibility: visible;
+    }
+  }
+</style>

@@ -16,6 +16,9 @@ import {
   test,
 } from "./support.js";
 
+const REPOSITORY_LABEL = "trello-mcp source repository";
+const REPOSITORY_LABEL_WITH_STARS = `${REPOSITORY_LABEL}, 1.2K stars`;
+
 test("onboarding tabs support selection, synchronization, icons, and deep links", async ({
   page,
 }) => {
@@ -187,7 +190,7 @@ test("primary navigation reaches every public documentation section", async ({
   );
 });
 
-test("homepage GitHub action renders, formats, and session-caches the star count", async ({
+test("repository navigation renders, formats, and session-caches the star count", async ({
   page,
 }) => {
   let requestCount = 0;
@@ -198,21 +201,29 @@ test("homepage GitHub action renders, formats, and session-caches the star count
     await fulfillRepositoryMetadata(route);
   });
 
-  await gotoLoaded(page, "/");
+  await gotoLoaded(page, "/getting-started/");
 
-  const action = page.locator(".hero [data-github-action]");
-  const count = action.locator("[data-repository-star-count]");
-  await expect(action).toHaveAttribute("href", REPOSITORY_URL);
-  await expect(action).toHaveAttribute("rel", "external");
-  await expect(action).toHaveAttribute("referrerpolicy", "no-referrer");
-  await expect(action).toHaveAccessibleName("View on GitHub, 1.2K stars");
-  await expect(count).toHaveText("1.2K");
-  await expect(count).toHaveAttribute("aria-hidden", "true");
-  await expect(count.locator("svg")).toHaveAttribute("aria-hidden", "true");
+  const actions = page.locator("[data-repository-navigation]");
+  await expect(actions).toHaveCount(2);
+  for (const action of await actions.all()) {
+    const count = action.locator("[data-repository-star-count]");
+    await expect(action).toHaveAttribute("href", REPOSITORY_URL);
+    await expect(action).toHaveAttribute("rel", "me external");
+    await expect(action).toHaveAttribute("referrerpolicy", "no-referrer");
+    await expect(action).toHaveAttribute(
+      "aria-label",
+      REPOSITORY_LABEL_WITH_STARS,
+    );
+    await expect(count).toHaveText("1.2K");
+    await expect(count).toHaveAttribute("aria-hidden", "true");
+    await expect(count.locator("svg")).toHaveAttribute("aria-hidden", "true");
+  }
   expect(requestHeaders).not.toHaveProperty("authorization");
   expect(requestHeaders).not.toHaveProperty("cookie");
   expect(requestHeaders).not.toHaveProperty("referer");
 
+  const action = page.locator("header [data-repository-navigation]:visible");
+  await expect(action).toHaveAccessibleName(REPOSITORY_LABEL_WITH_STARS);
   let reachedAction = false;
   for (let attempt = 0; attempt < 24; attempt += 1) {
     await page.keyboard.press("Tab");
@@ -221,7 +232,9 @@ test("homepage GitHub action renders, formats, and session-caches the star count
     );
     if (reachedAction) break;
   }
-  expect(reachedAction, "Tab must reach the GitHub action").toBe(true);
+  expect(reachedAction, "Tab must reach the repository navigation link").toBe(
+    true,
+  );
   expect(
     await action.evaluate(
       (element) => getComputedStyle(element).outlineStyle !== "none",
@@ -234,12 +247,26 @@ test("homepage GitHub action renders, formats, and session-caches the star count
     ),
   ).toBe("1234");
   await page.reload({ waitUntil: "networkidle" });
-  await expect(action).toHaveAccessibleName("View on GitHub, 1.2K stars");
-  await expect(count).toHaveText("1.2K");
+  await expect(actions).toHaveCount(2);
+  await expect(actions.first()).toHaveAccessibleName(
+    REPOSITORY_LABEL_WITH_STARS,
+  );
+  await expect(
+    actions.first().locator("[data-repository-star-count]"),
+  ).toHaveText("1.2K");
+
+  await gotoLoaded(page, "/");
+  const homepageAction = page.locator(".hero [data-github-action]");
+  await expect(homepageAction).toHaveAccessibleName("View on GitHub");
+  await expect(homepageAction).toHaveAttribute("href", REPOSITORY_URL);
+  await expect(homepageAction.locator(".star-count")).toHaveCount(0);
+  await expect(
+    page.locator("header [data-repository-navigation]:visible"),
+  ).toHaveAccessibleName(REPOSITORY_LABEL_WITH_STARS);
   expect(requestCount).toBe(1);
 });
 
-test("homepage GitHub action silently falls back for unavailable repository metadata", async ({
+test("repository navigation silently falls back for unavailable metadata", async ({
   browser,
 }) => {
   for (const scenario of [
@@ -276,12 +303,18 @@ test("homepage GitHub action silently falls back for unavailable repository meta
 
       try {
         await gotoLoaded(page, "/");
-        const action = page.locator(".hero [data-github-action]");
-        await expect(action).toHaveAccessibleName("View on GitHub");
+        const action = page.locator(
+          "header [data-repository-navigation]:visible",
+        );
+        await expect(action).toHaveAccessibleName(REPOSITORY_LABEL);
         await expect(action).toHaveAttribute("href", REPOSITORY_URL);
-        await expect(
-          action.locator("[data-repository-star-count]"),
-        ).toHaveCount(0);
+        const countSlot = action.locator("[data-repository-star-slot]");
+        await expect(countSlot).toHaveCount(1);
+        await expect(countSlot).not.toHaveAttribute(
+          "data-repository-star-count",
+          "",
+        );
+        await expect(countSlot).toHaveCSS("visibility", "hidden");
         expect(requestCount).toBe(1);
         expect(
           await page.evaluate(() =>
@@ -289,10 +322,8 @@ test("homepage GitHub action silently falls back for unavailable repository meta
           ),
         ).toBe("attempted");
         await page.reload({ waitUntil: "networkidle" });
-        await expect(action).toHaveAccessibleName("View on GitHub");
-        await expect(
-          action.locator("[data-repository-star-count]"),
-        ).toHaveCount(0);
+        await expect(action).toHaveAccessibleName(REPOSITORY_LABEL);
+        await expect(countSlot).toHaveCSS("visibility", "hidden");
         expect(requestCount).toBe(1);
         const unexpectedErrors = runtimeErrors.filter((message) => {
           if (
@@ -317,7 +348,7 @@ test("homepage GitHub action silently falls back for unavailable repository meta
   }
 });
 
-test("homepage GitHub action remains useful without JavaScript or browser storage", async ({
+test("repository links remain useful without JavaScript or browser storage", async ({
   browser,
 }) => {
   const noScriptContext = await browser.newContext({
@@ -335,10 +366,19 @@ test("homepage GitHub action remains useful without JavaScript or browser storag
       waitUntil: "domcontentloaded",
     });
     expect(response?.status()).toBe(200);
-    const action = noScriptPage.locator(".hero [data-github-action]");
-    await expect(action).toHaveAccessibleName("View on GitHub");
+    const action = noScriptPage.locator(
+      "header [data-repository-navigation]:visible",
+    );
+    await expect(action).toHaveAccessibleName(REPOSITORY_LABEL);
     await expect(action).toHaveAttribute("href", REPOSITORY_URL);
-    await expect(action.locator("[data-repository-star-count]")).toHaveCount(0);
+    await expect(action.locator("[data-repository-star-slot]")).toHaveCSS(
+      "visibility",
+      "hidden",
+    );
+    const homepageAction = noScriptPage.locator(".hero [data-github-action]");
+    await expect(homepageAction).toHaveAccessibleName("View on GitHub");
+    await expect(homepageAction).toHaveAttribute("href", REPOSITORY_URL);
+    await expect(homepageAction.locator(".star-count")).toHaveCount(0);
     expect(noScriptRequests).toBe(0);
   } finally {
     await noScriptContext.close();
@@ -362,17 +402,22 @@ test("homepage GitHub action remains useful without JavaScript or browser storag
 
   try {
     await gotoLoaded(noStoragePage, "/");
-    const action = noStoragePage.locator(".hero [data-github-action]");
-    await expect(action).toHaveAccessibleName("View on GitHub");
+    const action = noStoragePage.locator(
+      "header [data-repository-navigation]:visible",
+    );
+    await expect(action).toHaveAccessibleName(REPOSITORY_LABEL);
     await expect(action).toHaveAttribute("href", REPOSITORY_URL);
-    await expect(action.locator("[data-repository-star-count]")).toHaveCount(0);
+    await expect(action.locator("[data-repository-star-slot]")).toHaveCSS(
+      "visibility",
+      "hidden",
+    );
     expect(noStorageRequests).toBe(0);
   } finally {
     await noStorageContext.close();
   }
 });
 
-test("homepage GitHub action records the attempt before a slow request settles", async ({
+test("repository navigation records the attempt before a slow request settles", async ({
   page,
 }) => {
   let requestCount = 0;
@@ -408,9 +453,12 @@ test("homepage GitHub action records the attempt before a slow request settles",
 
     await page.goto("/getting-started/", { waitUntil: "domcontentloaded" });
     await gotoLoaded(page, "/");
-    const action = page.locator(".hero [data-github-action]");
-    await expect(action).toHaveAccessibleName("View on GitHub");
-    await expect(action.locator("[data-repository-star-count]")).toHaveCount(0);
+    const action = page.locator("header [data-repository-navigation]:visible");
+    await expect(action).toHaveAccessibleName(REPOSITORY_LABEL);
+    await expect(action.locator("[data-repository-star-slot]")).toHaveCSS(
+      "visibility",
+      "hidden",
+    );
     expect(requestCount).toBe(1);
   } finally {
     releaseResponse();
@@ -439,6 +487,21 @@ test("mobile menu is keyboard operable", async ({ page }) => {
   await expect(button).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(menu).toHaveAttribute("aria-expanded", "true");
+  const repositoryLink = page
+    .locator("#starlight__sidebar [data-repository-navigation]:visible")
+    .first();
+  await expect(repositoryLink).toHaveAccessibleName(
+    REPOSITORY_LABEL_WITH_STARS,
+  );
+  await expect(repositoryLink).toHaveAttribute("href", REPOSITORY_URL);
+  await expect(repositoryLink.locator("svg")).toHaveCount(2);
+  await repositoryLink.focus();
+  await expect(repositoryLink).toBeFocused();
+  expect(
+    await repositoryLink.evaluate(
+      (element) => getComputedStyle(element).outlineStyle !== "none",
+    ),
+  ).toBe(true);
   const toolsLink = page
     .locator('#starlight__sidebar a[href="/reference/tools/"]:visible')
     .first();

@@ -291,6 +291,15 @@ describe("homepage and reference content", () => {
       )[0],
       "homepage GitHub action",
     );
+    const repositoryNavigation = required(
+      elements(
+        page.document,
+        (element) =>
+          element.tagName === "a" &&
+          attribute(element, "data-repository-navigation") !== undefined,
+      )[0],
+      "repository navigation link",
+    );
 
     expect(text).toContain(HERO_TITLE);
     expect(text).toContain(HERO_TAGLINE);
@@ -325,11 +334,55 @@ describe("homepage and reference content", () => {
     expect(normalizedText(githubAction)).toBe("View on GitHub");
     expect(
       elements(
+        githubAction,
+        (element) =>
+          attribute(element, "data-repository-star-slot") !== undefined,
+      ),
+    ).toHaveLength(0);
+    expect(attribute(repositoryNavigation, "href")).toBe(REPOSITORY_URL);
+    expect(attribute(repositoryNavigation, "rel")).toBe("me external");
+    expect(attribute(repositoryNavigation, "referrerpolicy")).toBe(
+      "no-referrer",
+    );
+    expect(attribute(repositoryNavigation, "aria-label")).toBe(
+      "trello-mcp source repository",
+    );
+    expect(attribute(repositoryNavigation, "data-repository-label")).toBe(
+      "trello-mcp source repository",
+    );
+    const starSlot = required(
+      elements(
+        repositoryNavigation,
+        (element) =>
+          attribute(element, "data-repository-star-slot") !== undefined,
+      )[0],
+      "reserved repository star slot",
+    );
+    expect(attribute(starSlot, "aria-hidden")).toBe("true");
+    expect(
+      elements(
+        starSlot,
+        (element) =>
+          attribute(element, "data-repository-star-value") !== undefined,
+      ),
+    ).toHaveLength(1);
+    expect(
+      elements(
         page.document,
         (element) =>
           attribute(element, "data-repository-star-count") !== undefined,
       ),
     ).toHaveLength(0);
+
+    const docsPage = await readRoute("/getting-started/");
+    expect(
+      elements(
+        docsPage.document,
+        (element) =>
+          element.tagName === "a" &&
+          attribute(element, "data-repository-navigation") !== undefined,
+      ),
+    ).toHaveLength(2);
   });
 
   it("validates and compactly formats only usable repository star counts", () => {

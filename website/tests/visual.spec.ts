@@ -96,3 +96,36 @@ test.describe("footer visual QA", () => {
     }
   }
 });
+
+test.describe("mobile repository navigation visual QA", () => {
+  for (const theme of ["light", "dark"] as const) {
+    test(`repository navigation · ${theme} · mobile-390x844`, async ({
+      page,
+    }, testInfo) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.emulateMedia({ colorScheme: theme });
+      await page.addInitScript((selectedTheme) => {
+        localStorage.setItem("starlight-theme", selectedTheme);
+      }, theme);
+      await page.goto("/getting-started/", { waitUntil: "networkidle" });
+      await page.evaluate(() => document.fonts.ready);
+      await page.locator("starlight-menu-button button").click();
+      const repositoryLink = page.locator(
+        "#starlight__sidebar [data-repository-navigation]:visible",
+      );
+      await expect(repositoryLink).toHaveAccessibleName(
+        "trello-mcp source repository, 1.2K stars",
+      );
+      await repositoryLink.scrollIntoViewIfNeeded();
+
+      const screenshotPath = `website/artifacts/screenshots/${testInfo.project.name}/mobile-390x844/${theme}/repository-navigation.png`;
+      await mkdir(dirname(screenshotPath), { recursive: true });
+      await page.screenshot({
+        animations: "disabled",
+        caret: "hide",
+        fullPage: false,
+        path: screenshotPath,
+      });
+    });
+  }
+});
