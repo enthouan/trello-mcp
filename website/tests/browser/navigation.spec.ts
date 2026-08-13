@@ -287,7 +287,7 @@ test("homepage GitHub action silently falls back for unavailable repository meta
           await page.evaluate(() =>
             sessionStorage.getItem("trello-mcp:repository-star-count"),
           ),
-        ).toBe("unavailable");
+        ).toBe("attempted");
         await page.reload({ waitUntil: "networkidle" });
         await expect(action).toHaveAccessibleName("View on GitHub");
         await expect(
@@ -369,6 +369,51 @@ test("homepage GitHub action remains useful without JavaScript or browser storag
     expect(noStorageRequests).toBe(0);
   } finally {
     await noStorageContext.close();
+  }
+});
+
+test("homepage GitHub action records the attempt before a slow request settles", async ({
+  page,
+}) => {
+  let requestCount = 0;
+  let releaseResponse = () => {};
+  let markRequestStarted = () => {};
+  const responseGate = new Promise<void>((resolve) => {
+    releaseResponse = resolve;
+  });
+  const requestStarted = new Promise<void>((resolve) => {
+    markRequestStarted = resolve;
+  });
+  await page.route(REPOSITORY_API_URL, async (route) => {
+    requestCount += 1;
+    markRequestStarted();
+    await responseGate;
+    try {
+      await fulfillRepositoryMetadata(route);
+    } catch {
+      // Navigating away intentionally discards the in-flight request.
+    }
+  });
+
+  try {
+    const response = await page.goto("/", { waitUntil: "domcontentloaded" });
+    expect(response?.status()).toBe(200);
+    await requestStarted;
+    expect(requestCount).toBe(1);
+    expect(
+      await page.evaluate(() =>
+        sessionStorage.getItem("trello-mcp:repository-star-count"),
+      ),
+    ).toBe("attempted");
+
+    await page.goto("/getting-started/", { waitUntil: "domcontentloaded" });
+    await gotoLoaded(page, "/");
+    const action = page.locator(".hero [data-github-action]");
+    await expect(action).toHaveAccessibleName("View on GitHub");
+    await expect(action.locator("[data-repository-star-count]")).toHaveCount(0);
+    expect(requestCount).toBe(1);
+  } finally {
+    releaseResponse();
   }
 });
 

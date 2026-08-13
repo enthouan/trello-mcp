@@ -306,7 +306,8 @@ describe("canonical publication source contracts", () => {
       'credentials: "omit"',
       'referrerPolicy: "no-referrer"',
       "no project GitHub credential",
-      "cached in `sessionStorage` only for the current browser session",
+      "An attempt marker is stored in `sessionStorage` before the request starts",
+      "do not cause repeated GitHub requests during the current browser session",
     ]) {
       expect(privacy).toContain(marker);
     }

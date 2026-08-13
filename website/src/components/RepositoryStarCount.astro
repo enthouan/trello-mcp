@@ -7,7 +7,7 @@
   } from "../data/repository.js";
 
   const CACHE_KEY = "trello-mcp:repository-star-count";
-  const FALLBACK_CACHE_VALUE = "unavailable";
+  const ATTEMPT_CACHE_VALUE = "attempted";
   const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
   const STAR_PATH =
     "M22 9.67a1 1 0 0 0-.86-.67l-5.69-.83L12.9 3a1 1 0 0 0-1.8 0L8.55 8.16 2.86 9a1 1 0 0 0-.81.68 1 1 0 0 0 .25 1l4.13 4-1 5.68a1 1 0 0 0 1.45 1.07L12 18.76l5.1 2.68c.14.08.3.12.46.12a1 1 0 0 0 .99-1.19l-1-5.68 4.13-4A1 1 0 0 0 22 9.67Zm-6.15 4a1 1 0 0 0-.29.89l.72 4.19-3.76-2a1 1 0 0 0-.94 0l-3.76 2 .72-4.19a1 1 0 0 0-.29-.89l-3-3 4.21-.61a1 1 0 0 0 .76-.55L12 5.7l1.88 3.82a1 1 0 0 0 .76.55l4.21.61-3 2.99Z";
@@ -26,14 +26,14 @@
 
   type CachedStarCount =
     | { status: "count"; value: number }
-    | { status: "fallback" }
+    | { status: "attempted" }
     | { status: "miss" };
 
   function cachedStarCount(storage: Storage): CachedStarCount {
     try {
       const cached = storage.getItem(CACHE_KEY);
       if (cached === null) return { status: "miss" };
-      if (cached === FALLBACK_CACHE_VALUE) return { status: "fallback" };
+      if (cached === ATTEMPT_CACHE_VALUE) return { status: "attempted" };
 
       const value: unknown = JSON.parse(cached);
       if (isRepositoryStarCount(value)) {
@@ -47,11 +47,12 @@
     }
   }
 
-  function cacheFallback(storage: Storage) {
+  function cacheAttempt(storage: Storage): boolean {
     try {
-      storage.setItem(CACHE_KEY, FALLBACK_CACHE_VALUE);
+      storage.setItem(CACHE_KEY, ATTEMPT_CACHE_VALUE);
+      return true;
     } catch {
-      // Unavailable browser storage is an intentional silent fallback.
+      return false;
     }
   }
 
@@ -107,12 +108,16 @@
       action.dataset.repositoryStarState = "complete";
       return;
     }
-    if (cached.status === "fallback") {
+    if (cached.status === "attempted") {
       action.dataset.repositoryStarState = "complete";
       return;
     }
 
-    let countCached = false;
+    if (!cacheAttempt(storage)) {
+      action.dataset.repositoryStarState = "complete";
+      return;
+    }
+
     try {
       const response = await fetch(REPOSITORY_API_URL, {
         credentials: "omit",
@@ -134,12 +139,10 @@
       } catch {
         return;
       }
-      countCached = true;
       showStarCount(action, starCount);
     } catch {
       // The static repository link is the intentional fallback.
     } finally {
-      if (!countCached) cacheFallback(storage);
       action.dataset.repositoryStarState = "complete";
     }
   }
