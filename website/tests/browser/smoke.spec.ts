@@ -1,5 +1,7 @@
-import { expect, test } from "@playwright/test";
-import { REPOSITORY_URL } from "../../src/data/repository.js";
+import {
+  REPOSITORY_API_URL,
+  REPOSITORY_URL,
+} from "../../src/data/repository.js";
 import {
   FOOTER_ATTRIBUTION,
   FOOTER_DISCLAIMER,
@@ -12,9 +14,12 @@ import {
   assertHeadingAndLandmarkBasics,
   assertNoPageOverflow,
   assertNoSeriousAccessibilityViolations,
+  expect,
+  fulfillRepositoryMetadata,
   getClientPickerGrid,
   gotoLoaded,
   monitorBrowserProblems,
+  test,
 } from "./support.js";
 
 test.describe("representative production routes", () => {
@@ -205,6 +210,143 @@ test("homepage actions, marks, and hover feedback remain visitor-observable", as
       await title.hover();
     }
   }
+});
+
+for (const viewport of [
+  { name: "wide desktop", width: 1440, height: 900 },
+  { name: "navigation breakpoint", width: 800, height: 900 },
+] as const) {
+  test(`repository count reserves stable ${viewport.name} header space`, async ({
+    page,
+  }) => {
+    let releaseResponse = () => {};
+    let markRequestStarted = () => {};
+    const responseGate = new Promise<void>((resolve) => {
+      releaseResponse = resolve;
+    });
+    const requestStarted = new Promise<void>((resolve) => {
+      markRequestStarted = resolve;
+    });
+    await page.route(REPOSITORY_API_URL, async (route) => {
+      markRequestStarted();
+      await responseGate;
+      await fulfillRepositoryMetadata(route);
+    });
+    await page.setViewportSize(viewport);
+    const response = await page.goto("/", { waitUntil: "domcontentloaded" });
+    expect(response?.status()).toBe(200);
+    await requestStarted;
+    await page.evaluate(() => document.fonts.ready);
+
+    const action = page.locator("header [data-repository-navigation]:visible");
+    const search = page.locator("header site-search button:visible");
+    const theme = page.locator("header starlight-theme-select select:visible");
+    const countSlot = action.locator("[data-repository-star-slot]");
+    await expect(countSlot).toHaveCSS("visibility", "hidden");
+    const [actionBefore, searchBefore, themeBefore] = await Promise.all([
+      action.boundingBox(),
+      search.boundingBox(),
+      theme.boundingBox(),
+    ]);
+    expect(actionBefore).not.toBeNull();
+    expect(searchBefore).not.toBeNull();
+    expect(themeBefore).not.toBeNull();
+
+    releaseResponse();
+    await expect(countSlot).toHaveText("1.2K");
+    await expect(countSlot).toHaveCSS("visibility", "visible");
+    const [actionAfter, searchAfter, themeAfter] = await Promise.all([
+      action.boundingBox(),
+      search.boundingBox(),
+      theme.boundingBox(),
+    ]);
+    expect(actionAfter).not.toBeNull();
+    expect(searchAfter).not.toBeNull();
+    expect(themeAfter).not.toBeNull();
+
+    for (const [name, before, after] of [
+      ["repository link", actionBefore, actionAfter],
+      ["search control", searchBefore, searchAfter],
+      ["theme control", themeBefore, themeAfter],
+    ] as const) {
+      for (const property of ["x", "y", "width", "height"] as const) {
+        expect(
+          Math.abs((after?.[property] ?? 0) - (before?.[property] ?? 0)),
+          `${name} ${property} changed`,
+        ).toBeLessThanOrEqual(1);
+      }
+    }
+    expect(actionAfter?.x ?? 0).toBeGreaterThanOrEqual(
+      (searchAfter?.x ?? 0) + (searchAfter?.width ?? 0) - 1,
+    );
+    expect(themeAfter?.x ?? 0).toBeGreaterThanOrEqual(
+      (actionAfter?.x ?? 0) + (actionAfter?.width ?? 0) - 1,
+    );
+    await assertNoPageOverflow(page, `${viewport.name} repository count`);
+  });
+}
+
+test("repository count reserves stable mobile menu space", async ({ page }) => {
+  let releaseResponse = () => {};
+  let markRequestStarted = () => {};
+  const responseGate = new Promise<void>((resolve) => {
+    releaseResponse = resolve;
+  });
+  const requestStarted = new Promise<void>((resolve) => {
+    markRequestStarted = resolve;
+  });
+  await page.route(REPOSITORY_API_URL, async (route) => {
+    markRequestStarted();
+    await responseGate;
+    await fulfillRepositoryMetadata(route);
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  const response = await page.goto("/getting-started/", {
+    waitUntil: "domcontentloaded",
+  });
+  expect(response?.status()).toBe(200);
+  await requestStarted;
+  await page.evaluate(() => document.fonts.ready);
+  await page.locator("starlight-menu-button button").click();
+
+  const preferences = page.locator(".mobile-preferences:visible");
+  const action = preferences.locator("[data-repository-navigation]");
+  const theme = preferences.locator("starlight-theme-select select");
+  const countSlot = action.locator("[data-repository-star-slot]");
+  await expect(countSlot).toHaveCSS("visibility", "hidden");
+  const [preferencesBefore, actionBefore, themeBefore] = await Promise.all([
+    preferences.boundingBox(),
+    action.boundingBox(),
+    theme.boundingBox(),
+  ]);
+
+  releaseResponse();
+  await expect(countSlot).toHaveText("1.2K");
+  await expect(countSlot).toHaveCSS("visibility", "visible");
+  const [preferencesAfter, actionAfter, themeAfter] = await Promise.all([
+    preferences.boundingBox(),
+    action.boundingBox(),
+    theme.boundingBox(),
+  ]);
+
+  for (const [name, before, after] of [
+    ["preferences", preferencesBefore, preferencesAfter],
+    ["repository link", actionBefore, actionAfter],
+    ["theme control", themeBefore, themeAfter],
+  ] as const) {
+    expect(before, `${name} before loading`).not.toBeNull();
+    expect(after, `${name} after loading`).not.toBeNull();
+    for (const property of ["x", "y", "width", "height"] as const) {
+      expect(
+        Math.abs((after?.[property] ?? 0) - (before?.[property] ?? 0)),
+        `${name} ${property} changed`,
+      ).toBeLessThanOrEqual(1);
+    }
+  }
+  expect(themeAfter?.x ?? 0).toBeGreaterThanOrEqual(
+    (actionAfter?.x ?? 0) + (actionAfter?.width ?? 0) - 1,
+  );
+  await assertNoPageOverflow(page, "mobile menu repository count");
 });
 
 test("homepage proof and client cards reflow without clipping", async ({

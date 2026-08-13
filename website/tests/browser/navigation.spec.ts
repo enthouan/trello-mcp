@@ -1,5 +1,7 @@
-import { expect, test } from "@playwright/test";
-import { REPOSITORY_URL } from "../../src/data/repository.js";
+import {
+  REPOSITORY_API_URL,
+  REPOSITORY_URL,
+} from "../../src/data/repository.js";
 import {
   LEGACY_REDIRECTS,
   PRIMARY_NAVIGATION,
@@ -7,9 +9,15 @@ import {
 } from "../support/site.js";
 import {
   assertNoPageOverflow,
+  expect,
+  fulfillRepositoryMetadata,
   gotoLoaded,
   monitorBrowserProblems,
+  test,
 } from "./support.js";
+
+const REPOSITORY_LABEL = "trello-mcp source repository";
+const REPOSITORY_LABEL_WITH_STARS = `${REPOSITORY_LABEL}, 1.2K stars`;
 
 test("onboarding tabs support selection, synchronization, icons, and deep links", async ({
   page,
@@ -176,9 +184,285 @@ test("primary navigation reaches every public documentation section", async ({
     });
   }
   await gotoLoaded(page, "/");
+  await expect(page.locator(".hero [data-github-action]")).toHaveAttribute(
+    "href",
+    REPOSITORY_URL,
+  );
+});
+
+test("repository navigation renders, formats, and session-caches the star count", async ({
+  page,
+}) => {
+  let requestCount = 0;
+  let requestHeaders: Record<string, string> = {};
+  await page.route(REPOSITORY_API_URL, async (route) => {
+    requestCount += 1;
+    requestHeaders = route.request().headers();
+    await fulfillRepositoryMetadata(route);
+  });
+
+  await gotoLoaded(page, "/getting-started/");
+
+  const actions = page.locator("[data-repository-navigation]");
+  await expect(actions).toHaveCount(2);
+  for (const action of await actions.all()) {
+    const count = action.locator("[data-repository-star-count]");
+    await expect(action).toHaveAttribute("href", REPOSITORY_URL);
+    await expect(action).toHaveAttribute("rel", "me external");
+    await expect(action).toHaveAttribute("referrerpolicy", "no-referrer");
+    await expect(action).toHaveAttribute(
+      "aria-label",
+      REPOSITORY_LABEL_WITH_STARS,
+    );
+    await expect(count).toHaveText("1.2K");
+    await expect(count).toHaveAttribute("aria-hidden", "true");
+    await expect(count.locator("svg")).toHaveAttribute("aria-hidden", "true");
+  }
+  expect(requestHeaders).not.toHaveProperty("authorization");
+  expect(requestHeaders).not.toHaveProperty("cookie");
+  expect(requestHeaders).not.toHaveProperty("referer");
+
+  const action = page.locator("header [data-repository-navigation]:visible");
+  await expect(action).toHaveAccessibleName(REPOSITORY_LABEL_WITH_STARS);
+  let reachedAction = false;
+  for (let attempt = 0; attempt < 24; attempt += 1) {
+    await page.keyboard.press("Tab");
+    reachedAction = await action.evaluate(
+      (element) => document.activeElement === element,
+    );
+    if (reachedAction) break;
+  }
+  expect(reachedAction, "Tab must reach the repository navigation link").toBe(
+    true,
+  );
+  expect(
+    await action.evaluate(
+      (element) => getComputedStyle(element).outlineStyle !== "none",
+    ),
+  ).toBe(true);
+
+  expect(
+    await page.evaluate(() =>
+      sessionStorage.getItem("trello-mcp:repository-star-count"),
+    ),
+  ).toBe("1234");
+  await page.reload({ waitUntil: "networkidle" });
+  await expect(actions).toHaveCount(2);
+  await expect(actions.first()).toHaveAccessibleName(
+    REPOSITORY_LABEL_WITH_STARS,
+  );
   await expect(
-    page.getByRole("link", { name: "View on GitHub", exact: true }),
-  ).toHaveAttribute("href", REPOSITORY_URL);
+    actions.first().locator("[data-repository-star-count]"),
+  ).toHaveText("1.2K");
+
+  await gotoLoaded(page, "/");
+  const homepageAction = page.locator(".hero [data-github-action]");
+  await expect(homepageAction).toHaveAccessibleName("View on GitHub");
+  await expect(homepageAction).toHaveAttribute("href", REPOSITORY_URL);
+  await expect(homepageAction.locator(".star-count")).toHaveCount(0);
+  await expect(
+    page.locator("header [data-repository-navigation]:visible"),
+  ).toHaveAccessibleName(REPOSITORY_LABEL_WITH_STARS);
+  expect(requestCount).toBe(1);
+});
+
+test("repository navigation silently falls back for unavailable metadata", async ({
+  browser,
+}) => {
+  for (const scenario of [
+    "non-2xx",
+    "network",
+    "malformed-json",
+    "invalid-count",
+  ] as const) {
+    await test.step(scenario, async () => {
+      const context = await browser.newContext();
+      const page = await context.newPage();
+      let requestCount = 0;
+      const runtimeErrors: string[] = [];
+      page.on("console", (message) => {
+        if (message.type() === "error") runtimeErrors.push(message.text());
+      });
+      page.on("pageerror", (error) => runtimeErrors.push(error.message));
+      await page.route(REPOSITORY_API_URL, async (route) => {
+        requestCount += 1;
+        if (scenario === "network") {
+          await route.abort("failed");
+        } else if (scenario === "non-2xx") {
+          await fulfillRepositoryMetadata(
+            route,
+            { message: "rate limited" },
+            429,
+          );
+        } else if (scenario === "malformed-json") {
+          await fulfillRepositoryMetadata(route, "{");
+        } else {
+          await fulfillRepositoryMetadata(route, { stargazers_count: 1.5 });
+        }
+      });
+
+      try {
+        await gotoLoaded(page, "/");
+        const action = page.locator(
+          "header [data-repository-navigation]:visible",
+        );
+        await expect(action).toHaveAccessibleName(REPOSITORY_LABEL);
+        await expect(action).toHaveAttribute("href", REPOSITORY_URL);
+        const countSlot = action.locator("[data-repository-star-slot]");
+        await expect(countSlot).toHaveCount(1);
+        await expect(countSlot).not.toHaveAttribute(
+          "data-repository-star-count",
+          "",
+        );
+        await expect(countSlot).toHaveCSS("visibility", "hidden");
+        expect(requestCount).toBe(1);
+        expect(
+          await page.evaluate(() =>
+            sessionStorage.getItem("trello-mcp:repository-star-count"),
+          ),
+        ).toBe("attempted");
+        await page.reload({ waitUntil: "networkidle" });
+        await expect(action).toHaveAccessibleName(REPOSITORY_LABEL);
+        await expect(countSlot).toHaveCSS("visibility", "hidden");
+        expect(requestCount).toBe(1);
+        const unexpectedErrors = runtimeErrors.filter((message) => {
+          if (
+            scenario === "non-2xx" &&
+            message.includes("status of 429 (Too Many Requests)")
+          ) {
+            return false;
+          }
+          if (
+            scenario === "network" &&
+            message.includes("Failed to load resource: net::ERR_FAILED")
+          ) {
+            return false;
+          }
+          return true;
+        });
+        expect(unexpectedErrors).toEqual([]);
+      } finally {
+        await context.close();
+      }
+    });
+  }
+});
+
+test("repository links remain useful without JavaScript or browser storage", async ({
+  browser,
+}) => {
+  const noScriptContext = await browser.newContext({
+    javaScriptEnabled: false,
+  });
+  const noScriptPage = await noScriptContext.newPage();
+  let noScriptRequests = 0;
+  await noScriptPage.route(REPOSITORY_API_URL, async (route) => {
+    noScriptRequests += 1;
+    await fulfillRepositoryMetadata(route);
+  });
+
+  try {
+    const response = await noScriptPage.goto("/", {
+      waitUntil: "domcontentloaded",
+    });
+    expect(response?.status()).toBe(200);
+    const action = noScriptPage.locator(
+      "header [data-repository-navigation]:visible",
+    );
+    await expect(action).toHaveAccessibleName(REPOSITORY_LABEL);
+    await expect(action).toHaveAttribute("href", REPOSITORY_URL);
+    await expect(action.locator("[data-repository-star-slot]")).toHaveCSS(
+      "visibility",
+      "hidden",
+    );
+    const homepageAction = noScriptPage.locator(".hero [data-github-action]");
+    await expect(homepageAction).toHaveAccessibleName("View on GitHub");
+    await expect(homepageAction).toHaveAttribute("href", REPOSITORY_URL);
+    await expect(homepageAction.locator(".star-count")).toHaveCount(0);
+    expect(noScriptRequests).toBe(0);
+  } finally {
+    await noScriptContext.close();
+  }
+
+  const noStorageContext = await browser.newContext();
+  await noStorageContext.addInitScript(() => {
+    Object.defineProperty(globalThis, "sessionStorage", {
+      configurable: true,
+      get: () => {
+        throw new DOMException("Storage unavailable", "SecurityError");
+      },
+    });
+  });
+  const noStoragePage = await noStorageContext.newPage();
+  let noStorageRequests = 0;
+  await noStoragePage.route(REPOSITORY_API_URL, async (route) => {
+    noStorageRequests += 1;
+    await fulfillRepositoryMetadata(route);
+  });
+
+  try {
+    await gotoLoaded(noStoragePage, "/");
+    const action = noStoragePage.locator(
+      "header [data-repository-navigation]:visible",
+    );
+    await expect(action).toHaveAccessibleName(REPOSITORY_LABEL);
+    await expect(action).toHaveAttribute("href", REPOSITORY_URL);
+    await expect(action.locator("[data-repository-star-slot]")).toHaveCSS(
+      "visibility",
+      "hidden",
+    );
+    expect(noStorageRequests).toBe(0);
+  } finally {
+    await noStorageContext.close();
+  }
+});
+
+test("repository navigation records the attempt before a slow request settles", async ({
+  page,
+}) => {
+  let requestCount = 0;
+  let releaseResponse = () => {};
+  let markRequestStarted = () => {};
+  const responseGate = new Promise<void>((resolve) => {
+    releaseResponse = resolve;
+  });
+  const requestStarted = new Promise<void>((resolve) => {
+    markRequestStarted = resolve;
+  });
+  await page.route(REPOSITORY_API_URL, async (route) => {
+    requestCount += 1;
+    markRequestStarted();
+    await responseGate;
+    try {
+      await fulfillRepositoryMetadata(route);
+    } catch {
+      // Navigating away intentionally discards the in-flight request.
+    }
+  });
+
+  try {
+    const response = await page.goto("/", { waitUntil: "domcontentloaded" });
+    expect(response?.status()).toBe(200);
+    await requestStarted;
+    expect(requestCount).toBe(1);
+    expect(
+      await page.evaluate(() =>
+        sessionStorage.getItem("trello-mcp:repository-star-count"),
+      ),
+    ).toBe("attempted");
+
+    await page.goto("/getting-started/", { waitUntil: "domcontentloaded" });
+    await gotoLoaded(page, "/");
+    const action = page.locator("header [data-repository-navigation]:visible");
+    await expect(action).toHaveAccessibleName(REPOSITORY_LABEL);
+    await expect(action.locator("[data-repository-star-slot]")).toHaveCSS(
+      "visibility",
+      "hidden",
+    );
+    expect(requestCount).toBe(1);
+  } finally {
+    releaseResponse();
+  }
 });
 
 test("legacy routes navigate to their canonical destinations", async ({
@@ -203,6 +487,21 @@ test("mobile menu is keyboard operable", async ({ page }) => {
   await expect(button).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(menu).toHaveAttribute("aria-expanded", "true");
+  const repositoryLink = page
+    .locator("#starlight__sidebar [data-repository-navigation]:visible")
+    .first();
+  await expect(repositoryLink).toHaveAccessibleName(
+    REPOSITORY_LABEL_WITH_STARS,
+  );
+  await expect(repositoryLink).toHaveAttribute("href", REPOSITORY_URL);
+  await expect(repositoryLink.locator("svg")).toHaveCount(2);
+  await repositoryLink.focus();
+  await expect(repositoryLink).toBeFocused();
+  expect(
+    await repositoryLink.evaluate(
+      (element) => getComputedStyle(element).outlineStyle !== "none",
+    ),
+  ).toBe(true);
   const toolsLink = page
     .locator('#starlight__sidebar a[href="/reference/tools/"]:visible')
     .first();

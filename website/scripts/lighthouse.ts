@@ -6,6 +6,7 @@ import { type PreviewServer, preview as startAstroPreview } from "astro";
 import { type LaunchedChrome, launch } from "chrome-launcher";
 import lighthouse, { type Flags } from "lighthouse";
 import { throttling, userAgents } from "lighthouse/core/config/constants.js";
+import { REPOSITORY_API_URL } from "../src/data/repository.js";
 
 const host = process.env.LIGHTHOUSE_HOST ?? "127.0.0.1";
 const port = Number.parseInt(process.env.LIGHTHOUSE_PORT ?? "4321", 10);
@@ -110,6 +111,7 @@ async function stopPreview(preview?: PreviewServer) {
 
 async function auditRoute(url: string, chromePort: number) {
   const flags: Flags = {
+    blockedUrlPatterns: [`${REPOSITORY_API_URL}*`],
     disableStorageReset: false,
     emulatedUserAgent: userAgents.desktop,
     formFactor: "desktop",

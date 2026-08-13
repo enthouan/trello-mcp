@@ -2,7 +2,10 @@ import { readdir, readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import playwrightConfig from "../../playwright.config.js";
 import { CANONICAL_WEBSITE_URL } from "../../src/data/publication.js";
-import { REPOSITORY_URL } from "../../src/data/repository.js";
+import {
+  REPOSITORY_API_URL,
+  REPOSITORY_URL,
+} from "../../src/data/repository.js";
 
 const repositoryFile = (path: string) =>
   new URL(`../../../${path}`, import.meta.url);
@@ -251,15 +254,83 @@ describe("canonical publication source contracts", () => {
     const repositoryLink = await source(
       websiteFile("src/components/RepositoryLink.astro"),
     );
+    const repositorySocialLink = await source(
+      websiteFile("src/components/RepositorySocialLink.astro"),
+    );
     const llms = await source(websiteFile("src/pages/llms.txt.ts"));
 
     expect(REPOSITORY_URL).toBe("https://github.com/enthouan/trello-mcp");
     expect(repository).toContain("REPOSITORY_URL");
-    for (const text of [astroConfig, footer, repositoryLink, llms]) {
+    for (const text of [
+      astroConfig,
+      footer,
+      repositoryLink,
+      repositorySocialLink,
+      llms,
+    ]) {
       expect(text).toContain("REPOSITORY_URL");
       expect(text).not.toContain(`const repositoryUrl = "${REPOSITORY_URL}"`);
     }
     expect(astroConfig).toContain('href: "/client-icons.css"');
+  });
+
+  it("keeps the browser-only GitHub metadata enhancement private and deterministic", async () => {
+    const repository = await source(websiteFile("src/data/repository.ts"));
+    const astroConfig = await source(websiteFile("astro.config.mjs"));
+    const repositorySocialLink = await source(
+      websiteFile("src/components/RepositorySocialLink.astro"),
+    );
+    const homepage = await source(websiteFile("src/content/docs/index.mdx"));
+    const browserSupport = await source(
+      websiteFile("tests/browser/support.ts"),
+    );
+    const lighthouse = await source(websiteFile("scripts/lighthouse.ts"));
+    const privacy = await source(repositoryFile("PRIVACY.md"));
+
+    expect(REPOSITORY_API_URL).toBe(
+      "https://api.github.com/repos/enthouan/trello-mcp",
+    );
+    expect(repository).toContain("new URL(REPOSITORY_URL)");
+    expect(repository).not.toContain(
+      "https://api.github.com/repos/enthouan/trello-mcp",
+    );
+    expect(astroConfig).toContain(
+      'SocialIcons: "./src/components/RepositorySocialLink.astro"',
+    );
+    expect(astroConfig).toContain('label: "trello-mcp source repository"');
+    expect(repositorySocialLink).toContain("config.social");
+    expect(repositorySocialLink).toContain("data-repository-navigation");
+    expect(repositorySocialLink).toContain('<Icon name="star" />');
+    expect(repositorySocialLink).toContain("fetch(REPOSITORY_API_URL");
+    expect(repositorySocialLink).toContain('credentials: "omit"');
+    expect(repositorySocialLink).toContain('referrerPolicy: "no-referrer"');
+    expect(repositorySocialLink).toContain("globalThis.sessionStorage");
+    expect(repositorySocialLink).toContain("storage.setItem(CACHE_KEY");
+    expect(repositorySocialLink).toContain(
+      "document.querySelectorAll<HTMLAnchorElement>",
+    );
+    expect(repositorySocialLink).not.toMatch(
+      /Authorization|github_pat_|gh[pousr]_/i,
+    );
+    expect(homepage).not.toContain("RepositoryStarCount");
+    expect(homepage).not.toContain("RepositorySocialLink");
+    expect(browserSupport).toContain("page.route(REPOSITORY_API_URL");
+    expect(lighthouse).toMatch(
+      /blockedUrlPatterns: \[`\$\{REPOSITORY_API_URL\}\*`\]/,
+    );
+    for (const marker of [
+      "your browser may make one best-effort, unauthenticated request",
+      "IP address",
+      "user agent",
+      "Origin/CORS information",
+      'credentials: "omit"',
+      'referrerPolicy: "no-referrer"',
+      "no project GitHub credential",
+      "An attempt marker is stored in `sessionStorage` before the request starts",
+      "do not cause repeated GitHub requests during the current browser session",
+    ]) {
+      expect(privacy).toContain(marker);
+    }
   });
 });
 

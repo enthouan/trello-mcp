@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { REPOSITORY_URL } from "../../src/data/repository.js";
+import {
+  formatRepositoryStarCount,
+  formatRepositoryStarCountLabel,
+  isRepositoryStarCount,
+  REPOSITORY_API_URL,
+  REPOSITORY_URL,
+} from "../../src/data/repository.js";
 import { TOOL_COUNT } from "../../src/data/tool-catalog.js";
 import {
   DISCLAIMER,
@@ -276,6 +282,24 @@ describe("homepage and reference content", () => {
     const page = await readRoute("/");
     const text = routeText(page);
     const hrefs = anchorHrefs(page.document);
+    const githubAction = required(
+      elements(
+        page.document,
+        (element) =>
+          element.tagName === "a" &&
+          attribute(element, "data-github-action") !== undefined,
+      )[0],
+      "homepage GitHub action",
+    );
+    const repositoryNavigation = required(
+      elements(
+        page.document,
+        (element) =>
+          element.tagName === "a" &&
+          attribute(element, "data-repository-navigation") !== undefined,
+      )[0],
+      "repository navigation link",
+    );
 
     expect(text).toContain(HERO_TITLE);
     expect(text).toContain(HERO_TAGLINE);
@@ -303,6 +327,88 @@ describe("homepage and reference content", () => {
     ]) {
       expect(hrefs).toContain(href);
     }
+    expect(attribute(githubAction, "href")).toBe(REPOSITORY_URL);
+    expect(attribute(githubAction, "rel")).toBe("external");
+    expect(attribute(githubAction, "referrerpolicy")).toBe("no-referrer");
+    expect(attribute(githubAction, "aria-label")).toBeUndefined();
+    expect(normalizedText(githubAction)).toBe("View on GitHub");
+    expect(
+      elements(
+        githubAction,
+        (element) =>
+          attribute(element, "data-repository-star-slot") !== undefined,
+      ),
+    ).toHaveLength(0);
+    expect(attribute(repositoryNavigation, "href")).toBe(REPOSITORY_URL);
+    expect(attribute(repositoryNavigation, "rel")).toBe("me external");
+    expect(attribute(repositoryNavigation, "referrerpolicy")).toBe(
+      "no-referrer",
+    );
+    expect(attribute(repositoryNavigation, "aria-label")).toBe(
+      "trello-mcp source repository",
+    );
+    expect(attribute(repositoryNavigation, "data-repository-label")).toBe(
+      "trello-mcp source repository",
+    );
+    const starSlot = required(
+      elements(
+        repositoryNavigation,
+        (element) =>
+          attribute(element, "data-repository-star-slot") !== undefined,
+      )[0],
+      "reserved repository star slot",
+    );
+    expect(attribute(starSlot, "aria-hidden")).toBe("true");
+    expect(
+      elements(
+        starSlot,
+        (element) =>
+          attribute(element, "data-repository-star-value") !== undefined,
+      ),
+    ).toHaveLength(1);
+    expect(
+      elements(
+        page.document,
+        (element) =>
+          attribute(element, "data-repository-star-count") !== undefined,
+      ),
+    ).toHaveLength(0);
+
+    const docsPage = await readRoute("/getting-started/");
+    expect(
+      elements(
+        docsPage.document,
+        (element) =>
+          element.tagName === "a" &&
+          attribute(element, "data-repository-navigation") !== undefined,
+      ),
+    ).toHaveLength(2);
+  });
+
+  it("validates and compactly formats only usable repository star counts", () => {
+    expect(REPOSITORY_API_URL).toBe(
+      "https://api.github.com/repos/enthouan/trello-mcp",
+    );
+    for (const value of [0, 1, 1_234]) {
+      expect(isRepositoryStarCount(value)).toBe(true);
+    }
+    for (const value of [
+      -0,
+      -1,
+      1.5,
+      Number.POSITIVE_INFINITY,
+      Number.MAX_SAFE_INTEGER + 1,
+      "1234",
+      null,
+      undefined,
+    ]) {
+      expect(isRepositoryStarCount(value)).toBe(false);
+    }
+    expect(formatRepositoryStarCount(0)).toBe("0");
+    expect(formatRepositoryStarCount(1_234)).toBe("1.2K");
+    expect(formatRepositoryStarCountLabel(0)).toBe("0 stars");
+    expect(formatRepositoryStarCountLabel(1)).toBe("1 star");
+    expect(formatRepositoryStarCountLabel(1_234)).toBe("1.2K stars");
   });
 
   it("keeps security, FAQ, reference, and credential boundaries explicit", async () => {
