@@ -13,6 +13,7 @@ import {
   ValidationError,
 } from "../utils/errors.js";
 import type { Logger } from "../utils/logger.js";
+import { trelloIdentifierFromUrl } from "./identifiers.js";
 
 const TRELLO_API_BASE_URL = "https://api.trello.com/1";
 const DEFAULT_CAPACITY = 100;
@@ -471,9 +472,9 @@ function safeLogResourceId(resourceId: string): string | undefined {
     return undefined;
   }
 
-  const urlIdentifier = trelloIdentifierFromUrl(value);
+  const urlIdentifier = trelloIdentifierFromUrl(value, ["b", "c", "w"]);
   if (urlIdentifier) {
-    return urlIdentifier;
+    return isUnsafeLogResourceId(urlIdentifier) ? "[redacted]" : urlIdentifier;
   }
 
   if (isUnsafeLogResourceId(value)) {
@@ -481,23 +482,6 @@ function safeLogResourceId(resourceId: string): string | undefined {
   }
 
   return value;
-}
-
-function trelloIdentifierFromUrl(value: string): string | undefined {
-  try {
-    const url = new URL(value);
-    const pathParts = url.pathname.split("/").filter(Boolean);
-    if (
-      url.hostname.endsWith("trello.com") &&
-      ["b", "c", "w"].includes(pathParts[0] ?? "") &&
-      pathParts[1]
-    ) {
-      return pathParts[1];
-    }
-    return undefined;
-  } catch {
-    return undefined;
-  }
 }
 
 function isUnsafeLogResourceId(value: string): boolean {

@@ -45,30 +45,52 @@ describe("card tools", () => {
     );
   });
 
-  it("normalizes Trello card URLs before requesting card details", async () => {
-    const tool = getCardTool("card_get");
-    const trello = {
-      request: vi.fn(async () => ({ id: "card1", name: "Existing card" })),
-    };
+  it.each(["trello.com", "www.trello.com"])(
+    "normalizes Trello card URLs from %s before requesting card details",
+    async (hostname) => {
+      const tool = getCardTool("card_get");
+      const trello = {
+        request: vi.fn(async () => ({ id: "card1", name: "Existing card" })),
+      };
 
-    await expect(
-      tool.handler(
-        {
-          cardId: "https://trello.com/c/AbCd1234/example-card",
-          fields: "all",
-        },
-        { trello: trello as never, logger: {} as never, requestId: "req1" },
-      ),
-    ).resolves.toEqual({ id: "card1", name: "Existing card" });
-    expect(trello.request).toHaveBeenCalledWith(
-      "/cards/AbCd1234",
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({ fields: "all" }),
-        resourceType: "card",
-      }),
-    );
-  });
+      await expect(
+        tool.handler(
+          {
+            cardId: `https://${hostname}/c/AbCd1234/example-card`,
+            fields: "all",
+          },
+          { trello: trello as never, logger: {} as never, requestId: "req1" },
+        ),
+      ).resolves.toEqual({ id: "card1", name: "Existing card" });
+      expect(trello.request).toHaveBeenCalledWith(
+        "/cards/AbCd1234",
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({ fields: "all" }),
+          resourceType: "card",
+        }),
+      );
+    },
+  );
+
+  it.each(["eviltrello.com", "not-trello.com", "trello.com.evil.example"])(
+    "rejects deceptive Trello card URLs from %s",
+    async (hostname) => {
+      const tool = getCardTool("card_get");
+      const trello = { request: vi.fn() };
+
+      await expect(
+        tool.handler(
+          {
+            cardId: `https://${hostname}/c/AbCd1234/example-card`,
+            fields: "all",
+          },
+          { trello: trello as never, logger: {} as never, requestId: "req1" },
+        ),
+      ).rejects.toThrow("HTTPS card URL on trello.com");
+      expect(trello.request).not.toHaveBeenCalled();
+    },
+  );
 
   it("adds the required card name field when minimizing card fields", async () => {
     const tool = getCardTool("card_get");

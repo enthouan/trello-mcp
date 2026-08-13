@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { defineTool } from "../utils/tool.js";
+import { normalizeTrelloCardIdentifier } from "./identifiers.js";
 import {
   DeleteResponseSchema,
   TrelloIdSchema,
@@ -116,7 +117,7 @@ export const labelTools = [
       return {
         success: true,
         action: "label_added",
-        cardId: cardIdentifier(cardId),
+        cardId: normalizeTrelloCardIdentifier(cardId),
         labelId,
       };
     },
@@ -139,7 +140,7 @@ export const labelTools = [
       return {
         success: true,
         action: "label_removed",
-        cardId: cardIdentifier(cardId),
+        cardId: normalizeTrelloCardIdentifier(cardId),
         labelId,
       };
     },
@@ -147,19 +148,5 @@ export const labelTools = [
 ];
 
 function cardPath(cardId: string): string {
-  return `/cards/${encodeURIComponent(cardIdentifier(cardId))}`;
-}
-
-function cardIdentifier(cardId: string): string {
-  const value = cardId.trim();
-  try {
-    const url = new URL(value);
-    const pathParts = url.pathname.split("/").filter(Boolean);
-    if (url.hostname.endsWith("trello.com") && pathParts[0] === "c") {
-      return pathParts[1] ?? value;
-    }
-  } catch {
-    // Treat non-URL values as Trello ids or short links.
-  }
-  return value;
+  return `/cards/${encodeURIComponent(normalizeTrelloCardIdentifier(cardId))}`;
 }

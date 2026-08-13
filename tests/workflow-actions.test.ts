@@ -15,7 +15,7 @@ import {
 
 const workflowsDirectory = new URL("../.github/workflows/", import.meta.url);
 const externalReferencePattern =
-  /^([^/@\s]+)\/([^/@\s]+)(?:\/[^@\s]+)*@([^@\s]+)$/;
+  /^([^/@\s]+)\/([^/@\s]+)(?:\/[^/@\s]+)*@([^@\s]+)$/;
 const immutableCommitPattern = /^[0-9a-f]{40}$/;
 const exactVersionPattern =
   /^v(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
@@ -362,6 +362,15 @@ jobs:
         line: 3,
       },
     ]);
+  });
+
+  it("rejects external references with empty path segments", () => {
+    expect(
+      scanWorkflow(`jobs:
+  check:
+    uses: owner/repository//action@0123456789abcdef0123456789abcdef01234567 # v1.2.3`)[0]
+        ?.violation,
+    ).toContain("unsupported external reference");
   });
 
   it("accepts exact release comments after flow mappings", () => {

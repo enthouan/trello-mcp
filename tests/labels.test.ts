@@ -124,6 +124,22 @@ describe("label tools", () => {
     );
   });
 
+  it("rejects deceptive Trello card URLs before adding a label", async () => {
+    const tool = getLabelTool("card_label_add");
+    const trello = { request: vi.fn() };
+
+    await expect(
+      tool.handler(
+        {
+          cardId: "https://eviltrello.com/c/AbCd1234/example-card",
+          labelId: "label1",
+        },
+        { trello: trello as never, logger: {} as never, requestId: "req1" },
+      ),
+    ).rejects.toThrow("HTTPS card URL on trello.com");
+    expect(trello.request).not.toHaveBeenCalled();
+  });
+
   it("removes labels from cards by label id", async () => {
     const tool = getLabelTool("card_label_remove");
     const trello = {
