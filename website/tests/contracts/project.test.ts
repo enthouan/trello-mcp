@@ -57,7 +57,7 @@ describe("website package and command boundaries", () => {
       "@astrojs/starlight": "0.41.7",
       "@fortawesome/free-brands-svg-icons": "7.3.1",
       "@fortawesome/free-solid-svg-icons": "7.3.1",
-      astro: "7.2.0",
+      astro: "7.2.1",
       "cross-env": "10.1.0",
       sharp: "0.35.3",
       typescript: "6.0.3",
