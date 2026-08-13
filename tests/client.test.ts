@@ -466,6 +466,84 @@ describe("TrelloClient", () => {
     expect(logs).not.toContain("token=");
   });
 
+  it("redacts deceptive Trello-like hosts in retry metadata", async () => {
+    const { logger, output } = captureLogger();
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response("rate limited", { status: 429 }))
+      .mockResolvedValueOnce(jsonResponse({ ok: true }));
+    const client = new TrelloClient(config, {
+      fetcher,
+      sleep: async () => undefined,
+      random: () => 0,
+      logger,
+      retry: { maxAttempts: 2 },
+    });
+
+    await client.request("/cards/AbCd1234", OkSchema, {
+      resourceType: "card",
+      resourceId:
+        "https://eviltrello.com/c/private-path?key=leaky-key&token=leaky-token",
+    });
+
+    const logs = await output();
+    expect(logs).toContain('"resourceId":"[redacted]"');
+    expect(logs).not.toContain("eviltrello.com");
+    expect(logs).not.toContain("private-path");
+    expect(logs).not.toContain("leaky-key");
+    expect(logs).not.toContain("leaky-token");
+  });
+
+  it("redacts secret-shaped identifiers extracted from Trello URLs", async () => {
+    const { logger, output } = captureLogger();
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response("rate limited", { status: 429 }))
+      .mockResolvedValueOnce(jsonResponse({ ok: true }));
+    const client = new TrelloClient(config, {
+      fetcher,
+      sleep: async () => undefined,
+      random: () => 0,
+      logger,
+      retry: { maxAttempts: 2 },
+    });
+
+    await client.request("/cards/AbCd1234", OkSchema, {
+      resourceType: "card",
+      resourceId: "https://trello.com/c/token=leaky-token/card-name",
+    });
+
+    const logs = await output();
+    expect(logs).toContain('"resourceId":"[redacted]"');
+    expect(logs).not.toContain("leaky-token");
+    expect(logs).not.toContain("token=");
+  });
+
+  it("redacts encoded secret-shaped Trello URL path segments", async () => {
+    const { logger, output } = captureLogger();
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response("rate limited", { status: 429 }))
+      .mockResolvedValueOnce(jsonResponse({ ok: true }));
+    const client = new TrelloClient(config, {
+      fetcher,
+      sleep: async () => undefined,
+      random: () => 0,
+      logger,
+      retry: { maxAttempts: 2 },
+    });
+
+    await client.request("/cards/AbCd1234", OkSchema, {
+      resourceType: "card",
+      resourceId: "https://trello.com/c/token%3Dleaky-token/card-name",
+    });
+
+    const logs = await output();
+    expect(logs).toContain('"resourceId":"[redacted]"');
+    expect(logs).not.toContain("leaky-token");
+    expect(logs).not.toContain("token%3D");
+  });
+
   it("uses request-scoped loggers for retry observability", async () => {
     const baseLogger = {
       debug: vi.fn(),

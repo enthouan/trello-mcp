@@ -9,6 +9,7 @@ import {
   fieldsSchema,
   includeRequiredFields,
 } from "./fields.js";
+import { normalizeTrelloCardIdentifier } from "./identifiers.js";
 import {
   DeleteResponseSchema,
   TrelloActionListSchema,
@@ -961,7 +962,7 @@ export const cardTools = [
       return {
         success: true,
         action: "member_added",
-        cardId: cardIdentifier(cardId),
+        cardId: normalizeTrelloCardIdentifier(cardId),
         memberId,
       };
     },
@@ -984,7 +985,7 @@ export const cardTools = [
       return {
         success: true,
         action: "member_removed",
-        cardId: cardIdentifier(cardId),
+        cardId: normalizeTrelloCardIdentifier(cardId),
         memberId,
       };
     },
@@ -1076,19 +1077,5 @@ function customFieldItemBody(
 }
 
 function cardPath(cardId: string): string {
-  return `/cards/${encodeURIComponent(cardIdentifier(cardId))}`;
-}
-
-function cardIdentifier(cardId: string): string {
-  const value = cardId.trim();
-  try {
-    const url = new URL(value);
-    const pathParts = url.pathname.split("/").filter(Boolean);
-    if (url.hostname.endsWith("trello.com") && pathParts[0] === "c") {
-      return pathParts[1] ?? value;
-    }
-  } catch {
-    // Treat non-URL values as Trello ids or short links.
-  }
-  return value;
+  return `/cards/${encodeURIComponent(normalizeTrelloCardIdentifier(cardId))}`;
 }
