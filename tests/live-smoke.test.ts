@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatLiveSmokeSummary,
   LiveSmokeConfigError,
   LiveSmokeRunError,
   loadLiveSmokeConfig,
@@ -12,6 +13,7 @@ type FakeBoard = {
   closed: boolean;
   id: string;
   name: string;
+  prefs: { permissionLevel: string };
 };
 
 type FakeList = {
@@ -76,8 +78,11 @@ type FakeCall = {
 function createFakeSmokeInvoker(
   options: {
     boardName?: string;
+    boardPermissionLevel?: string;
     failAfterCreateOn?: string;
     failOn?: string;
+    failureMessage?: string;
+    memberUsername?: string;
   } = {},
 ): {
   calls: FakeCall[];
@@ -95,11 +100,12 @@ function createFakeSmokeInvoker(
     closed: false,
     id: "board1",
     name: options.boardName ?? "Live Smoke Board",
+    prefs: { permissionLevel: options.boardPermissionLevel ?? "public" },
   };
   const member: FakeMember = {
     fullName: "Ada Lovelace",
     id: "member1",
-    username: "ada",
+    username: options.memberUsername ?? "ada",
   };
   const state = {
     actions: new Map<string, FakeAction>(),
@@ -116,7 +122,7 @@ function createFakeSmokeInvoker(
   const invoke: SmokeToolInvoker = async (name, input) => {
     calls.push({ input, name });
     if (options.failOn === name) {
-      throw new Error(`planned failure in ${name}`);
+      throw new Error(options.failureMessage ?? `planned failure in ${name}`);
     }
 
     switch (name) {
@@ -540,6 +546,7 @@ describe("live smoke config", () => {
         TRELLO_API_KEY: "key1",
         TRELLO_LIVE_SMOKE: "true",
         TRELLO_LIVE_SMOKE_BOARD_URL: "https://trello.com/b/GnKmvuHz/trello-mcp",
+        TRELLO_LIVE_REQUIRE_PUBLIC_BOARD: "1",
         TRELLO_TOKEN: "token1",
       },
       new Date("2026-06-14T10:11:12.123Z"),
@@ -550,6 +557,7 @@ describe("live smoke config", () => {
       TRELLO_TOKEN: "token1",
       boardRef: "GnKmvuHz",
       logLevel: "debug",
+      requirePublicBoard: true,
       runId: "local-2026-06-14T10-11-12-123Z",
     });
   });
@@ -563,6 +571,7 @@ describe("live smoke config", () => {
     });
 
     expect(config.boardRef).toBe("GnKmvuHz");
+    expect(config.requirePublicBoard).toBe(false);
   });
 
   it("rejects non-board URLs without echoing credential query strings", () => {
@@ -673,10 +682,61 @@ describe("live smoke flow", () => {
     );
     expect(logs.some((event) => event.level === "error")).toBe(false);
     expect(logs[0]).toMatchObject({
-      details: { boardRef: "board1", runId: "unit" },
+      details: { runId: "unit" },
     });
     expect(JSON.stringify(logs)).not.toContain("secret-key");
     expect(JSON.stringify(logs)).not.toContain("secret-token");
+  });
+
+  it("requires a public board before hosted smoke output or writes", async () => {
+    const fake = createFakeSmokeInvoker({
+      boardName: "Private Smoke Board",
+      boardPermissionLevel: "private",
+    });
+    const logs: SmokeLogEvent[] = [];
+
+    let thrown: unknown;
+    try {
+      await runLiveSmokeFlow({
+        boardRef: "board1",
+        invoke: fake.invoke,
+        log: (event) => logs.push(event),
+        requirePublicBoard: true,
+        runId: "public-board-guard",
+      });
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(LiveSmokeRunError);
+    const result = (thrown as LiveSmokeRunError).result;
+    const output = JSON.stringify({ logs, result });
+    expect(output).not.toContain("Private Smoke Board");
+    expect(output).not.toContain("board1");
+    expect(result.board).toEqual({ id: "unresolved", name: "unknown" });
+    expect(result.failures).toEqual([
+      "Configured live smoke board must be public when TRELLO_LIVE_REQUIRE_PUBLIC_BOARD=1.",
+    ]);
+    expect(fake.calls.map(({ name }) => name)).toEqual([
+      "auth_whoami",
+      "auth_token_info",
+      "board_get",
+    ]);
+    expect(fake.state.cards.size).toBe(0);
+    expect(fake.state.labels.size).toBe(0);
+    expect(fake.state.lists.size).toBe(0);
+  });
+
+  it("allows private disposable boards when the hosted guard is disabled", async () => {
+    const fake = createFakeSmokeInvoker({ boardPermissionLevel: "private" });
+
+    const result = await runLiveSmokeFlow({
+      boardRef: "board1",
+      invoke: fake.invoke,
+      runId: "local-private-board",
+    });
+
+    expect(result.failures).toEqual([]);
   });
 
   it("still deletes and archives tracked artifacts after a mid-flow failure", async () => {
@@ -698,7 +758,7 @@ describe("live smoke flow", () => {
     expect(thrown).toBeInstanceOf(LiveSmokeRunError);
     const result = (thrown as LiveSmokeRunError).result;
     expect(result.failures).toEqual([
-      "planned failure in card_checklist_item_create",
+      "Live Trello tool invocation failed: card_checklist_item_create.",
     ]);
     expect(result.cleanup.completed).toEqual(
       expect.arrayContaining([
@@ -712,6 +772,66 @@ describe("live smoke flow", () => {
     expect(
       Array.from(fake.state.lists.values()).every((list) => list.closed),
     ).toBe(true);
+  });
+
+  it("keeps raw private tool failures out of smoke results, reports, and logs", async () => {
+    const failureMessage = [
+      "planned failure in card_member_remove",
+      "member-id member1",
+      "username u",
+      "full-name Ada Lovelace",
+      "unlearned-private-value",
+    ].join("; ");
+    const fake = createFakeSmokeInvoker({
+      failOn: "card_member_remove",
+      failureMessage,
+      memberUsername: "u",
+    });
+    const logs: SmokeLogEvent[] = [];
+
+    let thrown: unknown;
+    try {
+      await runLiveSmokeFlow({
+        boardRef: "board1",
+        invoke: fake.invoke,
+        log: (event) => logs.push(event),
+        runId: "private-identifiers",
+      });
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(LiveSmokeRunError);
+    const result = (thrown as LiveSmokeRunError).result;
+    const outputs = [JSON.stringify(result), JSON.stringify(logs)];
+    for (const output of outputs) {
+      expect(output).not.toContain("member1");
+      expect(output).not.toContain("username u");
+      expect(output).not.toContain("Ada Lovelace");
+      expect(output).not.toContain("unlearned-private-value");
+      expect(output).toContain(
+        "Live Trello tool invocation failed: card_member_remove.",
+      );
+    }
+    const terminalReport = [
+      formatLiveSmokeSummary(result),
+      ...result.failures.map((failure) => `Failure: ${failure}`),
+      ...result.cleanup.failures.map(
+        (failure) => `Cleanup failure: ${failure}`,
+      ),
+    ].join("\n");
+    expect(terminalReport).not.toContain("member1");
+    expect(terminalReport).not.toContain("username u");
+    expect(terminalReport).not.toContain("Ada Lovelace");
+    expect(terminalReport).not.toContain("unlearned-private-value");
+    const safeFailure =
+      "Live Trello tool invocation failed: card_member_remove.";
+    expect(terminalReport).toContain(safeFailure);
+    expect(result.failures).toEqual([safeFailure]);
+    expect(result.cleanup.failures[0]).toContain(
+      `remove smoke card member: ${safeFailure}`,
+    );
+    expect(result.cleanup.attempted).toContain("remove smoke card member");
   });
 
   it.each([
@@ -751,7 +871,7 @@ describe("live smoke flow", () => {
       expect(thrown).toBeInstanceOf(LiveSmokeRunError);
       const result = (thrown as LiveSmokeRunError).result;
       expect(result.failures).toEqual([
-        `planned post-create failure in ${failAfterCreateOn}`,
+        `Live Trello tool invocation failed: ${failAfterCreateOn}.`,
       ]);
       expect(result.verified).toContain(
         "cleanup recovered 1 untracked prefix-matched smoke artifacts",

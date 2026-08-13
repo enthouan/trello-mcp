@@ -13,6 +13,7 @@ website/artifacts/
 website/playwright-report/
 website/test-results/
 .lighthouseci/
+reports/
 *.tsbuildinfo
 
 # Local environment and secrets
@@ -23,8 +24,13 @@ website/test-results/
 # Local AI-agent configuration may include credentials or per-user permissions
 .codex/config.toml
 .claude/settings.local.json
+.mcp.json
 .*/mcp.json
 .mcp-inspector.local.json
+opencode.json
+opencode.jsonc
+.opencode/opencode.json
+.opencode/opencode.jsonc
 
 # Logs
 logs/

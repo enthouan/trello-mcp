@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { readFile } from "node:fs/promises";
 import { parse as parseToml } from "smol-toml";
 import { describe, expect, it } from "vitest";
 import {
@@ -109,6 +110,31 @@ describe("setup recipe catalog", () => {
     });
     expect(VERIFY_EXAMPLE).not.toMatch(
       /TRELLO_(?:API_KEY|TOKEN)|MCP_AUTH_TOKEN|authorization/i,
+    );
+  });
+
+  it("keeps local client configuration and live reports out of commits and Docker contexts", async () => {
+    const [gitignore, dockerignore] = await Promise.all([
+      readFile(new URL("../.gitignore", import.meta.url), "utf8"),
+      readFile(new URL("../.dockerignore", import.meta.url), "utf8"),
+    ]);
+    const localConfigurationPaths = [
+      ".codex/config.toml",
+      ".claude/settings.local.json",
+      ".mcp.json",
+      ".*/mcp.json",
+      ".mcp-inspector.local.json",
+      "opencode.json",
+      "opencode.jsonc",
+      ".opencode/opencode.json",
+      ".opencode/opencode.jsonc",
+    ];
+
+    expect(gitignore.split(/\r?\n/)).toEqual(
+      expect.arrayContaining([...localConfigurationPaths, "reports/"]),
+    );
+    expect(dockerignore.split(/\r?\n/)).toEqual(
+      expect.arrayContaining([...localConfigurationPaths, "reports"]),
     );
   });
 });

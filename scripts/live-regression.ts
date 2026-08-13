@@ -6,7 +6,9 @@ import { TrelloClient } from "../src/trello/client.js";
 import { allTools } from "../src/trello/tools.js";
 import { createLogger } from "../src/utils/logger.js";
 import {
+  assertPublicBoardWhenRequired,
   createLiveToolInvoker,
+  createPrivacySafeInvoker,
   type SmokeLogEvent,
   type SmokeToolInvoker,
 } from "./live-smoke.js";
@@ -47,6 +49,7 @@ export type LiveRegressionDomain = (typeof LIVE_REGRESSION_DOMAINS)[number];
 export type LiveRegressionConfig = LiveRegressionClientConfig & {
   boardRef: string;
   logLevel: Config["LOG_LEVEL"];
+  requirePublicBoard: boolean;
   runId: string;
   domains?: LiveRegressionDomain[];
   jsonReportPath?: string;
@@ -132,8 +135,10 @@ type RegressionState = {
   boardMembers: unknown[];
   customFields: unknown[];
   labelAssignments: Array<{ cardId: string; labelId: string }>;
+  memberIdentifiers: Set<string>;
   memberAssignments: Array<{ cardId: string; memberId: string }>;
   setCustomFields: Array<{ cardId: string; customFieldId: string }>;
+  workspaceIdentifiers: Set<string>;
   authMemberId?: string;
   authUsername?: string;
   boardId?: string;
@@ -147,10 +152,12 @@ type RegressionState = {
 };
 
 type RegressionContext = {
+  boardRef: string;
   filters: NormalizedFilters;
   invoke: SmokeToolInvoker;
   log?: (event: SmokeLogEvent) => void;
   prefix: string;
+  requirePublicBoard: boolean;
   result: LiveRegressionResult;
   state: RegressionState;
   uploadFile?: string;
@@ -298,6 +305,7 @@ export function loadLiveRegressionConfig(
     TRELLO_TOKEN: token as string,
     boardRef: boardRef as string,
     logLevel: parseLogLevel(env.LOG_LEVEL),
+    requirePublicBoard: isOptedIn(env.TRELLO_LIVE_REQUIRE_PUBLIC_BOARD),
     runId: regressionRunId(cli.runId ?? env.TRELLO_LIVE_REGRESSION_RUN_ID, now),
   };
 
@@ -337,6 +345,7 @@ export async function runLiveRegressionSuite(options: {
   domains?: LiveRegressionDomain[];
   invoke: SmokeToolInvoker;
   log?: (event: SmokeLogEvent) => void;
+  requirePublicBoard?: boolean;
   runId: string;
   secondaryBoardRef?: string;
   tools?: string[];
@@ -348,21 +357,29 @@ export async function runLiveRegressionSuite(options: {
     : undefined;
   const filters = normalizeFilters(options);
   const prefix = `trello-mcp live regression ${options.runId}`;
-  const result = emptyResult(options.runId, boardRef, filters);
+  const result = emptyResult(
+    options.runId,
+    options.requirePublicBoard === true ? "unresolved" : boardRef,
+    filters,
+  );
   const state: RegressionState = {
     boardMembers: [],
     customFields: [],
     labelAssignments: [],
+    memberIdentifiers: new Set(),
     memberAssignments: [],
     setCustomFields: [],
+    workspaceIdentifiers: new Set(),
   };
   if (secondaryBoardRef) {
     state.secondaryBoardRef = secondaryBoardRef;
   }
   const context: RegressionContext = {
+    boardRef,
     filters,
-    invoke: options.invoke,
+    invoke: createPrivacySafeInvoker(options.invoke),
     prefix,
+    requirePublicBoard: options.requirePublicBoard === true,
     result,
     state,
   };
@@ -378,7 +395,7 @@ export async function runLiveRegressionSuite(options: {
   options.log?.({
     level: "info",
     message: "Starting live Trello regression",
-    details: { boardRef, runId: options.runId },
+    details: { runId: options.runId },
   });
 
   try {
@@ -418,7 +435,7 @@ export async function runLiveRegressionSuite(options: {
     }
   } catch (error) {
     failure = error;
-    const message = errorMessage(error);
+    const message = sanitizedRegressionErrorMessage(context, error);
     result.failures.push(message);
     options.log?.({
       level: "error",
@@ -615,6 +632,7 @@ async function resolveRegressionBoard(
     "auth_whoami",
   );
   context.state.authMemberId = stringField(authMember, "id", "auth_whoami");
+  rememberMemberIdentifiers(context, authMember);
   const username = optionalStringField(authMember, "username");
   if (username) {
     context.state.authUsername = username;
@@ -626,10 +644,15 @@ async function resolveRegressionBoard(
 
   const board = await objectResult(
     invokeTool(context, "board_get", {
-      boardId: context.result.board.id,
-      fields: "name,closed,url,idOrganization",
+      boardId: context.boardRef,
+      fields: "name,closed,url,idOrganization,prefs",
     }),
     "board_get",
+  );
+  assertPublicBoardWhenRequired(
+    board,
+    context.requirePublicBoard,
+    "Configured live regression board",
   );
   const boardId = stringField(board, "id", "board_get");
   const boardName = stringField(board, "name", "board_get");
@@ -641,6 +664,7 @@ async function resolveRegressionBoard(
   const organizationId = optionalStringField(board, "idOrganization");
   if (organizationId) {
     context.state.boardOrganizationId = organizationId;
+    context.state.workspaceIdentifiers.add(organizationId);
   }
 
   const visibleBoards = await arrayResult(
@@ -669,9 +693,14 @@ async function resolveSecondaryRegressionBoard(
   const secondaryBoard = await objectResult(
     invokeTool(context, "board_get", {
       boardId: secondaryBoardRef,
-      fields: "name,closed,url,idOrganization",
+      fields: "name,closed,url,idOrganization,prefs",
     }),
     "secondary board_get",
+  );
+  assertPublicBoardWhenRequired(
+    secondaryBoard,
+    context.requirePublicBoard,
+    "Configured secondary live regression board",
   );
   const secondaryBoardId = stringField(
     secondaryBoard,
@@ -750,7 +779,7 @@ async function runBoardRegression(context: RegressionContext): Promise<void> {
     await getBoardMembers(context);
   }
   if (shouldRunTool(context, "board_memberships")) {
-    await arrayResult(
+    const memberships = await arrayResult(
       invokeTool(context, "board_memberships", {
         boardId,
         filter: "all",
@@ -759,6 +788,7 @@ async function runBoardRegression(context: RegressionContext): Promise<void> {
       }),
       "board_memberships",
     );
+    rememberMemberIdentifiers(context, memberships);
   }
   verify(
     context.result,
@@ -777,7 +807,8 @@ async function runWorkspaceRegression(
     }),
     "list_workspaces",
   );
-  const workspaceId = context.state.boardOrganizationId ?? firstId(workspaces);
+  rememberWorkspaceIdentifiers(context, workspaces);
+  const workspaceId = context.state.boardOrganizationId;
   if (!workspaceId) {
     skipTool(
       context,
@@ -798,13 +829,14 @@ async function runWorkspaceRegression(
   }
 
   if (shouldRunTool(context, "workspace_get")) {
-    await objectResult(
+    const workspace = await objectResult(
       invokeTool(context, "workspace_get", {
         workspaceId,
         fields: "name,displayName,url,website,idBoards",
       }),
       "workspace_get",
     );
+    rememberWorkspaceIdentifiers(context, workspace);
   }
   if (shouldRunTool(context, "workspace_boards")) {
     await arrayResult(
@@ -817,7 +849,7 @@ async function runWorkspaceRegression(
     );
   }
   if (shouldRunTool(context, "workspace_members")) {
-    await arrayResult(
+    const members = await arrayResult(
       invokeTool(context, "workspace_members", {
         workspaceId,
         fields: "username,fullName,initials,avatarUrl",
@@ -825,6 +857,7 @@ async function runWorkspaceRegression(
       }),
       "workspace_members",
     );
+    rememberMemberIdentifiers(context, members);
   }
   verify(context.result, "exercised selected workspace regression scenarios");
 }
@@ -1175,6 +1208,7 @@ async function runLabelRegression(context: RegressionContext): Promise<void> {
 
 async function runMemberRegression(context: RegressionContext): Promise<void> {
   const memberId = requireAuthMemberId(context);
+  const memberReadRef = "me";
   const needsCard = shouldRunAnyTool(context, [
     "card_members",
     "card_member_add",
@@ -1193,7 +1227,7 @@ async function runMemberRegression(context: RegressionContext): Promise<void> {
   const boardMembers = needsBoardMembers ? await getBoardMembers(context) : [];
 
   if (shouldRunTool(context, "board_memberships")) {
-    await arrayResult(
+    const memberships = await arrayResult(
       invokeTool(context, "board_memberships", {
         boardId: requireBoardId(context),
         filter: "all",
@@ -1202,36 +1236,39 @@ async function runMemberRegression(context: RegressionContext): Promise<void> {
       }),
       "board_memberships",
     );
+    rememberMemberIdentifiers(context, memberships);
   }
   if (shouldRunTool(context, "member_get")) {
-    await objectResult(
+    const member = await objectResult(
       invokeTool(context, "member_get", {
         fields: "username,fullName,initials,avatarUrl",
-        memberId,
+        memberId: memberReadRef,
       }),
       "member_get",
     );
+    rememberMemberIdentifiers(context, member);
   }
   if (shouldRunTool(context, "member_boards")) {
     await arrayResult(
       invokeTool(context, "member_boards", {
         fields: "name,closed,url",
         filter: "open",
-        memberId,
+        memberId: memberReadRef,
       }),
       "member_boards",
     );
   }
   if (shouldRunTool(context, "member_workspaces")) {
-    await arrayResult(
+    const workspaces = await arrayResult(
       invokeTool(context, "member_workspaces", {
         fields: "name,displayName,url,website,idBoards",
         filter: "all",
-        memberId,
+        memberId: memberReadRef,
         paidAccount: false,
       }),
       "member_workspaces",
     );
+    rememberWorkspaceIdentifiers(context, workspaces);
   }
   if (card && shouldRunTool(context, "card_members")) {
     await arrayResult(
@@ -1269,7 +1306,7 @@ async function runMemberRegression(context: RegressionContext): Promise<void> {
             fields: "name,idBoard,idList",
             filter: "visible",
             limit: 20,
-            memberId,
+            memberId: memberReadRef,
           }),
           "member_cards",
         );
@@ -1304,7 +1341,7 @@ async function runMemberRegression(context: RegressionContext): Promise<void> {
         fields: "name,idBoard,idList",
         filter: "visible",
         limit: 20,
-        memberId,
+        memberId: memberReadRef,
       }),
       "member_cards",
     );
@@ -2036,6 +2073,7 @@ async function getBoardMembers(context: RegressionContext): Promise<unknown[]> {
     "board_members",
   );
   context.state.boardMembers = members;
+  rememberMemberIdentifiers(context, members);
   return members;
 }
 
@@ -2059,14 +2097,11 @@ async function cleanupRegressionArtifacts(
   context: RegressionContext,
 ): Promise<void> {
   for (const assignment of [...context.state.memberAssignments].reverse()) {
-    await cleanupStep(
-      context,
-      `remove regression card member ${assignment.memberId}`,
-      () =>
-        invokeTool(context, "card_member_remove", {
-          cardId: assignment.cardId,
-          memberId: assignment.memberId,
-        }),
+    await cleanupStep(context, "remove regression card member", () =>
+      invokeTool(context, "card_member_remove", {
+        cardId: assignment.cardId,
+        memberId: assignment.memberId,
+      }),
     );
     untrackMemberAssignment(context, assignment.cardId, assignment.memberId);
   }
@@ -2179,7 +2214,7 @@ async function cleanupUntrackedOpenArtifacts(
       ),
     ]);
   } catch (error) {
-    const message = `discover untracked regression artifacts on board ${board.id}: ${errorMessage(error)}`;
+    const message = `discover untracked regression artifacts on board ${board.id}: ${sanitizedRegressionErrorMessage(context, error)}`;
     context.result.cleanup.failures.push(message);
     context.log?.({
       level: "warn",
@@ -2250,7 +2285,7 @@ async function cleanupStep(
     await action();
     context.result.cleanup.completed.push(label);
   } catch (error) {
-    const message = `${label}: ${errorMessage(error)}`;
+    const message = `${label}: ${sanitizedRegressionErrorMessage(context, error)}`;
     context.result.cleanup.failures.push(message);
     context.log?.({
       level: "warn",
@@ -2305,7 +2340,7 @@ async function verifyNoOpenArtifacts(
       );
     }
   } catch (error) {
-    const message = `cleanup verification: ${errorMessage(error)}`;
+    const message = `cleanup verification: ${sanitizedRegressionErrorMessage(context, error)}`;
     context.result.cleanup.failures.push(message);
     context.log?.({
       level: "warn",
@@ -3111,6 +3146,93 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+function rememberMemberIdentifiers(
+  context: RegressionContext,
+  value: unknown,
+): void {
+  rememberIdentifiers(context.state.memberIdentifiers, value, [
+    "id",
+    "idMember",
+    "username",
+    "fullName",
+    "avatarUrl",
+  ]);
+  if (isRecord(value) && value.member !== undefined) {
+    rememberMemberIdentifiers(context, value.member);
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      rememberMemberIdentifiers(context, item);
+    }
+  }
+}
+
+function rememberWorkspaceIdentifiers(
+  context: RegressionContext,
+  value: unknown,
+): void {
+  rememberIdentifiers(context.state.workspaceIdentifiers, value, [
+    "id",
+    "name",
+    "displayName",
+    "url",
+    "website",
+  ]);
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      rememberWorkspaceIdentifiers(context, item);
+    }
+  }
+}
+
+function rememberIdentifiers(
+  identifiers: Set<string>,
+  value: unknown,
+  fields: readonly string[],
+): void {
+  if (!isRecord(value)) {
+    return;
+  }
+  for (const field of fields) {
+    const identifier = value[field];
+    if (typeof identifier === "string" && identifier.length > 0) {
+      identifiers.add(identifier);
+    }
+  }
+}
+
+function sanitizedRegressionErrorMessage(
+  context: RegressionContext,
+  error: unknown,
+): string {
+  const replacements = [
+    ...[...context.state.memberIdentifiers].map(
+      (identifier) => [identifier, "[member]"] as const,
+    ),
+    ...[...context.state.workspaceIdentifiers].map(
+      (identifier) => [identifier, "[workspace]"] as const,
+    ),
+  ].sort(([left], [right]) => right.length - left.length);
+
+  let message = errorMessage(error);
+  for (const [identifier, replacement] of replacements) {
+    message = replaceIdentifier(message, identifier, replacement);
+  }
+  return message;
+}
+
+function replaceIdentifier(
+  message: string,
+  identifier: string,
+  replacement: string,
+): string {
+  const escaped = identifier.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return message.replace(
+    new RegExp(`(?<![\\p{L}\\p{N}_-])${escaped}(?![\\p{L}\\p{N}_-])`, "gu"),
+    replacement,
+  );
+}
+
 function redactedMessage(error: unknown, secrets: readonly string[]): string {
   let message = errorMessage(error);
   for (const secret of secrets) {
@@ -3191,6 +3313,7 @@ async function main(): Promise<void> {
       boardRef: config.boardRef,
       invoke,
       log: printEvent,
+      requirePublicBoard: config.requirePublicBoard,
       runId: config.runId,
       ...(config.domains ? { domains: config.domains } : {}),
       ...(config.secondaryBoardRef
