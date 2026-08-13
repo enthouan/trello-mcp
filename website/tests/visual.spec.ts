@@ -1,6 +1,6 @@
 import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./browser/support.js";
 
 const routes = [
   { name: "home", path: "/" },

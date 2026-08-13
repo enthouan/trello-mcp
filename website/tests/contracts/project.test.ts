@@ -2,7 +2,10 @@ import { readdir, readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import playwrightConfig from "../../playwright.config.js";
 import { CANONICAL_WEBSITE_URL } from "../../src/data/publication.js";
-import { REPOSITORY_URL } from "../../src/data/repository.js";
+import {
+  REPOSITORY_API_URL,
+  REPOSITORY_URL,
+} from "../../src/data/repository.js";
 
 const repositoryFile = (path: string) =>
   new URL(`../../../${path}`, import.meta.url);
@@ -260,6 +263,53 @@ describe("canonical publication source contracts", () => {
       expect(text).not.toContain(`const repositoryUrl = "${REPOSITORY_URL}"`);
     }
     expect(astroConfig).toContain('href: "/client-icons.css"');
+  });
+
+  it("keeps the browser-only GitHub metadata enhancement private and deterministic", async () => {
+    const repository = await source(websiteFile("src/data/repository.ts"));
+    const starCount = await source(
+      websiteFile("src/components/RepositoryStarCount.astro"),
+    );
+    const homepage = await source(websiteFile("src/content/docs/index.mdx"));
+    const browserSupport = await source(
+      websiteFile("tests/browser/support.ts"),
+    );
+    const lighthouse = await source(websiteFile("scripts/lighthouse.ts"));
+    const privacy = await source(repositoryFile("PRIVACY.md"));
+
+    expect(REPOSITORY_API_URL).toBe(
+      "https://api.github.com/repos/enthouan/trello-mcp",
+    );
+    expect(repository).toContain("new URL(REPOSITORY_URL)");
+    expect(repository).not.toContain(
+      "https://api.github.com/repos/enthouan/trello-mcp",
+    );
+    expect(starCount).toContain("fetch(REPOSITORY_API_URL");
+    expect(starCount).toContain('credentials: "omit"');
+    expect(starCount).toContain('referrerPolicy: "no-referrer"');
+    expect(starCount).toContain("globalThis.sessionStorage");
+    expect(starCount).toContain("storage.setItem(CACHE_KEY");
+    expect(starCount).not.toMatch(/Authorization|github_pat_|gh[pousr]_/i);
+    expect(homepage).toContain(
+      "import RepositoryStarCount from '../../components/RepositoryStarCount.astro';",
+    );
+    expect(homepage).toContain("<RepositoryStarCount />");
+    expect(browserSupport).toContain("page.route(REPOSITORY_API_URL");
+    expect(lighthouse).toMatch(
+      /blockedUrlPatterns: \[`\$\{REPOSITORY_API_URL\}\*`\]/,
+    );
+    for (const marker of [
+      "your browser may make one best-effort, unauthenticated request",
+      "IP address",
+      "user agent",
+      "Origin/CORS information",
+      'credentials: "omit"',
+      'referrerPolicy: "no-referrer"',
+      "no project GitHub credential",
+      "cached in `sessionStorage` only for the current browser session",
+    ]) {
+      expect(privacy).toContain(marker);
+    }
   });
 });
 

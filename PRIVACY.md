@@ -21,6 +21,8 @@ Other external services are part of repository, distribution, or development wor
 - GHCR may be contacted when you pull the published Docker image.
 - GitHub is used for repository hosting, releases, issues, pull requests, Actions workflows, and project coordination.
 
+When you visit the project website, your browser may make one best-effort, unauthenticated request to GitHub's public repository API to display the current star count. GitHub receives the ordinary metadata needed to serve that request, such as your IP address, user agent, request time, requested API URL, and browser-supplied Origin/CORS information. The request uses `credentials: "omit"` and `referrerPolicy: "no-referrer"`, so it sends no project GitHub credential, browser credential, cookie, or page referrer. The result of that attempt—a validated count or an unavailable marker—is cached in `sessionStorage` only for the current browser session to avoid repeated GitHub requests; failures leave the static GitHub link unchanged.
+
 Do not paste private Trello data, secrets, unredacted logs, or sensitive screenshots into public GitHub issues, pull requests, discussions, or comments.
 
 ## Operator Control

@@ -1,5 +1,7 @@
-import { expect, test } from "@playwright/test";
-import { REPOSITORY_URL } from "../../src/data/repository.js";
+import {
+  REPOSITORY_API_URL,
+  REPOSITORY_URL,
+} from "../../src/data/repository.js";
 import {
   FOOTER_ATTRIBUTION,
   FOOTER_DISCLAIMER,
@@ -12,9 +14,12 @@ import {
   assertHeadingAndLandmarkBasics,
   assertNoPageOverflow,
   assertNoSeriousAccessibilityViolations,
+  expect,
+  fulfillRepositoryMetadata,
   getClientPickerGrid,
   gotoLoaded,
   monitorBrowserProblems,
+  test,
 } from "./support.js";
 
 test.describe("representative production routes", () => {
@@ -170,7 +175,7 @@ test("homepage actions, marks, and hover feedback remain visitor-observable", as
   await expect(actions.nth(0)).toHaveAttribute("href", "/getting-started/");
   await expect(actions.nth(1)).toHaveAttribute("href", REPOSITORY_URL);
   await expect(actions.nth(1).locator("svg[aria-hidden='true']")).toHaveCount(
-    1,
+    2,
   );
 
   for (const theme of ["light", "dark"] as const) {
@@ -206,6 +211,115 @@ test("homepage actions, marks, and hover feedback remain visitor-observable", as
     }
   }
 });
+
+for (const viewport of [
+  { name: "desktop", width: 1440, height: 900 },
+  { name: "mobile", width: 390, height: 844 },
+] as const) {
+  test(`homepage star count reserves stable ${viewport.name} action space`, async ({
+    page,
+  }) => {
+    let releaseResponse = () => {};
+    const responseGate = new Promise<void>((resolve) => {
+      releaseResponse = resolve;
+    });
+    await page.route(REPOSITORY_API_URL, async (route) => {
+      await responseGate;
+      await fulfillRepositoryMetadata(route);
+    });
+    await page.setViewportSize(viewport);
+    const response = await page.goto("/", { waitUntil: "domcontentloaded" });
+    expect(response?.status()).toBe(200);
+    await page.evaluate(() => document.fonts.ready);
+
+    const action = page.locator(".hero [data-github-action]");
+    const actions = page.locator(".hero .actions");
+    const getStarted = page.getByRole("link", {
+      name: "Get started",
+      exact: true,
+    });
+    const originalContentGeometry = () =>
+      action.evaluate((element) => {
+        const icon = element.querySelector(":scope > svg");
+        const text = [...element.childNodes].find(
+          (node) =>
+            node.nodeType === Node.TEXT_NODE &&
+            node.textContent?.includes("View on GitHub"),
+        );
+        if (!icon || !text) return null;
+
+        const range = document.createRange();
+        range.selectNodeContents(text);
+        const iconBox = icon.getBoundingClientRect();
+        const textBox = range.getBoundingClientRect();
+        return {
+          icon: { x: iconBox.x, y: iconBox.y },
+          text: { x: textBox.x, y: textBox.y },
+        };
+      });
+    const [
+      actionBefore,
+      actionsBefore,
+      getStartedBefore,
+      originalContentBefore,
+    ] = await Promise.all([
+      action.boundingBox(),
+      actions.boundingBox(),
+      getStarted.boundingBox(),
+      originalContentGeometry(),
+    ]);
+    expect(actionBefore).not.toBeNull();
+    expect(actionsBefore).not.toBeNull();
+    expect(getStartedBefore).not.toBeNull();
+    expect(originalContentBefore).not.toBeNull();
+
+    releaseResponse();
+    await expect(action.locator("[data-repository-star-count]")).toHaveText(
+      "1.2K",
+    );
+    const [actionAfter, actionsAfter, getStartedAfter, originalContentAfter] =
+      await Promise.all([
+        action.boundingBox(),
+        actions.boundingBox(),
+        getStarted.boundingBox(),
+        originalContentGeometry(),
+      ]);
+    expect(actionAfter).not.toBeNull();
+    expect(actionsAfter).not.toBeNull();
+    expect(getStartedAfter).not.toBeNull();
+    expect(originalContentAfter).not.toBeNull();
+
+    for (const property of ["x", "y", "width", "height"] as const) {
+      expect(
+        Math.abs(
+          (actionAfter?.[property] ?? 0) - (actionBefore?.[property] ?? 0),
+        ),
+        `GitHub action ${property} shifted`,
+      ).toBeLessThanOrEqual(1);
+    }
+    expect(
+      Math.abs((actionsAfter?.height ?? 0) - (actionsBefore?.height ?? 0)),
+    ).toBeLessThanOrEqual(1);
+    expect(
+      Math.abs((getStartedAfter?.x ?? 0) - (getStartedBefore?.x ?? 0)),
+    ).toBeLessThanOrEqual(1);
+    expect(
+      Math.abs((getStartedAfter?.y ?? 0) - (getStartedBefore?.y ?? 0)),
+    ).toBeLessThanOrEqual(1);
+    for (const part of ["icon", "text"] as const) {
+      for (const property of ["x", "y"] as const) {
+        expect(
+          Math.abs(
+            (originalContentAfter?.[part][property] ?? 0) -
+              (originalContentBefore?.[part][property] ?? 0),
+          ),
+          `GitHub action ${part} ${property} shifted`,
+        ).toBeLessThanOrEqual(1);
+      }
+    }
+    await assertNoPageOverflow(page, `${viewport.name} GitHub star count`);
+  });
+}
 
 test("homepage proof and client cards reflow without clipping", async ({
   page,

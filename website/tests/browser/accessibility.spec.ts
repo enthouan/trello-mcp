@@ -1,5 +1,4 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test } from "@playwright/test";
 import {
   COPY_FAILURE_MESSAGE,
   PUBLIC_ROUTES,
@@ -7,8 +6,10 @@ import {
 } from "../support/site.js";
 import {
   assertNoPageOverflow,
+  expect,
   gotoLoaded,
   monitorBrowserProblems,
+  test,
 } from "./support.js";
 
 test("dark theme meets color contrast across every public route", async ({

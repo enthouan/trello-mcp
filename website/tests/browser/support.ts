@@ -1,5 +1,40 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, type Page, type Response } from "@playwright/test";
+import {
+  test as base,
+  expect,
+  type Page,
+  type Response,
+  type Route,
+} from "@playwright/test";
+import { REPOSITORY_API_URL } from "../../src/data/repository.js";
+
+export { expect };
+
+export const MOCK_REPOSITORY_STAR_COUNT = 1_234;
+
+export async function fulfillRepositoryMetadata(
+  route: Route,
+  body: unknown = { stargazers_count: MOCK_REPOSITORY_STAR_COUNT },
+  status = 200,
+) {
+  await route.fulfill({
+    status,
+    headers: {
+      "access-control-allow-origin": "*",
+      "content-type": "application/json; charset=utf-8",
+    },
+    body: typeof body === "string" ? body : JSON.stringify(body),
+  });
+}
+
+export const test = base.extend({
+  page: async ({ page }, use) => {
+    await page.route(REPOSITORY_API_URL, (route) =>
+      fulfillRepositoryMetadata(route),
+    );
+    await use(page);
+  },
+});
 
 export function getClientPickerGrid(page: Page) {
   return page

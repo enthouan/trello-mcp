@@ -86,6 +86,45 @@ html[data-has-hero] .hero {
   color: #ffffff;
 }
 
+.hero [data-github-action] {
+  --repository-star-slot-width: 3.25rem;
+
+  position: relative;
+  inline-size: 16.5rem;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.hero [data-github-action]::after {
+  content: "";
+  flex: 0 0 var(--repository-star-slot-width);
+  inline-size: var(--repository-star-slot-width);
+}
+
+.hero [data-github-action] .star-count {
+  position: absolute;
+  inset-inline-end: 1.125rem;
+  display: inline-flex;
+  gap: 0.2rem;
+  align-items: center;
+  justify-content: flex-start;
+  inline-size: var(--repository-star-slot-width);
+  font-size: var(--sl-text-sm);
+  font-weight: 600;
+  line-height: 1;
+}
+
+.hero [data-github-action] .star-count svg {
+  width: 1em;
+  height: 1em;
+}
+
+@media (min-width: 50rem) {
+  .hero [data-github-action] .star-count {
+    inset-inline-end: 1.25rem;
+  }
+}
+
 :root:not([data-theme="light"]) [data-github-action] {
   border-color: var(--sl-color-gray-4);
 }

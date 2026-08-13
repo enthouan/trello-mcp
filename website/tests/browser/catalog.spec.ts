@@ -1,6 +1,5 @@
-import { expect, test } from "@playwright/test";
 import { CATALOG_PREVIEW_CATEGORIES } from "../support/site.js";
-import { assertNoPageOverflow, gotoLoaded } from "./support.js";
+import { assertNoPageOverflow, expect, gotoLoaded, test } from "./support.js";
 
 test("tool catalog filters by search, category, and behavior", async ({
   page,
