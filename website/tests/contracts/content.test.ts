@@ -142,9 +142,11 @@ describe("independent-project and support content", () => {
       "Do not post secrets",
       "Supported Versions",
       "Threat Model Basics",
+      "v1.0 is the current stable release line",
     ]) {
       expect(routeText(security)).toContain(marker);
     }
+    expect(routeText(security)).not.toContain("pre-1.0");
   });
 });
 
@@ -416,6 +418,7 @@ describe("homepage and reference content", () => {
     const faq = routeText(await readRoute("/guides/faq/"));
     const reference = await readRoute("/reference/");
     const credentials = await readRoute("/getting-started/trello-api-key/");
+    const configuration = await readRoute("/reference/configuration/");
 
     for (const marker of [
       "Trello API key and token",
@@ -448,11 +451,23 @@ describe("homepage and reference content", () => {
       "Issues",
       "public roadmap",
       "Documentation contracts",
+      "v1.0 public baseline",
     ]) {
       expect(routeText(reference)).toContain(marker);
     }
+    expect(routeText(reference)).toContain(
+      "trello-mcp is an independent, community-maintained project.",
+    );
+    expect(routeText(reference)).not.toContain("Pre-1.0");
     expect(anchorHrefs(reference.document)).toContain(REPOSITORY_URL);
     expect(anchorHrefs(reference.document)).toContain(ROADMAP_URL);
+    expect(anchorHrefs(reference.document)).toContain(
+      "https://support.atlassian.com/trello/docs/connect-trello-to-ai-assistants-with-trello-mcp/",
+    );
+    expect(
+      configuration.source.match(/TRELLO_MCP_IMAGE_TAG=1\.0\.0/g),
+    ).toHaveLength(2);
+    expect(configuration.source).not.toContain("TRELLO_MCP_IMAGE_TAG=0.9.0");
 
     for (const marker of [
       "TRELLO_API_KEY",
@@ -603,9 +618,9 @@ describe("information architecture output", () => {
     const text = routeText(page);
     for (const marker of [
       `all ${TOOL_COUNT} tools currently registered through allTools`,
-      "The v1.0 target is broad Trello workflow coverage",
+      "The v1.0 release provides broad Trello workflow coverage",
       "not a one-to-one Trello REST proxy",
-      "The v1.0 target intentionally excludes Enterprise administration",
+      "The v1.0 scope intentionally excludes Enterprise administration",
     ]) {
       expect(text).toContain(marker);
     }

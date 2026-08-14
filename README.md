@@ -304,7 +304,7 @@ Safety model:
 - The harness invokes the existing tool handlers with a real `TrelloClient`, so tool input validation, Trello response validation, retry/rate-limit handling, and credential redaction stay on the normal code path.
 - The harness does not log API keys, tokens, credential-bearing URLs, raw environment objects, or raw request data.
 
-The smoke flow validates representative pre-1.0 coverage:
+The smoke flow validates representative v1.0 workflows:
 
 - Auth and discovery: `auth_whoami`, `auth_token_info`, `list_boards`, board reads, lists, cards, labels, members, memberships, and custom-field discovery.
 - List and card writes: disposable list creation/rename/archive, card create/read/update/due-date/position/archive/restore/move/delete.

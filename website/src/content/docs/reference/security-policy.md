@@ -5,13 +5,13 @@ description: "Supported versions, private vulnerability reporting, sensitive dat
 
 ## Supported Versions
 
-`trello-mcp` is a pre-1.0 project. Unless a maintainer states otherwise, security fixes are supported for:
+`trello-mcp` v1.0 is the current stable release line. Unless a maintainer states otherwise, security fixes are supported for:
 
 | Version | Support |
 | --- | --- |
 | `main` | Supported for current development and review. |
 | Latest published release | Supported for normal self-hosted deployments. |
-| Older pre-1.0 releases | Best effort only. Upgrade to the latest release or `main` before reporting deployment-specific issues where practical. |
+| Older releases | Best effort only. Upgrade to the latest release or `main` before reporting deployment-specific issues where practical. |
 
 ## Reporting A Vulnerability
 
