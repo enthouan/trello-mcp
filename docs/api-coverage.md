@@ -14,9 +14,9 @@ For API groups marked partially supported, the detailed coverage section breaks 
 
 ## v1.0 Scope
 
-The v1.0 target is broad Trello workflow coverage, not a one-to-one Trello REST proxy. Its core scope is credential diagnostics; board, workspace, member, list, and card discovery; bounded search and activity reads; board creation; common list and card creation and updates; card movement and archiving; labels; attachments; card-oriented checklists; custom field values; card membership; and comments.
+The v1.0 release provides broad Trello workflow coverage, not a one-to-one Trello REST proxy. Its core scope is credential diagnostics; board, workspace, member, list, and card discovery; bounded search and activity reads; board creation; common list and card creation and updates; card movement and archiving; labels; attachments; card-oriented checklists; custom field values; card membership; and comments.
 
-The v1.0 target intentionally excludes Enterprise administration, application compliance, emoji lookup, Power-Up/plugin administration, OAuth or token lifecycle management, broad board/workspace/account administration, every field-specific alias, and event receiver infrastructure. Deferred and post-v1.0 work remains explicit below and is linked to a live issue when the roadmap already tracks it.
+The v1.0 scope intentionally excludes Enterprise administration, application compliance, emoji lookup, Power-Up/plugin administration, OAuth or token lifecycle management, broad board/workspace/account administration, every field-specific alias, and event receiver infrastructure. Deferred and post-v1.0 work remains explicit below and is linked to a live issue when the roadmap already tracks it.
 
 ## Status Legend
 
@@ -161,7 +161,7 @@ The tables below use the same status legend as the top-level matrix. They are in
 
 ## Non-goals
 
-- The v1.0 target is broad workflow coverage; it does not aim to be a complete or one-to-one Trello REST API proxy.
+- The v1.0 release provides broad workflow coverage; it does not aim to be a complete or one-to-one Trello REST API proxy.
 - It does not manage Trello API keys, OAuth grants, or token lifecycle beyond safe diagnostics for the configured token.
 - It does not target Enterprise administration, application compliance, Power-Up/plugin administration, or broad workspace/account administration.
 - It avoids large destructive or bulk mutations until they have explicit issue scope, safety behavior, and tests.

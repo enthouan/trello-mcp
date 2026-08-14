@@ -1,5 +1,40 @@
 # Changelog
 
+## v1.0.0
+
+Public 1.0 baseline for the self-hostable `trello-mcp` server: 77
+workflow-oriented tools over stdio and Streamable HTTP, multi-platform Docker
+deployment through GHCR, public documentation, and guarded live validation.
+Coverage is broad but does not claim complete Trello REST API parity.
+
+`trello-mcp` is an independent, community-maintained project. It is not an
+official Trello or Atlassian product, service, or MCP implementation, and it is
+not affiliated with, endorsed by, or sponsored by Trello or Atlassian. For
+Trello's official managed service, see the
+[Trello MCP documentation](https://support.atlassian.com/trello/docs/connect-trello-to-ai-assistants-with-trello-mcp/).
+
+### Runtime And Security
+
+- Require URL-shaped `cardId` values used by card and card-label tools to be canonical HTTPS card URLs on `trello.com` or `www.trello.com`, rejecting deceptive, malformed, and ambiguous references before a Trello request while continuing to accept ordinary card ids and short links.
+- Redact deceptive Trello-like URLs and secret-shaped identifiers from retry metadata.
+- Make GitHub Action reference validation linear-time and reject ambiguous empty path segments.
+
+### Public Launch And Live Validation
+
+- Keep credential-bearing local MCP and agent configuration plus generated live-validation reports out of Git commits and Docker build contexts.
+- Pin hosted smoke and regression workflows to the documented public disposable boards and verify Trello still reports every configured board as public before recording board identity or performing writes. Local private-board validation remains configurable when its output stays private.
+- Keep raw Trello tool failures and observed member or workspace identifiers out of live-validation logs, reports, summaries, and terminal failures. Narrow member reads to `me` and workspace-specific validation to the disposable board's own workspace.
+
+### Documentation Website And Privacy
+
+- Add a compact, accessible GitHub star count to desktop and mobile repository navigation while retaining the existing static repository link and unchanged homepage call to action.
+- Use at most one best-effort, unauthenticated GitHub API attempt per browser session when session storage is available. The request omits credentials, cookies, and the page referrer; GitHub still receives ordinary request metadata such as IP address, user agent, request time, API URL, and Origin/CORS information. JavaScript, storage, API, network, or response failures leave the static link usable without repeated requests.
+- Update the security policy, reference overview, live-validation description, and exact-image examples for the v1.0 release while preserving the generic `latest`, `X.Y`, `X.Y.Z`, and `sha-<commit>` deployment guidance.
+
+### Development Tooling
+
+- Update `@axe-core/playwright` from 4.12.1 to 4.13.0, Biome from 2.5.7 to 2.5.8, `smol-toml` from 1.7.1 to 1.8.0, `tsx` from 4.23.11 to 4.23.12, Astro from 7.2.0 to 7.2.1, and the development-only `parse5` parser from 7.3.0 to 8.0.1.
+
 ## v0.9.0
 
 Public-launch readiness and release-candidate work with a production

@@ -245,7 +245,7 @@ For example:
 ```dotenv
 TRELLO_MCP_HOST_BIND_IP=127.0.0.1
 TRELLO_MCP_HOST_PORT=3000
-TRELLO_MCP_IMAGE_TAG=0.9.0
+TRELLO_MCP_IMAGE_TAG=1.0.0
 TRELLO_MCP_NETWORK=trello-mcp_network
 ```
 
@@ -314,7 +314,7 @@ TRANSPORT=http
 MCP_AUTH_TOKEN=use-a-separate-strong-secret
 TRELLO_MCP_HOST_BIND_IP=127.0.0.1
 TRELLO_MCP_HOST_PORT=3000
-TRELLO_MCP_IMAGE_TAG=0.9.0
+TRELLO_MCP_IMAGE_TAG=1.0.0
 ```
 
 Continue with [Set up your MCP client](client-setup.md), or compare the complete

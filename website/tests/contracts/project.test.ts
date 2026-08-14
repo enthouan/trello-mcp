@@ -335,6 +335,30 @@ describe("canonical publication source contracts", () => {
 });
 
 describe("distribution and generated-source safety", () => {
+  it("pins the current v1.0 release surfaces without erasing release history", async () => {
+    const readme = await source(repositoryFile("README.md"));
+    const security = await source(repositoryFile("SECURITY.md"));
+    const configuration = await source(repositoryFile("docs/configuration.md"));
+    const changelog = await source(repositoryFile("CHANGELOG.md"));
+
+    expect(readme).toContain(
+      "The smoke flow validates representative v1.0 workflows:",
+    );
+    expect(readme).not.toContain(
+      "The smoke flow validates representative pre-1.0 coverage:",
+    );
+    expect(security).toContain(
+      "`trello-mcp` v1.0 is the current stable release line.",
+    );
+    expect(security).not.toContain("pre-1.0");
+    expect(configuration.match(/TRELLO_MCP_IMAGE_TAG=1\.0\.0/g)).toHaveLength(
+      2,
+    );
+    expect(configuration).not.toContain("TRELLO_MCP_IMAGE_TAG=0.9.0");
+    expect(changelog).toContain("## v1.0.0");
+    expect(changelog).toContain("## v0.9.0");
+  });
+
   it("keeps documented container publishing on loopback and OCI metadata current", async () => {
     const readme = await source(repositoryFile("README.md"));
     const releaseWorkflow = await source(
