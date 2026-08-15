@@ -36,9 +36,8 @@ describe("Docker MCP Registry readiness audit", () => {
     );
     expect(audit).toContain("`mcp/trello-mcp`");
     expect(audit).toContain("self-provided GHCR fallback");
-    expect(audit).toContain(
-      "must inspect the artifacts Docker actually produces",
-    );
+    expect(audit).toContain("must define the pre-submission trust plan");
+    expect(audit).toContain("actually produces after acceptance");
     expect(pinnedRevisions.length).toBeGreaterThanOrEqual(15);
     expect(new Set(pinnedRevisions)).toEqual(new Set([REGISTRY_REVISION]));
     expect(audit).not.toContain(
@@ -57,11 +56,27 @@ describe("Docker MCP Registry readiness audit", () => {
       "`api.trello.com:443`",
       "Do not include `PORT` or `MCP_AUTH_TOKEN`",
       "Do not expose `TRELLO_ATTACHMENT_UPLOAD_ROOT`",
+      "exclude `card_attachment_upload` from the initial",
       "Do not expose rate-limit capacity",
       "task validate -- --name trello-mcp",
       "task build -- --tools trello-mcp",
       "task catalog -- trello-mcp",
       "docker mcp catalog reset",
+    ]) {
+      expect(audit).toContain(marker);
+    }
+  });
+
+  it("keeps fallback identity, live calls, and trust sequencing safe", async () => {
+    const audit = await readinessAudit();
+
+    for (const marker of [
+      "`ghcr.io/enthouan/trello-mcp@sha256:<digest>`",
+      "a release tag alone",
+      ".agents/skills/trello-mcp-live-validation/SKILL.md",
+      "`TRELLO_LIVE_SMOKE=1`",
+      "wait for post-acceptance inspection",
+      "After #62 records upstream acceptance",
     ]) {
       expect(audit).toContain(marker);
     }
@@ -78,7 +93,7 @@ describe("Docker MCP Registry readiness audit", () => {
       ["#58", "Create `server.yaml`"],
       ["#59", "Generate and test credential-independent `tools.json`"],
       ["#60", "Import the local catalog"],
-      ["#61", "Verify SBOM, provenance, signing"],
+      ["#61", "Define the pre-submission trust plan"],
       ["#62", "Open and complete the external Docker MCP Registry submission"],
     ] as const;
 

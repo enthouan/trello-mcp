@@ -44,14 +44,15 @@ updates, and post-acceptance publishing in the Docker Hub `mcp` namespace
 
 Those are upstream-stated path benefits, not evidence that a particular
 `trello-mcp` artifact already has them. [Issue #61](https://github.com/enthouan/trello-mcp/issues/61)
-must inspect the artifacts Docker actually produces and document the realized
-trust and update model before the project claims supply-chain readiness.
+must define the pre-submission trust plan, then inspect the artifacts Docker
+actually produces after acceptance and document the realized trust and update
+model before the project claims supply-chain readiness.
 
 ### Path comparison
 
 | Concern | Docker-built (selected) | Self-provided GHCR fallback |
 | --- | --- | --- |
-| Registry image | `mcp/trello-mcp` | `ghcr.io/enthouan/trello-mcp` with an immutable release tag or digest selected at submission time |
+| Registry image | `mcp/trello-mcp` | `ghcr.io/enthouan/trello-mcp@sha256:<digest>`; a release tag may accompany it only as a human-readable label |
 | Build input | Public repository, root `Dockerfile`, exact `source.commit` | Existing published image plus the same public source pin |
 | Maintenance | Docker builds and handles registry updates from pinned source revisions | This repository remains responsible for building, publishing, updating, and proving the image |
 | Docker-managed trust | Docker states that its build path adds signing, provenance, SBOMs, and automatic security updates | Upstream explicitly says self-built images do not receive those enhanced Docker-built guarantees |
@@ -60,7 +61,8 @@ trust and update model before the project claims supply-chain readiness.
 
 Use the GHCR fallback only if a refreshed upstream audit or actual Docker build
 validation finds a material incompatibility with the selected path. A fallback
-decision must record the image's immutable identity and must not imply that
+decision must pin the reviewed image by `@sha256:` digest; a release tag alone
+is mutable and is not an image identity. The fallback must not imply that
 Docker manages its signing, provenance, SBOM, or updates.
 
 ## Exact submission checklist
@@ -144,6 +146,8 @@ Additional metadata decisions:
 - [ ] Do not expose `TRELLO_ATTACHMENT_UPLOAD_ROOT` or add a volume in the
   initial entry. Local attachment uploads require an explicit, carefully scoped
   host mount and should be evaluated separately after the base entry works.
+  Consequently, #59 must exclude `card_attachment_upload` from the initial
+  catalog rather than advertise a tool that cannot succeed in this runtime.
 - [ ] Do not expose rate-limit capacity, refill interval, or retry settings in
   the initial entry. Their application defaults are the intended baseline.
 - [ ] Confirm from the final pinned source that `api.trello.com:443` is still
@@ -160,18 +164,23 @@ blocker and allows `tools.json` beside `server.yaml`; when the file exists,
 `task build -- --tools` reads it instead of starting the server to discover
 tools ([fallback guidance][registry-tools-fallback]).
 
-[Issue #59](https://github.com/enthouan/trello-mcp/issues/59) owns the generator
-and artifact. It must:
+[Issue #59](https://github.com/enthouan/trello-mcp/issues/59) owns the generator,
+the explicit initial-catalog selection, and the artifact. It must:
 
 - [ ] Generate the submission's `servers/trello-mcp/tools.json` data from the
-  canonical [`allTools`](../src/trello/tools.ts) registry, not from a hand-edited
-  duplicate.
+  canonical [`allTools`](../src/trello/tools.ts) registry through a deterministic
+  registry profile, not from a hand-edited duplicate.
 - [ ] Produce deterministic ordering and output so source changes create a
   reviewable diff.
-- [ ] Include every tool's name and description plus each argument's name,
-  type, non-empty `desc`, optionality, and array item type where applicable.
-  The current upstream tool model is commit-pinned here
+- [ ] Include every selected tool's name and description plus each argument's
+  name, type, non-empty `desc`, optionality, and array item type where
+  applicable. The current upstream tool model is commit-pinned here
   ([tool model][registry-tool-model]).
+- [ ] Exclude `card_attachment_upload` while the initial entry omits
+  `TRELLO_ATTACHMENT_UPLOAD_ROOT` and its required volume. Make that exclusion
+  explicit in the generator and tests, and do not silently omit any other
+  `allTools` entry. A later entry may add the tool only with a safe mount and
+  matching runtime configuration.
 - [ ] Preserve supported tool annotations where the current upstream format can
   represent them.
 - [ ] Add deterministic tests that compare the generated artifact with the
@@ -179,8 +188,8 @@ and artifact. It must:
 - [ ] Contain no credentials, Trello object data, mutable upstream prose, or
   network-dependent generation.
 - [ ] Verify `task build -- --tools trello-mcp` reports the expected tool count
-  from the file without requiring valid Trello credentials or a live Trello
-  request.
+  for the explicit initial-catalog profile without requiring valid Trello
+  credentials or a live Trello request.
 
 ### 4. Upstream validation and local catalog behavior — issue #60
 
@@ -205,6 +214,13 @@ docker mcp catalog reset
 The current `task reset` wrapper runs both `docker mcp catalog reset` and
 `docker mcp catalog init` ([Taskfile commands][registry-taskfile]).
 
+- [ ] Before any real Trello call, read and follow
+  [`.agents/skills/trello-mcp-live-validation/SKILL.md`](../.agents/skills/trello-mcp-live-validation/SKILL.md).
+  Require explicit live authorization, Trello credentials, the applicable
+  opt-in gate such as `TRELLO_LIVE_SMOKE=1`, and a confirmed disposable board
+  ID or `trello.com/b/...` URL. Apply the skill's prechecks, source-versus-client
+  tool comparison, temporary-artifact, cleanup, and sanitized-evidence rules to
+  manual Docker Toolkit calls as well as scripted smoke or regression runs.
 - [ ] Validate YAML and metadata with `task validate -- --name trello-mcp`.
 - [ ] Build the Docker-managed image from the exact source pin and load the
   generated `tools.json` with `task build -- --tools trello-mcp`.
@@ -230,15 +246,17 @@ directories, then validates, builds or pulls, catalogs, and cleans each changed
 server ([CI workflow][registry-ci]). Re-run the local equivalents immediately
 before submission.
 
-### 5. Review, trust verification, and post-acceptance processing
+### 5. Review, trust planning, acceptance, and artifact verification
 
-- [ ] [Issue #61](https://github.com/enthouan/trello-mcp/issues/61) verifies the
-  actual Docker-built image's SBOM, provenance, signatures, source revision,
-  update handling, and any remaining GHCR fallback claims. This audit alone is
-  not proof of those artifacts.
-- [ ] [Issue #62](https://github.com/enthouan/trello-mcp/issues/62) opens the
-  external Docker MCP Registry pull request only after #58-#61 provide their
-  required artifacts and evidence.
+- [ ] Before submission, [issue #61](https://github.com/enthouan/trello-mcp/issues/61)
+  documents the expected Docker-built trust properties, the digest-pinned GHCR
+  fallback, and the exact post-acceptance checks for SBOM, provenance,
+  signatures, source revision, and update handling. This is a readiness plan,
+  not proof of a Docker-managed artifact that does not exist yet.
+- [ ] [Issue #62](https://github.com/enthouan/trello-mcp/issues/62) may open the
+  external Docker MCP Registry pull request after #58-#60 and #61's
+  pre-submission readiness work provide their required evidence. It does not
+  wait for post-acceptance inspection of the Docker-published image.
 - [ ] Fill the then-current upstream pull request template: server name,
   repository URL, description, open-source eligibility, MCP compliance, active
   maintenance, Dockerfile, documentation, security contact, validation, build,
@@ -252,15 +270,19 @@ before submission.
   entry, Docker Hub `mcp/trello-mcp` image, exact source revision, and the
   upstream-stated processing window. The current guide says accepted entries
   become available within 24 hours ([post-acceptance processing][registry-post-acceptance]).
+- [ ] After #62 records upstream acceptance and Docker publishes the managed
+  image, #61 verifies the actual image digest, SBOM, provenance, signatures,
+  source revision, and update behavior. Keep #61 open until that evidence is
+  durable; only then may the project claim the realized supply-chain model.
 
 ## Downstream issue ownership
 
 | Issue | Owns | Explicitly not completed here |
 | --- | --- | --- |
 | [#58](https://github.com/enthouan/trello-mcp/issues/58) | Create `server.yaml`; finalize title, description, tags, icon, source pin, stdio runtime, secrets, and host allowlist | No metadata file is created by #57 |
-| [#59](https://github.com/enthouan/trello-mcp/issues/59) | Generate and test credential-independent `tools.json` from `allTools` | No tool export is created by #57 |
-| [#60](https://github.com/enthouan/trello-mcp/issues/60) | Import the local catalog and verify Toolkit configuration, discovery, outbound access, and minimal live behavior | No Docker Desktop import or live Trello call is performed by #57 |
-| [#61](https://github.com/enthouan/trello-mcp/issues/61) | Verify SBOM, provenance, signing, source identity, and the final image trust/update model | No supply-chain readiness claim is completed by #57 |
+| [#59](https://github.com/enthouan/trello-mcp/issues/59) | Generate and test credential-independent `tools.json` from the explicit `allTools`-derived initial catalog, excluding the disabled upload tool | No tool export is created by #57 |
+| [#60](https://github.com/enthouan/trello-mcp/issues/60) | Import the local catalog and verify Toolkit configuration, discovery, outbound access, and minimal live behavior through the opt-in live-validation workflow | No Docker Desktop import or live Trello call is performed by #57 |
+| [#61](https://github.com/enthouan/trello-mcp/issues/61) | Define the pre-submission trust plan and digest-pinned fallback; after acceptance, verify the actual Docker-published image and final trust/update model | No supply-chain readiness claim is completed by #57 |
 | [#62](https://github.com/enthouan/trello-mcp/issues/62) | Open and complete the external Docker MCP Registry submission and verify acceptance | No upstream pull request or credential submission is made by #57 |
 
 ## Blockers and open questions
@@ -272,17 +294,21 @@ assumed:
 - #58 must select a durable icon, recheck catalog naming vocabulary, and pin
   the exact source commit used for the external build.
 - #59 must prove the generated tool representation matches Docker's then-current
-  format and the complete canonical tool surface.
+  format and the explicit canonical initial-catalog selection, including the
+  intentional upload-tool exclusion.
 - #60 must observe Docker Desktop behavior for the stdio container, its
   HTTP-oriented image health check, secret fields, host allowlist, and imported
-  catalog rather than inferring success from source inspection.
-- #61 must verify the artifacts and update behavior behind Docker's stated
-  supply-chain benefits. If the self-provided GHCR fallback is selected later,
-  it must document the reduced Docker-managed guarantees and the repository's
-  replacement trust model.
+  catalog rather than inferring success from source inspection. Any real Trello
+  call must stay behind the repository live-validation skill's explicit opt-in,
+  target-confirmation, and cleanup gates.
+- #61 must complete the trust plan before submission, then verify the actual
+  Docker-published artifacts and update behavior after acceptance. If the
+  self-provided GHCR fallback is selected later, it must use a digest and
+  document the reduced Docker-managed guarantees and replacement trust model.
 - #62 must re-audit upstream `main`, handle the owner-gated credential form if
   Docker requests test access, complete review, and verify post-merge catalog
-  processing.
+  processing. It may open after #61's pre-submission phase; it is not blocked on
+  evidence that only the accepted Docker-managed image can provide.
 
 [registry-readme]: https://github.com/docker/mcp-registry/blob/fd36a38a452e54a166a6cd3413ba2ff726361d24/README.md#L13-L33
 [registry-contributing]: https://github.com/docker/mcp-registry/blob/fd36a38a452e54a166a6cd3413ba2ff726361d24/CONTRIBUTING.md#L36-L45
