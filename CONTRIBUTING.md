@@ -49,6 +49,9 @@ Before changing generated website pages, update their canonical source or
 `src/trello/tools.ts`, then run `corepack pnpm docs:tools`. Use
 `corepack pnpm docs:check` to confirm the generated output is current.
 
+For the selected submission path, requirements snapshot, and downstream issue
+boundaries, see the [Docker MCP Registry readiness audit](https://github.com/enthouan/trello-mcp/blob/main/docs/registry-readiness.md).
+
 
 ## Codex cloud setup
 

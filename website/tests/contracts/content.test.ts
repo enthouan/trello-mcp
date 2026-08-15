@@ -118,10 +118,14 @@ describe("independent-project and support content", () => {
       "annotated",
       "post-merge main Release workflow succeeds",
       "merged origin/main release commit",
+      "Docker MCP Registry readiness audit",
       "Star on GitHub",
     ]) {
       expect(routeText(contributing)).toContain(marker);
     }
+    expect(anchorHrefs(contributing.document)).toContain(
+      "https://github.com/enthouan/trello-mcp/blob/main/docs/registry-readiness.md",
+    );
     for (const marker of [
       "Sanitize every report",
       "Check the focused documentation first",
