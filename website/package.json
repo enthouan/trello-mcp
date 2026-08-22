@@ -10,11 +10,11 @@
   },
   "devDependencies": {
     "@astrojs/check": "0.9.10",
-    "@astrojs/markdown-remark": "7.2.2",
+    "@astrojs/markdown-remark": "7.2.4",
     "@astrojs/starlight": "0.41.7",
     "@fortawesome/free-brands-svg-icons": "7.3.1",
     "@fortawesome/free-solid-svg-icons": "7.3.1",
-    "astro": "7.2.2",
+    "astro": "7.2.4",
     "cross-env": "10.1.0",
     "sharp": "0.35.3",
     "typescript": "6.0.3"
