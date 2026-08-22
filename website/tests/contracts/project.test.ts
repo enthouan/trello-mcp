@@ -56,11 +56,11 @@ describe("website package and command boundaries", () => {
     });
     expect(websitePackage.devDependencies).toMatchObject({
       "@astrojs/check": "0.9.10",
-      "@astrojs/markdown-remark": "7.2.2",
+      "@astrojs/markdown-remark": "7.2.4",
       "@astrojs/starlight": "0.41.7",
       "@fortawesome/free-brands-svg-icons": "7.3.1",
       "@fortawesome/free-solid-svg-icons": "7.3.1",
-      astro: "7.2.2",
+      astro: "7.2.4",
       "cross-env": "10.1.0",
       sharp: "0.35.3",
       typescript: "6.0.3",
@@ -87,7 +87,7 @@ describe("website package and command boundaries", () => {
       "@playwright/test": "1.62.1",
       parse5: "8.0.1",
       typescript: "7.0.2",
-      vitest: "4.1.10",
+      vitest: "4.1.11",
     });
     expect(websitePackage.devDependencies.typescript).toBe("6.0.3");
     expect(websiteReadme).toMatch(
