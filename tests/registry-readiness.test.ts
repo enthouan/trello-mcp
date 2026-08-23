@@ -1,7 +1,8 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 
-const REGISTRY_REVISION = "fd36a38a452e54a166a6cd3413ba2ff726361d24";
+const REGISTRY_REVISION = "8c773729f13f036da8c909be503fe433923a9aa2";
+const TRELLO_SOURCE_REVISION = "06b5b3a6151be516bb92f746dad06b797c1f2bf1";
 
 async function readinessAudit(): Promise<string> {
   return readFile(
@@ -30,7 +31,7 @@ describe("Docker MCP Registry readiness audit", () => {
       ),
     ].map((match) => match[1]);
 
-    expect(audit).toContain("Last verified: **2026-08-15**");
+    expect(audit).toContain("Last verified: **2026-08-23**");
     expect(audit).toContain(
       "submit `trello-mcp` as a **Docker-built local server**",
     );
@@ -38,10 +39,34 @@ describe("Docker MCP Registry readiness audit", () => {
     expect(audit).toContain("self-provided GHCR fallback");
     expect(audit).toContain("must define the pre-submission trust plan");
     expect(audit).toContain("actually produces after acceptance");
+    expect(audit).toContain(TRELLO_SOURCE_REVISION);
     expect(pinnedRevisions.length).toBeGreaterThanOrEqual(15);
     expect(new Set(pinnedRevisions)).toEqual(new Set([REGISTRY_REVISION]));
     expect(audit).not.toContain(
       "https://github.com/docker/mcp-registry/blob/main/",
+    );
+  });
+
+  it("records the finalized metadata evidence and refresh boundary", async () => {
+    const audit = await readinessAudit();
+
+    for (const marker of [
+      "[`servers/trello-mcp/server.yaml`](../servers/trello-mcp/server.yaml)",
+      "`https://trello-mcp.com/favicon.svg`",
+      "`Content-Type: image/svg+xml`",
+      "341-byte",
+      "`required: true`",
+      "`PORT` is intentionally omitted",
+      "`task validate -- --name trello-mcp` both passed",
+      "does not require `tools.json` for a local server",
+    ]) {
+      expect(audit).toContain(marker);
+    }
+    expect(audit).toMatch(
+      /Issue #62 must refresh\s+the source pin immediately before opening the external submission/,
+    );
+    expect(audit).toMatch(
+      /#62 must\s+recheck the URL, content type, size, and bytes immediately before submission/,
     );
   });
 
