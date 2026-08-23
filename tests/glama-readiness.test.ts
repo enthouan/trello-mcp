@@ -196,6 +196,7 @@ describe("Glama MCP registry readiness audit", () => {
       "explicitly documents schema-drift and prompt-injection monitoring for hosted connectors",
       "Normal Vitest coverage uses mocked or injected fetchers",
       "`https://api.trello.com/1`",
+      "container-local `/healthz` endpoint",
       "Keep upload disabled for initial discovery",
       "`Risky`",
       "may remain publicly listed",
@@ -206,6 +207,7 @@ describe("Glama MCP registry readiness audit", () => {
       expect(safety).toContain(marker);
     }
     expect(safety).toMatch(/unrelated\s+credential-path access/);
+    expect(safety).not.toContain("container-local `/health` endpoint");
     expect(audit).not.toMatch(/TRELLO_(?:API_KEY|TOKEN)=\S+/);
   });
 
