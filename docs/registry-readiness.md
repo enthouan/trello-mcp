@@ -13,9 +13,10 @@ This document began as the requirements audit in
 [issue #57](https://github.com/enthouan/trello-mcp/issues/57) and now records
 the validated `server.yaml` metadata draft completed by
 [issue #58](https://github.com/enthouan/trello-mcp/issues/58). It does not
-generate `tools.json`, perform live Trello calls, change the release workflow,
-open an external registry pull request, submit credentials, or claim that
-Docker Registry acceptance or supply-chain readiness is complete.
+generate `tools.json`, initiate Docker Desktop/Toolkit or manual live Trello
+validation, change the release workflow, open an external registry pull
+request, submit credentials, or claim that Docker Registry acceptance or
+supply-chain readiness is complete.
 
 | Source | Audited revision | Why it matters |
 | --- | --- | --- |
@@ -204,6 +205,12 @@ does not require `tools.json` for a local server. The broader build and catalog
 stages do require working tool discovery or the adjacent artifact; those stages
 remain owned by #59 and #60, so #58 did not add a placeholder file.
 
+Required pull-request CI is separate from that metadata-validation scope. After
+the #58 PR opened, the repository's existing gated Live Trello Smoke workflow
+ran automatically with repository-managed masked credentials against its
+disposable public test board and verified cleanup. It did not exercise Docker
+Desktop or the Registry entry and does not complete #60's Toolkit validation.
+
 ### 3. Credential-independent `tools.json` — issue #59
 
 Startup validation requires non-empty `TRELLO_API_KEY` and `TRELLO_TOKEN`.
@@ -329,7 +336,7 @@ before submission.
 | --- | --- | --- |
 | [#58](https://github.com/enthouan/trello-mcp/issues/58) | Create `server.yaml`; finalize title, description, tags, icon, source pin, stdio runtime, secrets, and host allowlist | The local metadata draft and its offline contract are complete; no external submission was made |
 | [#59](https://github.com/enthouan/trello-mcp/issues/59) | Generate and test credential-independent `tools.json` from the explicit `allTools`-derived initial catalog, excluding the disabled upload tool | No tool export or placeholder is created by #58 |
-| [#60](https://github.com/enthouan/trello-mcp/issues/60) | Import the local catalog and verify Toolkit configuration, discovery, outbound access, and minimal live behavior through the opt-in live-validation workflow | No Docker Desktop import or live Trello call is performed by #58 |
+| [#60](https://github.com/enthouan/trello-mcp/issues/60) | Import the local catalog and verify Toolkit configuration, discovery, outbound access, and minimal live behavior through the opt-in live-validation workflow | No Docker Desktop import or manual #58-specific live validation is performed; required PR smoke remains ordinary CI evidence, not #60 completion |
 | [#61](https://github.com/enthouan/trello-mcp/issues/61) | Define the pre-submission trust plan and digest-pinned fallback; after acceptance, verify the actual Docker-published image and final trust/update model | No supply-chain readiness claim is completed by #58 |
 | [#62](https://github.com/enthouan/trello-mcp/issues/62) | Open and complete the external Docker MCP Registry submission and verify acceptance | No upstream pull request or credential submission is made by #58 |
 
