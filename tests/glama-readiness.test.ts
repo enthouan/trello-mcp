@@ -185,7 +185,9 @@ describe("Glama MCP registry readiness audit", () => {
       "Outbound network",
       "undeclared outbound hosts",
       "Exfiltration-like payloads",
-      "Logger redaction covers Trello credentials, authorization values",
+      "`TRELLO_API_KEY` and `TRELLO_TOKEN` are added to every Trello request as query parameters",
+      "`auth_token_info` also URL-encodes `TRELLO_TOKEN` in the `/tokens/{token}` path",
+      "Logger redaction removes Trello credentials, authorization values, and whole URL, path, and query fields",
       "stdio logging goes to stderr",
       "Filesystem reads/writes",
       "realpath and symlink containment",
@@ -208,6 +210,9 @@ describe("Glama MCP registry readiness audit", () => {
     }
     expect(safety).toMatch(/unrelated\s+credential-path access/);
     expect(safety).not.toContain("container-local `/health` endpoint");
+    expect(safety).not.toContain(
+      "Trello API key and token are added only to Trello request query parameters",
+    );
     expect(audit).not.toMatch(/TRELLO_(?:API_KEY|TOKEN)=\S+/);
   });
 
