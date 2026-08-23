@@ -51,6 +51,8 @@ Before changing generated website pages, update their canonical source or
 
 For the selected submission path, requirements snapshot, and downstream issue
 boundaries, see the [Docker MCP Registry readiness audit](https://github.com/enthouan/trello-mcp/blob/main/docs/registry-readiness.md).
+For the Glama listing path, current indexing and scoring requirements, and
+downstream boundaries, see the [Glama MCP registry readiness audit](https://github.com/enthouan/trello-mcp/blob/main/docs/glama-readiness.md).
 
 
 ## Codex cloud setup
