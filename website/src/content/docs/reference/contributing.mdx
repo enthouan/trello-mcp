@@ -54,6 +54,19 @@ Before changing generated website pages, update their canonical source or
 `src/trello/tools.ts`, then run `corepack pnpm docs:tools`. Use
 `corepack pnpm docs:check` to confirm the generated output is current.
 
+The Docker MCP Registry fallback catalog is generated separately from the same
+`allTools` registry. Its initial profile contains every runtime tool except the
+server-local attachment upload that the Registry configuration cannot support:
+
+```bash
+corepack pnpm registry:tools
+corepack pnpm registry:tools:check
+```
+
+Commit `servers/trello-mcp/tools.json` whenever regeneration changes it. This
+compact Registry profile does not change the complete runtime tool catalog in
+the README or documentation website.
+
 For the selected submission path, requirements snapshot, and downstream issue
 boundaries, see the [Docker MCP Registry readiness audit](https://github.com/enthouan/trello-mcp/blob/main/docs/registry-readiness.md).
 For the Glama listing path, current indexing and scoring requirements, and

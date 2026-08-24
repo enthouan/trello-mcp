@@ -31,7 +31,7 @@ describe("Docker MCP Registry readiness audit", () => {
       ),
     ].map((match) => match[1]);
 
-    expect(audit).toContain("Last verified: **2026-08-23**");
+    expect(audit).toContain("Last verified: **2026-08-24**");
     expect(audit).toContain(
       "submit `trello-mcp` as a **Docker-built local server**",
     );
@@ -68,6 +68,27 @@ describe("Docker MCP Registry readiness audit", () => {
     expect(audit).toMatch(
       /#62 must\s+recheck the URL, content type, size, and bytes immediately before submission/,
     );
+  });
+
+  it("records the generated fallback profile and exact upstream evidence", async () => {
+    const audit = await readinessAudit();
+
+    for (const marker of [
+      "[`servers/trello-mcp/tools.json`](../servers/trello-mcp/tools.json)",
+      "[`scripts/generate-docker-registry-tools.ts`](../scripts/generate-docker-registry-tools.ts)",
+      "`corepack pnpm registry:tools`",
+      "`corepack pnpm registry:tools:check`",
+      "runtime registry currently has 77 tools",
+      "initial Docker profile has 76",
+      "exactly `card_attachment_upload` excluded",
+      "Zod's public `toJSONSchema` API in input mode",
+      "lossy `string` fallback",
+      "`76 tools found.`",
+      "`TRELLO_API_KEY` and `TRELLO_TOKEN`\nabsent",
+      "`CI=true pnpm prune --prod`",
+    ]) {
+      expect(audit).toContain(marker);
+    }
   });
 
   it("keeps the initial runtime and credential mapping explicit", async () => {
