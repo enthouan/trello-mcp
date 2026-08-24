@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 
 const REGISTRY_REVISION = "8c773729f13f036da8c909be503fe433923a9aa2";
-const TRELLO_SOURCE_REVISION = "06b5b3a6151be516bb92f746dad06b797c1f2bf1";
+const TRELLO_SOURCE_REVISION = "17679f1484e8e255e745dc9a291b9cd587f7a44f";
 
 async function readinessAudit(): Promise<string> {
   return readFile(
@@ -63,7 +63,7 @@ describe("Docker MCP Registry readiness audit", () => {
       expect(audit).toContain(marker);
     }
     expect(audit).toMatch(
-      /Issue #62 must refresh\s+the source pin immediately before opening the external submission/,
+      /Issue #62 must refresh\s+the source pin\s+immediately before opening the external submission/,
     );
     expect(audit).toMatch(
       /#62 must\s+recheck the URL, content type, size, and bytes immediately before submission/,

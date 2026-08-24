@@ -22,7 +22,7 @@ or claim that Docker Registry acceptance or supply-chain readiness is complete.
 | Source | Audited revision | Why it matters |
 | --- | --- | --- |
 | Docker MCP Registry `main` | [`8c773729f13f036da8c909be503fe433923a9aa2`](https://github.com/docker/mcp-registry/tree/8c773729f13f036da8c909be503fe433923a9aa2) | Refreshed commit-pinned source for every upstream requirement and example below. |
-| `trello-mcp` source pin | [`06b5b3a6151be516bb92f746dad06b797c1f2bf1`](https://github.com/enthouan/trello-mcp/commit/06b5b3a6151be516bb92f746dad06b797c1f2bf1) | Exact Dockerfile, package lock, Node.js 24 runtime, and configuration snapshot selected for the metadata draft. |
+| `trello-mcp` source pin | [`17679f1484e8e255e745dc9a291b9cd587f7a44f`](https://github.com/enthouan/trello-mcp/commit/17679f1484e8e255e745dc9a291b9cd587f7a44f) | Exact issue #59 generator, artifact, non-interactive Docker build fix, package lock, and Node.js 24 runtime used for upstream build validation. |
 | `trello-mcp` release | [`v1.0.0`](https://github.com/enthouan/trello-mcp/releases/tag/v1.0.0) | Current release when this audit was performed. |
 
 The refreshed upstream revision remains exactly the `8c773729` planning
@@ -46,15 +46,16 @@ surface changes before #62, regenerate and revalidate `tools.json` at that time.
 ## Final issue #58 metadata decisions
 
 The draft lives at [`servers/trello-mcp/server.yaml`](../servers/trello-mcp/server.yaml).
-It pins `06b5b3a6151be516bb92f746dad06b797c1f2bf1` because that revision was the
-current `origin/main` when #58 began and contains the exact root `Dockerfile`,
-`package.json`, `pnpm-lock.yaml`, Node.js 24 runtime, stdio configuration, and
-Trello client being submitted. The commits after the #57 source snapshot added
-the registry audit, updated pinned GitHub Actions, and refreshed development and
-website dependencies; none changed the Dockerfile, runtime configuration, or
-Trello API host. Pinning the pre-metadata revision is intentional because the
-metadata file does not need to reference its own commit. Issue #62 must refresh
-the source pin immediately before opening the external submission.
+Issue #58 originally pinned `06b5b3a6151be516bb92f746dad06b797c1f2bf1`,
+which was `origin/main` when that metadata work began. Issue #59's exact
+upstream build then demonstrated that revision's `pnpm prune --prod` aborts in
+Docker's non-interactive build step. The pin is therefore refreshed to
+`17679f1484e8e255e745dc9a291b9cd587f7a44f`, the issue #59 source commit that
+contains both the generated fallback and the minimal `CI=true` prune fix. This
+is a demonstrated build correction, not a pin change merely to include the
+artifact. It also gives the upstream task an immutable, remotely fetchable
+revision for the acceptance check. Issue #62 must refresh the source pin
+immediately before opening the external submission.
 
 The selected icon is `https://trello-mcp.com/favicon.svg`. A read-only check on
 2026-08-23 returned HTTP 200 with `Content-Type: image/svg+xml` and a 341-byte
@@ -165,7 +166,7 @@ allowlisted hosts, secrets, user parameters, and volumes
 | Description | Concisely describe board, list, card, and workspace workflows and state that this is an independent community integration |
 | Icon | `https://trello-mcp.com/favicon.svg`; verified as a retrievable 341-byte SVG that matches the checked-in first-party asset |
 | `source.project` | `https://github.com/enthouan/trello-mcp` |
-| `source.commit` | `06b5b3a6151be516bb92f746dad06b797c1f2bf1`, the selected lowercase 40-character source revision; #62 must refresh it before submission ([source pinning][registry-source-pinning], [pin validator][registry-pin-validator]) |
+| `source.commit` | `17679f1484e8e255e745dc9a291b9cd587f7a44f`, the selected lowercase 40-character issue #59 validation revision; #62 must refresh it to the final merged revision before submission ([source pinning][registry-source-pinning], [pin validator][registry-pin-validator]) |
 | `source.dockerfile` | `Dockerfile`; this is the root default, but recording it explicitly makes the selected build input clear |
 | Fixed runtime environment | `TRANSPORT=stdio` and `LOG_LEVEL=info` in `run.env` |
 | Secrets | `TRELLO_API_KEY` and `TRELLO_TOKEN`, each represented as a required registry secret with a valid dotted name such as `trello-mcp.api_key` and `trello-mcp.token` |

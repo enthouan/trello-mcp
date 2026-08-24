@@ -78,7 +78,7 @@ describe("Docker MCP Registry metadata", () => {
     expect(icon.href).toBe("https://trello-mcp.com/favicon.svg");
     expect(source).toEqual({
       project: "https://github.com/enthouan/trello-mcp",
-      commit: "06b5b3a6151be516bb92f746dad06b797c1f2bf1",
+      commit: "17679f1484e8e255e745dc9a291b9cd587f7a44f",
       dockerfile: "Dockerfile",
     });
     expect(source.commit).toMatch(/^[0-9a-f]{40}$/);
