@@ -8,6 +8,7 @@ const metadataUrl = new URL(
   "../servers/trello-mcp/server.yaml",
   import.meta.url,
 );
+const dockerfileUrl = new URL("../Dockerfile", import.meta.url);
 
 function record(value: unknown, label: string): Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
@@ -43,6 +44,13 @@ afterEach(() => {
 });
 
 describe("Docker MCP Registry metadata", () => {
+  it("keeps production dependency pruning non-interactive", async () => {
+    const dockerfile = await readFile(dockerfileUrl, "utf8");
+
+    expect(dockerfile).toContain("RUN CI=true pnpm prune --prod");
+    expect(dockerfile).not.toContain("RUN pnpm prune --prod");
+  });
+
   it("matches the Trello registry identity and source contract", async () => {
     const { parsed } = await metadata();
     const directory = basename(dirname(fileURLToPath(metadataUrl)));
@@ -70,7 +78,7 @@ describe("Docker MCP Registry metadata", () => {
     expect(icon.href).toBe("https://trello-mcp.com/favicon.svg");
     expect(source).toEqual({
       project: "https://github.com/enthouan/trello-mcp",
-      commit: "06b5b3a6151be516bb92f746dad06b797c1f2bf1",
+      commit: "17679f1484e8e255e745dc9a291b9cd587f7a44f",
       dockerfile: "Dockerfile",
     });
     expect(source.commit).toMatch(/^[0-9a-f]{40}$/);

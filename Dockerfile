@@ -8,7 +8,7 @@ COPY package.json pnpm-lock.yaml* ./
 RUN if [ -f pnpm-lock.yaml ]; then pnpm install --frozen-lockfile; else pnpm install; fi
 COPY . .
 RUN pnpm build
-RUN pnpm prune --prod
+RUN CI=true pnpm prune --prod
 
 FROM node:24-bookworm-slim AS runtime
 WORKDIR /app

@@ -28,6 +28,8 @@
     "format:check": "biome format .",
     "typecheck": "tsc --noEmit",
     "docs:check": "tsx scripts/generate-tool-docs.ts --check",
+    "registry:tools": "tsx scripts/generate-docker-registry-tools.ts",
+    "registry:tools:check": "tsx scripts/generate-docker-registry-tools.ts --check",
     "website:dev": "pnpm --dir website dev",
     "website:typecheck": "pnpm --dir website typecheck",
     "website:build": "pnpm --dir website build",

@@ -1,6 +1,6 @@
 # Docker MCP Registry readiness
 
-Last verified: **2026-08-23**
+Last verified: **2026-08-24**
 
 Decision: submit `trello-mcp` as a **Docker-built local server** with the
 registry image name `mcp/trello-mcp`. Keep the existing GHCR image as a viable
@@ -12,20 +12,22 @@ Docker-managed supply-chain guarantees.
 This document began as the requirements audit in
 [issue #57](https://github.com/enthouan/trello-mcp/issues/57) and now records
 the validated `server.yaml` metadata draft completed by
-[issue #58](https://github.com/enthouan/trello-mcp/issues/58). It does not
-generate `tools.json`, initiate Docker Desktop/Toolkit or manual live Trello
-validation, change the release workflow, open an external registry pull
-request, submit credentials, or claim that Docker Registry acceptance or
-supply-chain readiness is complete.
+[issue #58](https://github.com/enthouan/trello-mcp/issues/58) and the generated
+`tools.json` fallback completed by
+[issue #59](https://github.com/enthouan/trello-mcp/issues/59). It does not
+initiate Docker Desktop/Toolkit or manual live Trello validation, change the
+release workflow, open an external registry pull request, submit credentials,
+or claim that Docker Registry acceptance or supply-chain readiness is complete.
 
 | Source | Audited revision | Why it matters |
 | --- | --- | --- |
 | Docker MCP Registry `main` | [`8c773729f13f036da8c909be503fe433923a9aa2`](https://github.com/docker/mcp-registry/tree/8c773729f13f036da8c909be503fe433923a9aa2) | Refreshed commit-pinned source for every upstream requirement and example below. |
-| `trello-mcp` source pin | [`06b5b3a6151be516bb92f746dad06b797c1f2bf1`](https://github.com/enthouan/trello-mcp/commit/06b5b3a6151be516bb92f746dad06b797c1f2bf1) | Exact Dockerfile, package lock, Node.js 24 runtime, and configuration snapshot selected for the metadata draft. |
+| `trello-mcp` source pin | [`17679f1484e8e255e745dc9a291b9cd587f7a44f`](https://github.com/enthouan/trello-mcp/commit/17679f1484e8e255e745dc9a291b9cd587f7a44f) | Exact issue #59 generator, artifact, non-interactive Docker build fix, package lock, and Node.js 24 runtime used for upstream build validation. |
 | `trello-mcp` release | [`v1.0.0`](https://github.com/enthouan/trello-mcp/releases/tag/v1.0.0) | Current release when this audit was performed. |
 
-The refreshed upstream revision is exactly the `8c773729` planning baseline and
-is two commits beyond the `fd36a38a` revision audited by #57. Those commits
+The refreshed upstream revision remains exactly the `8c773729` planning
+baseline used by #58 and is two commits beyond the `fd36a38a` revision audited
+by #57. Those commits
 changed only `servers/circleci/server.yaml` and the adjacent CircleCI
 `readme.md` and `tools.json`; the server schema, validator, formatting rule,
 contribution guide, CI workflow, pull request template, and relevant local
@@ -38,20 +40,22 @@ defines the local validation commands, credential form, and review process
 [pull request template][registry-pr-template]). The upstream repository can
 change independently. This refresh satisfies #58's metadata-stage audit; #62
 must re-fetch `main`, record the then-current SHA, and re-audit any changed
-requirements before opening the external pull request.
+requirements before opening the external pull request. If the runtime tool
+surface changes before #62, regenerate and revalidate `tools.json` at that time.
 
 ## Final issue #58 metadata decisions
 
 The draft lives at [`servers/trello-mcp/server.yaml`](../servers/trello-mcp/server.yaml).
-It pins `06b5b3a6151be516bb92f746dad06b797c1f2bf1` because that revision was the
-current `origin/main` when #58 began and contains the exact root `Dockerfile`,
-`package.json`, `pnpm-lock.yaml`, Node.js 24 runtime, stdio configuration, and
-Trello client being submitted. The commits after the #57 source snapshot added
-the registry audit, updated pinned GitHub Actions, and refreshed development and
-website dependencies; none changed the Dockerfile, runtime configuration, or
-Trello API host. Pinning the pre-metadata revision is intentional because the
-metadata file does not need to reference its own commit. Issue #62 must refresh
-the source pin immediately before opening the external submission.
+Issue #58 originally pinned `06b5b3a6151be516bb92f746dad06b797c1f2bf1`,
+which was `origin/main` when that metadata work began. Issue #59's exact
+upstream build then demonstrated that revision's `pnpm prune --prod` aborts in
+Docker's non-interactive build step. The pin is therefore refreshed to
+`17679f1484e8e255e745dc9a291b9cd587f7a44f`, the issue #59 source commit that
+contains both the generated fallback and the minimal `CI=true` prune fix. This
+is a demonstrated build correction, not a pin change merely to include the
+artifact. It also gives the upstream task an immutable, remotely fetchable
+revision for the acceptance check. Issue #62 must refresh the source pin
+immediately before opening the external submission.
 
 The selected icon is `https://trello-mcp.com/favicon.svg`. A read-only check on
 2026-08-23 returned HTTP 200 with `Content-Type: image/svg+xml` and a 341-byte
@@ -162,7 +166,7 @@ allowlisted hosts, secrets, user parameters, and volumes
 | Description | Concisely describe board, list, card, and workspace workflows and state that this is an independent community integration |
 | Icon | `https://trello-mcp.com/favicon.svg`; verified as a retrievable 341-byte SVG that matches the checked-in first-party asset |
 | `source.project` | `https://github.com/enthouan/trello-mcp` |
-| `source.commit` | `06b5b3a6151be516bb92f746dad06b797c1f2bf1`, the selected lowercase 40-character source revision; #62 must refresh it before submission ([source pinning][registry-source-pinning], [pin validator][registry-pin-validator]) |
+| `source.commit` | `17679f1484e8e255e745dc9a291b9cd587f7a44f`, the selected lowercase 40-character issue #59 validation revision; #62 must refresh it to the final merged revision before submission ([source pinning][registry-source-pinning], [pin validator][registry-pin-validator]) |
 | `source.dockerfile` | `Dockerfile`; this is the root default, but recording it explicitly makes the selected build input clear |
 | Fixed runtime environment | `TRANSPORT=stdio` and `LOG_LEVEL=info` in `run.env` |
 | Secrets | `TRELLO_API_KEY` and `TRELLO_TOKEN`, each represented as a required registry secret with a valid dotted name such as `trello-mcp.api_key` and `trello-mcp.token` |
@@ -220,31 +224,63 @@ blocker and allows `tools.json` beside `server.yaml`; when the file exists,
 tools ([fallback guidance][registry-tools-fallback]).
 
 [Issue #59](https://github.com/enthouan/trello-mcp/issues/59) owns the generator,
-the explicit initial-catalog selection, and the artifact. It must:
+the explicit initial-catalog selection, and the artifact. The checked-in
+[`servers/trello-mcp/tools.json`](../servers/trello-mcp/tools.json) is rendered
+by [`scripts/generate-docker-registry-tools.ts`](../scripts/generate-docker-registry-tools.ts)
+through the importable conversion library in
+[`scripts/lib/docker-registry-tools.ts`](../scripts/lib/docker-registry-tools.ts).
+Run `corepack pnpm registry:tools` to regenerate it and
+`corepack pnpm registry:tools:check` to fail when it is stale.
 
-- [ ] Generate the submission's `servers/trello-mcp/tools.json` data from the
+The runtime registry currently has 77 tools. The initial Docker profile has 76,
+with exactly `card_attachment_upload` excluded because `server.yaml` exposes
+neither `TRELLO_ATTACHMENT_UPLOAD_ROOT` nor a safe host volume. Every future
+`allTools` entry is included automatically unless it is explicitly added to the
+central exclusion profile.
+
+Input metadata comes from Zod's public `toJSONSchema` API in input mode, matching
+the MCP SDK's client-facing `tools/list` requiredness. Required argument names
+sort alphabetically before optional argument names, and tool names sort
+alphabetically. Docker's compact model preserves one top-level string type and
+array item type. Nullable and mixed unions have no equivalent compact union
+encoding, so they use Docker's current lossy `string` fallback. The runtime
+surface currently exposes no client-facing tool annotations, so the generated
+objects correctly contain none.
+
+- [x] Generate the submission's `servers/trello-mcp/tools.json` data from the
   canonical [`allTools`](../src/trello/tools.ts) registry through a deterministic
   registry profile, not from a hand-edited duplicate.
-- [ ] Produce deterministic ordering and output so source changes create a
+- [x] Produce deterministic ordering and output so source changes create a
   reviewable diff.
-- [ ] Include every selected tool's name and description plus each argument's
+- [x] Include every selected tool's name and description plus each argument's
   name, type, non-empty `desc`, optionality, and array item type where
   applicable. The current upstream tool model is commit-pinned here
   ([tool model][registry-tool-model]).
-- [ ] Exclude `card_attachment_upload` while the initial entry omits
-  `TRELLO_ATTACHMENT_UPLOAD_ROOT` and its required volume. Make that exclusion
-  explicit in the generator and tests, and do not silently omit any other
-  `allTools` entry. A later entry may add the tool only with a safe mount and
-  matching runtime configuration.
-- [ ] Preserve supported tool annotations where the current upstream format can
-  represent them.
-- [ ] Add deterministic tests that compare the generated artifact with the
+- [x] Exclude `card_attachment_upload` while the initial entry omits
+  `TRELLO_ATTACHMENT_UPLOAD_ROOT` and its required volume. The exclusion is
+  explicit in the generator and tests, and no other `allTools` entry is omitted.
+  A later entry may add the tool only with a safe mount and matching runtime
+  configuration.
+- [x] Preserve supported tool annotations where the current upstream format can
+  represent them. There are no annotations in the current client-facing
+  `tools/list` output, so no values are invented.
+- [x] Add deterministic tests that compare the generated artifact with the
   canonical tool registry and reject missing tool or argument descriptions.
-- [ ] Contain no credentials, Trello object data, mutable upstream prose, or
-  network-dependent generation.
-- [ ] Verify `task build -- --tools trello-mcp` reports the expected tool count
-  for the explicit initial-catalog profile without requiring valid Trello
-  credentials or a live Trello request.
+- [x] Contain no credentials, Trello object data, mutable upstream prose, or
+  network-dependent generation. The generator imports tool definitions only;
+  it loads no runtime configuration and invokes no handler or `fetch` call.
+- [x] Verify `task build -- --tools trello-mcp` reports 76 tools for the explicit
+  initial-catalog profile without Trello credentials or a live Trello request.
+
+At Docker MCP Registry revision `8c773729`, a temporary checkout containing only
+the submission `server.yaml` and generated `tools.json` passed
+`task validate -- --name trello-mcp`. The exact
+`task build -- --tools trello-mcp` path built the pinned image, used the adjacent
+fallback without starting the server for discovery, and reported
+`76 tools found.` Both commands ran with `TRELLO_API_KEY` and `TRELLO_TOKEN`
+absent. The build also exposed that the Dockerfile's production prune needed
+explicit non-interactive CI mode; `CI=true pnpm prune --prod` fixes that
+demonstrated build prerequisite without changing runtime behavior.
 
 ### 4. Upstream validation and local catalog behavior — issue #60
 
@@ -332,26 +368,23 @@ before submission.
 
 ## Downstream issue ownership
 
-| Issue | Owns | Status after issue #58 |
+| Issue | Owns | Status after issue #59 |
 | --- | --- | --- |
 | [#58](https://github.com/enthouan/trello-mcp/issues/58) | Create `server.yaml`; finalize title, description, tags, icon, source pin, stdio runtime, secrets, and host allowlist | The local metadata draft and its offline contract are complete; no external submission was made |
-| [#59](https://github.com/enthouan/trello-mcp/issues/59) | Generate and test credential-independent `tools.json` from the explicit `allTools`-derived initial catalog, excluding the disabled upload tool | No tool export or placeholder is created by #58 |
-| [#60](https://github.com/enthouan/trello-mcp/issues/60) | Import the local catalog and verify Toolkit configuration, discovery, outbound access, and minimal live behavior through the opt-in live-validation workflow | No Docker Desktop import or manual #58-specific live validation is performed; required PR smoke remains ordinary CI evidence, not #60 completion |
-| [#61](https://github.com/enthouan/trello-mcp/issues/61) | Define the pre-submission trust plan and digest-pinned fallback; after acceptance, verify the actual Docker-published image and final trust/update model | No supply-chain readiness claim is completed by #58 |
-| [#62](https://github.com/enthouan/trello-mcp/issues/62) | Open and complete the external Docker MCP Registry submission and verify acceptance | No upstream pull request or credential submission is made by #58 |
+| [#59](https://github.com/enthouan/trello-mcp/issues/59) | Generate and test credential-independent `tools.json` from the explicit `allTools`-derived initial catalog, excluding the disabled upload tool | The 76-tool artifact, generator, deterministic checks, offline `tools/list` parity, and upstream fallback build are complete |
+| [#60](https://github.com/enthouan/trello-mcp/issues/60) | Import the local catalog and verify Toolkit configuration, discovery, outbound access, and minimal live behavior through the opt-in live-validation workflow | No Docker Desktop import or manual #59-specific live validation is performed; required PR smoke remains ordinary CI evidence, not #60 completion |
+| [#61](https://github.com/enthouan/trello-mcp/issues/61) | Define the pre-submission trust plan and digest-pinned fallback; after acceptance, verify the actual Docker-published image and final trust/update model | No supply-chain readiness claim is completed by #59 |
+| [#62](https://github.com/enthouan/trello-mcp/issues/62) | Open and complete the external Docker MCP Registry submission and verify acceptance | No upstream pull request or credential submission is made by #59; regenerate `tools.json` if the tool surface changes before submission |
 
 ## Blockers and open questions
 
-There is no evidence in the 2026-08-23 snapshots that blocks the Docker-built
+There is no evidence in the 2026-08-24 snapshots that blocks the Docker-built
 choice. The remaining questions are deliberately assigned rather than silently
 assumed:
 
 - #58 selected and verified the first-party icon, rechecked catalog vocabulary,
   and pinned the exact source revision for the metadata draft. #62 must refresh
   all three decisions immediately before external submission.
-- #59 must prove the generated tool representation matches Docker's then-current
-  format and the explicit canonical initial-catalog selection, including the
-  intentional upload-tool exclusion.
 - #60 must observe Docker Desktop behavior for the stdio container, its
   HTTP-oriented image health check, secret fields, host allowlist, and imported
   catalog rather than inferring success from source inspection. Any real Trello
@@ -364,7 +397,9 @@ assumed:
 - #62 must re-audit upstream `main`, handle the owner-gated credential form if
   Docker requests test access, complete review, and verify post-merge catalog
   processing. It may open after #61's pre-submission phase; it is not blocked on
-  evidence that only the accepted Docker-managed image can provide.
+  evidence that only the accepted Docker-managed image can provide. It must
+  also regenerate and revalidate `tools.json` if `allTools` changes before
+  submission.
 
 [registry-readme]: https://github.com/docker/mcp-registry/blob/8c773729f13f036da8c909be503fe433923a9aa2/README.md#L13-L33
 [registry-contributing]: https://github.com/docker/mcp-registry/blob/8c773729f13f036da8c909be503fe433923a9aa2/CONTRIBUTING.md#L36-L45

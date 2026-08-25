@@ -113,6 +113,8 @@ describe("independent-project and support content", () => {
     for (const marker of [
       "corepack pnpm website:check",
       "corepack pnpm docs:tools",
+      "corepack pnpm registry:tools",
+      "corepack pnpm registry:tools:check",
       "Do not post Trello API keys",
       "vX.Y.Z",
       "annotated",
