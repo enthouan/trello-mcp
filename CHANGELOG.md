@@ -2,10 +2,16 @@
 
 ## v1.0.1
 
-Maintenance release adding downstream registry packaging and rolling forward
-patch-level documentation, test, formatter, and container-build fixes. The
-Trello runtime dependencies, configuration, and public 77-tool surface are
-unchanged.
+Maintenance release addressing transitive runtime dependency advisories, adding
+downstream registry packaging, and rolling forward patch-level documentation,
+test, formatter, and container-build fixes. Trello API behavior, configuration,
+and the public 77-tool surface are unchanged.
+
+### Runtime Security
+
+- Override the MCP SDK's transitive `fast-uri` and `qs` versions to 3.1.6 and
+  6.16.0, respectively, addressing known host parsing, request-forgery, parser
+  limit bypass, and denial-of-service advisories.
 
 ### Registry Packaging
 

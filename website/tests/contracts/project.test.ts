@@ -1,5 +1,6 @@
 import { readdir, readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
+import { parse } from "yaml";
 import playwrightConfig from "../../playwright.config.js";
 import { CANONICAL_WEBSITE_URL } from "../../src/data/publication.js";
 import {
@@ -42,6 +43,10 @@ describe("website package and command boundaries", () => {
       devDependencies: Record<string, string>;
     };
     const workspace = await source(repositoryFile("pnpm-workspace.yaml"));
+    const workspaceConfig = parse(workspace) as {
+      packages: string[];
+      overrides: Record<string, string>;
+    };
     const websiteReadme = await source(websiteFile("README.md"));
 
     expect(websitePackage).toMatchObject({
@@ -65,7 +70,13 @@ describe("website package and command boundaries", () => {
       sharp: "0.35.4",
       typescript: "6.0.3",
     });
-    expect(workspace).toMatch(/^packages:\n\s+- website\s*$/);
+    expect(workspaceConfig).toEqual({
+      packages: ["website"],
+      overrides: {
+        "fast-uri@>=3.0.0 <3.1.6": "3.1.6",
+        "qs@>=2.2.5 <6.16.0": "6.16.0",
+      },
+    });
     expect(rootPackage.files).toEqual([
       "dist",
       "README.md",
