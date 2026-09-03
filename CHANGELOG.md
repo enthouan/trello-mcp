@@ -1,5 +1,33 @@
 # Changelog
 
+## v1.0.1
+
+Maintenance release adding downstream registry packaging and rolling forward
+patch-level documentation, test, formatter, and container-build fixes. The
+Trello runtime dependencies, configuration, and public 77-tool surface are
+unchanged.
+
+### Registry Packaging
+
+- Add Docker MCP Registry server metadata and a deterministic 76-tool
+  `tools.json` fallback generated from the runtime catalog. The registry profile
+  excludes only `card_attachment_upload`, which depends on a server-local upload
+  root that the registry configuration cannot provide.
+- Add generation and freshness checks for the registry catalog, contract tests
+  for the registry metadata, and reliable production dependency pruning in
+  automated container builds.
+- Document the Docker MCP Registry and Glama requirements, evidence, and
+  contribution paths used for downstream listing work.
+
+### Documentation And Development Tooling
+
+- Update Astro from 7.2.1 to 7.2.9, Starlight from 0.41.7 to 0.41.10,
+  `@astrojs/markdown-remark` from 7.2.2 to 7.2.4, and Sharp from 0.35.3 to
+  0.35.4.
+- Update Biome from 2.5.8 to 2.5.11 and Vitest plus its V8 coverage provider
+  from 4.1.10 to 4.1.11.
+- Update the GitHub Actions Buildx setup action from 4.2.0 to 4.3.0.
+
 ## v1.0.0
 
 Public 1.0 baseline for the self-hostable `trello-mcp` server: 77
