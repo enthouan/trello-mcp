@@ -4,7 +4,7 @@
 FROM --platform=$BUILDPLATFORM node:24-bookworm-slim AS builder
 WORKDIR /app
 RUN corepack enable
-COPY package.json pnpm-lock.yaml* ./
+COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml ./
 RUN if [ -f pnpm-lock.yaml ]; then pnpm install --frozen-lockfile; else pnpm install; fi
 COPY . .
 RUN pnpm build

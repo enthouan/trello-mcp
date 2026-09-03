@@ -20,8 +20,8 @@ and the public 77-tool surface are unchanged.
   excludes only `card_attachment_upload`, which depends on a server-local upload
   root that the registry configuration cannot provide.
 - Add generation and freshness checks for the registry catalog, contract tests
-  for the registry metadata, and reliable production dependency pruning in
-  automated container builds.
+  for the registry metadata, and reliable frozen installs and production
+  dependency pruning in automated container builds.
 - Document the Docker MCP Registry and Glama requirements, evidence, and
   contribution paths used for downstream listing work.
 

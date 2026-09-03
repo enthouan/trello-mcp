@@ -201,9 +201,8 @@ describe("website package and command boundaries", () => {
     expect(workflow).toMatch(
       /docker:\n\s+if: github\.event_name == 'pull_request'[\s\S]*docker compose --env-file \.env\.example config --quiet[\s\S]*docker compose --env-file \.env\.example -f docker-compose\.local\.yml config --quiet[\s\S]*platforms: linux\/amd64,linux\/arm64[\s\S]*push: false[\s\S]*outputs: type=cacheonly/,
     );
-    expect(dockerignore.split(/\r?\n/)).toEqual(
-      expect.arrayContaining(["website", "pnpm-workspace.yaml"]),
-    );
+    expect(dockerignore.split(/\r?\n/)).toContain("website");
+    expect(dockerignore.split(/\r?\n/)).not.toContain("pnpm-workspace.yaml");
     for (const marker of [
       "pnpm website:visual",
       "pnpm website:lighthouse",
