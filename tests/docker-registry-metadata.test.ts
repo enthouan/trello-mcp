@@ -44,6 +44,14 @@ afterEach(() => {
 });
 
 describe("Docker MCP Registry metadata", () => {
+  it("copies pnpm override configuration before the frozen install", async () => {
+    const dockerfile = await readFile(dockerfileUrl, "utf8");
+
+    expect(dockerfile).toMatch(
+      /COPY package\.json pnpm-lock\.yaml\* pnpm-workspace\.yaml \.\/\nRUN if \[ -f pnpm-lock\.yaml \]; then pnpm install --frozen-lockfile;/,
+    );
+  });
+
   it("keeps production dependency pruning non-interactive", async () => {
     const dockerfile = await readFile(dockerfileUrl, "utf8");
 
