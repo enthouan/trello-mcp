@@ -307,7 +307,7 @@ test("repository count reserves stable mobile menu space", async ({ page }) => {
   expect(response?.status()).toBe(200);
   await requestStarted;
   await page.evaluate(() => document.fonts.ready);
-  await page.locator("starlight-menu-button button").click();
+  await page.locator(".sl-menu-button").click();
 
   const preferences = page.locator(".mobile-preferences:visible");
   const action = preferences.locator("[data-repository-navigation]");
