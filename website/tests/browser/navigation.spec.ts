@@ -481,12 +481,11 @@ test("mobile menu is keyboard operable", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await gotoLoaded(page, "/getting-started/");
 
-  const menu = page.locator("starlight-menu-button").first();
-  const button = menu.locator("button");
+  const button = page.locator(".sl-menu-button").first();
   await button.focus();
   await expect(button).toBeFocused();
   await page.keyboard.press("Enter");
-  await expect(menu).toHaveAttribute("aria-expanded", "true");
+  await expect(page.locator("#starlight__sidebar:popover-open")).toHaveCount(1);
   const repositoryLink = page
     .locator("#starlight__sidebar [data-repository-navigation]:visible")
     .first();

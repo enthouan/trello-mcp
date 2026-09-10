@@ -61,11 +61,11 @@ describe("website package and command boundaries", () => {
     });
     expect(websitePackage.devDependencies).toMatchObject({
       "@astrojs/check": "0.9.10",
-      "@astrojs/markdown-remark": "7.2.4",
-      "@astrojs/starlight": "0.41.10",
+      "@astrojs/markdown-remark": "7.3.0",
+      "@astrojs/starlight": "0.42.0",
       "@fortawesome/free-brands-svg-icons": "7.3.1",
       "@fortawesome/free-solid-svg-icons": "7.3.1",
-      astro: "7.2.9",
+      astro: "7.3.1",
       "cross-env": "10.1.0",
       sharp: "0.35.4",
       typescript: "6.0.3",

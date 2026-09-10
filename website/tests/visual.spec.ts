@@ -109,7 +109,7 @@ test.describe("mobile repository navigation visual QA", () => {
       }, theme);
       await page.goto("/getting-started/", { waitUntil: "networkidle" });
       await page.evaluate(() => document.fonts.ready);
-      await page.locator("starlight-menu-button button").click();
+      await page.locator(".sl-menu-button").click();
       const repositoryLink = page.locator(
         "#starlight__sidebar [data-repository-navigation]:visible",
       );

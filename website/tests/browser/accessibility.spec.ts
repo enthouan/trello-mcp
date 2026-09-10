@@ -274,8 +274,8 @@ test("mobile controls meet the WCAG 2.2 minimum touch-target size", async ({
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await gotoLoaded(page, "/getting-started/");
-  const menu = page.locator("starlight-menu-button").first();
-  await menu.locator("button").click();
+  await page.locator(".sl-menu-button").first().click();
+  await expect(page.locator("#starlight__sidebar:popover-open")).toHaveCount(1);
   await expect(
     page.locator("#starlight__sidebar [data-repository-navigation]:visible"),
   ).toHaveAccessibleName("trello-mcp source repository, 1.2K stars");
