@@ -1,13 +1,14 @@
 version: 2
 updates:
   # Cadence and grouping are intentionally conservative for review stability:
-  # weekly checks, low PR limits, grouped minor/patch updates, and separate majors.
+  # version checks on the 1st and 15th of each month, low PR limits, grouped
+  # minor/patch updates, and separate majors. Security updates remain enabled
+  # independently of these routine version-update schedules.
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "saturday"
-      time: "09:00"
+      interval: "cron"
+      cronjob: "0 9 1,15 * *"
       timezone: "America/Los_Angeles"
     cooldown:
       semver-patch-days: 1
@@ -34,9 +35,8 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "saturday"
-      time: "10:00"
+      interval: "cron"
+      cronjob: "0 10 1,15 * *"
       timezone: "America/Los_Angeles"
     cooldown:
       default-days: 1
@@ -49,13 +49,12 @@ updates:
           - "minor"
           - "patch"
 
-  # Docker base image updates stay weekly and grouped only for minor/patch bumps.
+  # Docker base image updates follow the same cadence, grouped for minor/patch bumps.
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "saturday"
-      time: "11:00"
+      interval: "cron"
+      cronjob: "0 11 1,15 * *"
       timezone: "America/Los_Angeles"
     cooldown:
       default-days: 1
