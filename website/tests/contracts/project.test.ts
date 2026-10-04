@@ -73,7 +73,7 @@ describe("website package and command boundaries", () => {
     expect(workspaceConfig).toEqual({
       packages: ["website"],
       overrides: {
-        "fast-uri@>=3.0.0 <3.1.6": "3.1.6",
+        "fast-uri@>=3.0.0 <3.1.8": "3.1.8",
         "qs@>=2.2.5 <6.16.0": "6.16.0",
       },
     });
