@@ -1,5 +1,27 @@
 # Changelog
 
+## v1.0.2
+
+Maintenance release refreshing runtime, documentation, and development
+dependencies and addressing additional transitive runtime dependency advisories.
+Trello API behavior, configuration, and the public 77-tool surface are unchanged.
+
+### Runtime And Security
+
+- Update the MCP SDK from 1.30.0 to 1.31.0 and Zod from 4.4.3 to 4.6.5.
+- Raise the transitive `fast-uri` override from 3.1.6 to 3.1.8 to include the
+  latest security fixes, covering all affected 3.x versions below 3.1.8.
+
+### Documentation And Development Tooling
+
+- Update Astro from 7.2.9 to 7.3.5, Starlight from 0.41.10 to 0.42.4,
+  `@astrojs/markdown-remark` from 7.2.4 to 7.3.1, and Sharp from 0.35.4 to
+  0.35.5; align website types and browser checks with the updated dependencies.
+- Refresh Biome, Playwright, Node.js types, Lighthouse, Chrome Launcher,
+  `smol-toml`, `tsx`, and YAML development dependencies.
+- Update the pinned pnpm setup and Docker QEMU, Buildx, and build/push GitHub
+  Actions, and schedule Dependabot version updates twice monthly.
+
 ## v1.0.1
 
 Maintenance release addressing transitive runtime dependency advisories, adding
