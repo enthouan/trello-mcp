@@ -11,6 +11,7 @@ RUN pnpm build
 RUN CI=true pnpm prune --prod
 
 FROM node:24-bookworm-slim AS runtime
+LABEL io.modelcontextprotocol.server.name="io.github.enthouan/trello-mcp"
 WORKDIR /app
 ENV NODE_ENV=production \
     TRANSPORT=http \

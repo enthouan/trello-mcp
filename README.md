@@ -26,6 +26,7 @@ The complete project documentation is available at [trello-mcp.com](https://trel
 - [Understand Security & Data](https://trello-mcp.com/guides/security/)
 - [Operate a running deployment](https://trello-mcp.com/guides/operations/)
 - [Troubleshoot an installation](https://trello-mcp.com/guides/troubleshooting/)
+- [Official MCP Registry installation, releases, and recovery](docs/mcp-registry.md)
 
 ## Features
 

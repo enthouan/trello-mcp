@@ -76,7 +76,7 @@ Use `corepack pnpm test:coverage` when changing core behavior, error handling, o
 
 - Use `.agents/skills/trello-mcp-release/SKILL.md` when preparing, cutting, publishing, or verifying a release. The release flow must respect protected `main`: release metadata changes go through a PR, then the merged `origin/main` commit is tagged with an annotated `vX.Y.Z` tag.
 - Use `.agents/skills/trello-mcp-live-validation/SKILL.md` when running, verifying, debugging, or reporting opt-in live Trello smoke or regression validation. Live Trello runs must stay explicit-env-gated and must never run as part of normal CI or offline tests.
-- The user's review of the release PR is the only normal release approval boundary. Once the user says the release PR is reviewed or approved, continue automatically for that exact `vX.Y.Z` through required checks, merge, tag push, GHCR verification, GitHub Release creation, and milestone closure.
+- The user's review of the release PR is the only normal release approval boundary. Once the user says the release PR is reviewed or approved, continue automatically for that exact `vX.Y.Z` through required checks, merge, tag push, GHCR verification, official MCP Registry publication and exact-version verification, GitHub Release creation, and closure of completed milestones.
 
 ## Formatting And Linting
 
@@ -251,6 +251,10 @@ The GitHub Actions workflow named `Build and Test` runs:
 - Docker Compose validation and a non-publishing multi-platform image build on pull requests
 
 The `Release` workflow publishes Docker images to GHCR from `main` and `v*` tags.
+Stable tag pushes also publish the official MCP Registry entry after image
+verification. Keep `server.json`, `package.json`, and the exact image version
+aligned; run `corepack pnpm registry:check`. Follow `docs/mcp-registry.md` for
+OIDC publication, immutable-image reuse, exact payload comparison, and recovery.
 
 Cloudflare Pages handles production website builds and deployment outside GitHub
 Actions. Keep `Build and Test` focused on validation; it must not require

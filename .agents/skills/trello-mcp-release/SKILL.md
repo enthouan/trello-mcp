@@ -1,6 +1,6 @@
 ---
 name: trello-mcp-release
-description: Use when cutting, preparing, publishing, or verifying a trello-mcp release. Covers protected-main release PRs, version and changelog updates, vX.Y.Z tag publication, GitHub Actions release workflow checks, and GHCR image verification.
+description: Use when cutting, preparing, publishing, or verifying a trello-mcp release. Covers protected-main release PRs, version and changelog updates, vX.Y.Z tag publication, GitHub Actions release workflow checks, GHCR ownership and image verification, official MCP Registry OIDC publication, exact-version verification, and safe recovery.
 ---
 
 # Trello MCP Release
@@ -9,11 +9,13 @@ description: Use when cutting, preparing, publishing, or verifying a trello-mcp 
 
 - `main` is protected. Do not commit or push directly to `main`; all file changes must land through a PR.
 - The user's review of the release PR is the only normal approval boundary. After opening the release PR, ask the user to review that exact PR and wait for their approval.
-- Once the user says the release PR is reviewed or approved, continue automatically for that exact `vX.Y.Z`: wait for required checks, merge it, push the tag, verify workflows/GHCR, create the GitHub Release, and close the milestone. Do not ask separately for merge approval or publish approval.
+- Once the user says the release PR is reviewed or approved, continue automatically for that exact `vX.Y.Z`: wait for required checks, merge it, push the tag, verify workflows/GHCR and the exact official MCP Registry entry, create the GitHub Release, and close the milestone when its remaining criteria are complete. Do not ask separately for merge approval or publish approval.
 - Do not move, delete, or retag existing release tags.
-- In this repo, the normal release artifact is an annotated Git tag, GHCR images, and a GitHub Release titled exactly `vX.Y.Z`.
+- In this repo, the normal release artifact is an annotated Git tag, GHCR images, an exact verified official MCP Registry entry, and a GitHub Release titled exactly `vX.Y.Z`.
 - Release tags should point at the current `origin/main` commit after the release prep PR has merged.
 - Keep secrets out of commits, logs, PR text, and release notes.
+- Follow [the official Registry release and recovery guide](../../../docs/mcp-registry.md). The Registry identity is `io.github.enthouan/trello-mcp`; Docker MCP Registry (#62) and Glama (#66) remain separate catalogs.
+- Never declare a release complete based only on static tests or publisher exit status. Require the exact active production Registry payload to match the release manifest.
 
 ## Refresh State
 
@@ -48,12 +50,14 @@ state before preparing the PR.
 Use a branch from `origin/main`, for example:
 
 ```bash
-git switch -c release-vX.Y.Z origin/main
+git switch -c antoine/release-vX.Y.Z origin/main
 ```
 
 Make the smallest release metadata change:
 
 - Set `package.json` `version` to `X.Y.Z`.
+- Set `server.json` `version` to `X.Y.Z` and its OCI identifier to `ghcr.io/enthouan/trello-mcp:X.Y.Z`. Preserve `TRANSPORT=stdio`, the independent/community disclaimer, and both required secret Trello inputs without values.
+- Run `corepack pnpm registry:check` to validate the vendored official schema, ownership label, and package/manifest/image version alignment. Do not substitute `latest` or an older image. Verify the Dockerfile label and Release index annotation both equal `io.github.enthouan/trello-mcp`. Older artifacts without ownership metadata require a real new packaging release; never retrofit a published image.
 - Add the new `CHANGELOG.md` section at the top with user-facing changes grouped like existing releases.
 - Update docs only when release behavior or supported commands changed.
 - If the release adds, removes, renames, or materially changes public MCP tools
@@ -72,6 +76,8 @@ corepack pnpm typecheck
 corepack pnpm lint
 corepack pnpm build
 corepack pnpm test
+corepack pnpm registry:check
+corepack pnpm exec vitest run tests/mcp-registry.test.ts tests/workflow-actions.test.ts
 ```
 
 Use `corepack pnpm test:coverage` if the release prep includes core behavior,
@@ -89,7 +95,7 @@ Review the release diff like an external reviewer before publishing the PR:
 ```bash
 git diff --check
 git diff --stat origin/main...HEAD
-git diff origin/main...HEAD -- package.json CHANGELOG.md README.md CONTRIBUTING.md docs/api-coverage.md .github/workflows/release.yml
+git diff origin/main...HEAD -- package.json server.json CHANGELOG.md README.md CONTRIBUTING.md docs/api-coverage.md docs/mcp-registry.md Dockerfile scripts/mcp-registry.ts scripts/lib/mcp-registry.ts .github/workflows/release.yml
 ```
 
 Open the PR with a direct title such as `vX.Y.Z`. Include validation
@@ -121,8 +127,9 @@ explicitly accepts a skipped result for that release.
 
 Ask the user once to review the release PR. Include the PR URL, target version,
 and validation summary, and state that after they approve/review that PR you
-will automatically wait for checks, merge, tag, publish, verify, and close the
-milestone for the same version.
+will automatically wait for checks, merge, tag, publish and verify GHCR and the
+official Registry, create the GitHub Release, and close any completed milestone
+for the same version. Registry publication requires no separate approval.
 
 After the user says the release PR is reviewed or approved, wait for PR checks:
 
@@ -166,7 +173,8 @@ milestone.
 Run this immediately after the reviewed/approved release PR is merged and the
 main release workflow result is verified. The user's PR review approval covers
 the normal release-side effects for the exact `vX.Y.Z`: tag push, GHCR publish
-verification, GitHub Release creation, and milestone closure.
+verification, official MCP Registry publication and exact-version verification,
+GitHub Release creation, and milestone closure when all milestone work is done.
 
 Stop and ask for explicit approval only when a corrective action would rewrite
 history or replace published release state, such as moving/deleting a tag,
@@ -209,12 +217,12 @@ docker buildx imagetools inspect ghcr.io/enthouan/trello-mcp:X.Y
 docker buildx imagetools inspect ghcr.io/enthouan/trello-mcp:sha-<full-main-sha>
 ```
 
-If any publish step fails, report the failed command and exact error before
+If any publish step fails, report the failed step and sanitized error before
 trying manual repair. Prefer a follow-up PR for workflow fixes; never repush
-the same release tag.
+the same release tag. Follow Registry Recovery below when GHCR succeeded.
 
-Create the GitHub Release only after the tag workflow and GHCR image checks
-pass. Use the title `vX.Y.Z` exactly, without `release` or any other suffix,
+Create the GitHub Release only after the tag workflow, GHCR image checks, and
+exact official Registry payload verification pass. Use the title `vX.Y.Z` exactly, without `release` or any other suffix,
 and use the changelog section as notes.
 
 ```bash
@@ -225,8 +233,68 @@ gh release view "v${version}" --repo enthouan/trello-mcp \
   --json tagName,name,isDraft,isPrerelease,publishedAt,url
 ```
 
-Finish with the PR URL, tag, workflow run URL, verified GHCR tags, and GitHub
-Release URL.
+Finish with the PR URL, tag and exact commit, image and Registry job URLs,
+verified GHCR tags and digest, exact public Registry API URL and matching active
+payload result, offline discovery result, and GitHub Release URL. Distinguish
+local/static checks from an observed successful production OIDC run.
 
-If the release completes a milestone, close the milestone only after the tag
-workflow and GHCR image checks have passed.
+If the release completes a milestone, close it only after the tag workflow,
+GHCR image checks, and exact live Registry verification have passed and its other
+issues are complete. A packaging patch can belong to the distribution milestone
+without completing unrelated catalog submissions. Use non-closing PR references
+while live publication or automation verification is outstanding; keep the
+tracking issue open with a precise next action until all acceptance criteria pass.
+
+
+## Official Registry Job And Verification
+
+The tag workflow validates the tag/package/manifest/image versions at the exact
+release commit before building. It checks whether the exact GHCR image already
+exists, validates and reuses a matching image, and fails on conflicting metadata.
+After publication it verifies public anonymous access, the index ownership
+annotation and both architecture labels, version, revision, source, and digest.
+It initializes stdio and lists tools with synthetic credentials and container
+networking disabled; this installation check cannot call Trello.
+
+The dependent `registry` job runs only on stable tag pushes, after image
+verification succeeds. It uses the checksum-verified pinned official publisher
+and GitHub Actions OIDC (`id-token: write` only in that job). No routine device
+login or long-lived publishing secret is needed. PRs, ordinary main pushes,
+prereleases, and manual image dispatches must not publish Registry entries.
+
+Watch both `image` and `registry` jobs in the original tag Release run. Require
+its summary to report the release commit, verified image digest, exact version
+URL, and full payload match. From the exact release checkout, independently run:
+
+```bash
+corepack pnpm registry:release verify
+```
+
+This anonymously reads the production API at
+`https://registry.modelcontextprotocol.io/v0.1/servers/io.github.enthouan%2Ftrello-mcp/versions/X.Y.Z`,
+compares all publisher metadata with `server.json`, and requires active status.
+A Registry search result or `latest` alias alone is insufficient. Include this
+evidence in the tracking issue before closing it.
+
+## Registry Recovery
+
+- If the image job succeeded and Registry publication failed, inspect the exact
+  API entry and rerun only failed jobs:
+  `gh run rerun <TAG_RUN_ID> --failed --repo enthouan/trello-mcp`. The original
+  image digest and release manifest are reused. Even a full rerun verifies and
+  reuses the existing exact image instead of rebuilding it.
+- Identical active Registry metadata is a verified no-op. Only 404 means absent.
+  Conflicts, inactive entries, malformed responses, unexpected HTTP errors, and
+  image metadata mismatches must fail clearly. Do not overwrite entries.
+- If a publish response was lost, check production before retrying. The script
+  reconciles a matching entry and polls briefly for propagation, then fails if
+  verification remains inconclusive. Retry the same version and immutable image.
+- Never move tags, replace images, or invent a new version merely to retry.
+  An image that actually lacks ownership metadata requires a real packaging
+  release through the usual PR review boundary.
+- Workflow reruns use the original workflow commit. For a defect requiring new
+  tooling, prepare a reviewed fix and follow the manual recovery procedure in
+  `docs/mcp-registry.md` against the original tag's manifest and image. Pause for
+  interactive authorization if needed. Record manual recovery honestly and leave
+  automated publication verification outstanding until a genuine stable release
+  exercises the corrected workflow.
