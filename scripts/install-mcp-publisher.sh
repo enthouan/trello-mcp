@@ -24,8 +24,8 @@ destination=${1:?Pass an absolute destination for the publisher binary}
 case "$destination" in /*) ;; *) echo "Destination must be absolute" >&2; exit 1 ;; esac
 publisher_tmp=$(mktemp -d)
 trap 'rm -rf "$publisher_tmp"' EXIT
-curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 \
-  --retry 3 --max-time 120 \
+curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --tlsv1.2 \
+  --retry 3 --connect-timeout 15 --max-time 120 \
   "https://github.com/modelcontextprotocol/registry/releases/download/${publisher_version}/mcp-publisher_${platform}.tar.gz" \
   --output "$publisher_tmp/publisher.tar.gz"
 printf '%s  %s\n' "$checksum" "$publisher_tmp/publisher.tar.gz" | shasum -a 256 --check -

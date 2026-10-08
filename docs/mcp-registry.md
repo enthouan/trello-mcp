@@ -66,8 +66,10 @@ The exact release PR review remains the single normal approval boundary.
    can publish to the Registry. PRs, main pushes, prereleases, other repositories,
    and manual dispatches do not publish entries. Manual image dispatches are
    restricted to `main` and keep their existing dry-run default.
-4. Both jobs check out `github.sha`. The release scripts require the checked-out
-   commit, tag target, and event SHA to agree and belong to `origin/main`.
+4. A read-only `release-policy` job checks out `github.sha`, freshly fetches
+   `origin/main`, and rejects tags whose commits are not on main before either
+   publishing job starts. All jobs use the exact event commit. The release
+   scripts also require the checkout, tag target, and event SHA to agree.
 5. Before building, query the exact public image. If it exists, verify its
    digest, ownership, revision, version, source, command, and both supported
    architectures and reuse it. A conflicting image stops the release. A new
@@ -78,10 +80,13 @@ The exact release PR review remains the single normal approval boundary.
    verification produces the digest consumed by the Registry job.
 7. The dependent `registry` job rechecks the exact image digest and production
    Registry entry. An identical active payload is success without authentication
-   or republishing. A 404 permits publication; conflicting metadata, malformed
-   responses, inactive entries, and other HTTP errors fail closed.
+   or republishing. Lookups include `?include_deleted=true` so a deleted version
+   cannot be mistaken for an unused version. Only 404 permits publication;
+   conflicting metadata, malformed responses, inactive entries, and other
+   preflight HTTP errors fail closed.
 8. Install the pinned official `mcp-publisher` with its checked-in SHA-256,
-   authenticate using `login github-oidc`, and publish the unchanged manifest.
+   run `validate server.json` against the production validation API, then
+   authenticate using `login github-oidc` and publish the unchanged manifest.
    Only this job has `id-token: write`; only the image job has `packages: write`.
    No long-lived Registry secret or device login is needed for normal releases.
 9. Read the exact version anonymously from the production API, compare every
@@ -93,6 +98,10 @@ Workflows serialize runs for the same ref. They never intentionally replace an
 existing exact release image. `latest`, minor-line, and commit tags retain their
 normal release conventions for newly built images; retrying a completed image
 does not move those tags backwards.
+
+The ancestry gate verifies release lineage for this workflow. Registry OIDC
+authorizes the owner's namespace, so repository write access must remain
+limited to trusted maintainers. Repository tag rulesets are managed separately.
 
 ## Verification and completion evidence
 
@@ -124,9 +133,12 @@ only when its other acceptance criteria and issues are also complete.
   digest and manifest before retrying. A full rerun also reuses the already
   published image after checking all metadata; it does not rebuild that version.
 - **Publish response lost:** the script checks production even after a publisher
-  error. It accepts success only if the exact active entry matches. It waits up
-  to 25 seconds across six reads for a missing entry, then fails. Rerun the same
-  failed job if propagation or a transient outage prevented verification.
+  error. It accepts success only if the exact active entry matches. It makes
+  at most six read-back attempts with five-second pauses for an absent entry,
+  network failure, HTTP 408/429, or HTTP 5xx. It never retries the write.
+  Conflicts, inactive entries, malformed responses, and other HTTP errors stop
+  verification immediately. Rerun the same failed job if verification remains
+  inconclusive; each request also has a 30-second timeout.
 - **Conflicting/inactive entry:** stop and record the exact version URL and
   differing non-secret metadata. Do not overwrite or delete the entry, move the
   tag, relabel the published image, or invent a new version just to retry.
@@ -162,12 +174,17 @@ Requirements were checked on 2026-10-08 against official Registry revision
 
 The installer pins [publisher v1.8.1](https://github.com/modelcontextprotocol/registry/releases/tag/v1.8.1)
 and release-asset checksums. Its OIDC implementation derives the audience from
-the target Registry URL. This binary advertises `validate` in help but does not
-implement that command; use `registry:check` for official-schema validation.
+the target Registry URL. `mcp-publisher validate server.json` uses the
+production validation API and was verified successfully. Use `registry:check`
+for offline schema and project-contract validation, and the publisher command
+for remote validation before OIDC authentication.
 Refresh the schema and publisher deliberately, with matching checksums and
 tests, if upstream requirements change.
 
-The inspected [simplelogin-mcp reference](https://github.com/enthouan/simplelogin-mcp/tree/c6e702b72a12c1612f67d9347b313e4d588865a2)
-has OCI stdio metadata and ownership labels but no automated official Registry
-publishing job. Its manifest informed this integration; its workflow is not
-evidence that Trello publication has run.
+The [simplelogin-mcp automation PR #136](https://github.com/enthouan/simplelogin-mcp/pull/136),
+reviewed at `4f8ab00ba7de340cbd46254f1ee637a4904bbdce`, informed the read-only
+ancestry gate, deleted-version lookup, online validation, and read-back retry
+policy. The [official exact-version handler](https://github.com/modelcontextprotocol/registry/blob/970df037919faa70456dde08c295473002d850e5/internal/api/handlers/v0/servers.go)
+confirms the `include_deleted` behavior. Trello retains its existing-image reuse
+and offline installation checks. The reference PR is not evidence that Trello
+publication has run.

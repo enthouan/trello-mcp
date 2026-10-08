@@ -1,5 +1,8 @@
+import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { parse } from "yaml";
 import {
@@ -10,6 +13,7 @@ import {
   repository,
   serverName,
   stableRelease,
+  TransientRegistryLookupError,
   validateManifest,
   verifyImage,
   versionUrl,
@@ -119,13 +123,13 @@ describe("anonymous exact Registry lookup", () => {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(reply({}, 404));
     await expect(registryEntry(manifest, fetcher)).resolves.toBe("absent");
     expect(fetcher).toHaveBeenCalledWith(
-      versionUrl(manifest),
+      `${versionUrl(manifest)}?include_deleted=true`,
       expect.objectContaining({ redirect: "error" }),
     );
     expect(fetcher.mock.calls[0]?.[1]).not.toHaveProperty("headers");
   });
 
-  it.each([401, 403, 429, 500, 503])(
+  it.each([401, 403, 408, 429, 500, 503])(
     "fails on HTTP %i instead of attempting publication",
     async (status) => {
       await expect(
@@ -180,7 +184,28 @@ describe("anonymous exact Registry lookup", () => {
           .fn<typeof fetch>()
           .mockRejectedValue(new Error("network unavailable")),
       ),
-    ).rejects.toThrow("network unavailable");
+    ).rejects.toThrow(TransientRegistryLookupError);
+  });
+
+  it("distinguishes transient HTTP/body failures from invalid JSON", async () => {
+    for (const status of [408, 429, 500, 503]) {
+      await expect(
+        registryEntry(manifest, async () => reply({}, status)),
+      ).rejects.toThrow(TransientRegistryLookupError);
+    }
+    const interrupted = new Response(
+      new ReadableStream({
+        start(controller) {
+          controller.error(new Error("connection lost"));
+        },
+      }),
+    );
+    await expect(
+      registryEntry(manifest, async () => interrupted),
+    ).rejects.toThrow(TransientRegistryLookupError);
+    await expect(
+      registryEntry(manifest, async () => new Response("invalid JSON")),
+    ).rejects.toThrow(SyntaxError);
   });
 });
 
@@ -322,6 +347,8 @@ describe("publication and recovery ordering", () => {
     lookup: vi
       .fn<() => Promise<"absent" | "identical">>()
       .mockResolvedValue("identical"),
+    validate: vi.fn(async () => undefined),
+    authenticate: vi.fn(async () => undefined),
     publish: vi.fn(async () => undefined),
     sleep: vi.fn(async () => undefined),
   });
@@ -333,6 +360,8 @@ describe("publication and recovery ordering", () => {
       ops.lookup.mock.invocationCallOrder[0] ?? 0,
     );
     expect(ops.publish).not.toHaveBeenCalled();
+    expect(ops.validate).not.toHaveBeenCalled();
+    expect(ops.authenticate).not.toHaveBeenCalled();
   });
 
   it("publishes an absent entry only after verifying the image, then verifies production", async () => {
@@ -343,6 +372,15 @@ describe("publication and recovery ordering", () => {
       ops.publish.mock.invocationCallOrder[0] ?? 0,
     );
     expect(ops.lookup.mock.invocationCallOrder[1]).toBeGreaterThan(
+      ops.publish.mock.invocationCallOrder[0] ?? 0,
+    );
+    expect(ops.lookup.mock.invocationCallOrder[0]).toBeLessThan(
+      ops.validate.mock.invocationCallOrder[0] ?? 0,
+    );
+    expect(ops.validate.mock.invocationCallOrder[0]).toBeLessThan(
+      ops.authenticate.mock.invocationCallOrder[0] ?? 0,
+    );
+    expect(ops.authenticate.mock.invocationCallOrder[0]).toBeLessThan(
       ops.publish.mock.invocationCallOrder[0] ?? 0,
     );
     expect(ops.publish).toHaveBeenCalledTimes(1);
@@ -357,7 +395,102 @@ describe("publication and recovery ordering", () => {
       else ops.lookup.mockRejectedValue(new Error(failure));
       await expect(publishAndVerify(ops)).rejects.toThrow(failure);
       expect(ops.publish).not.toHaveBeenCalled();
+      expect(ops.authenticate).not.toHaveBeenCalled();
     }
+  });
+
+  it.each(["validate", "authenticate"] as const)(
+    "stops without a write or reconciliation if %s fails",
+    async (operation) => {
+      const ops = operations();
+      ops.lookup.mockResolvedValueOnce("absent");
+      ops[operation].mockRejectedValue(new Error(`${operation} failed`));
+      await expect(publishAndVerify(ops)).rejects.toThrow(
+        `${operation} failed`,
+      );
+      expect(ops.publish).not.toHaveBeenCalled();
+      expect(ops.lookup).toHaveBeenCalledTimes(1);
+      if (operation === "validate")
+        expect(ops.authenticate).not.toHaveBeenCalled();
+    },
+  );
+
+  it("fails closed on a transient preflight error without authenticating", async () => {
+    const ops = operations();
+    ops.lookup.mockImplementation(() =>
+      registryEntry(manifest, async () => reply({}, 503)),
+    );
+    await expect(publishAndVerify(ops)).rejects.toThrow("HTTP 503");
+    expect(ops.authenticate).not.toHaveBeenCalled();
+    expect(ops.publish).not.toHaveBeenCalled();
+    expect(ops.sleep).not.toHaveBeenCalled();
+  });
+
+  it.each([429, 503, "network"])(
+    "retries a transient %s read after publishing only once",
+    async (failure) => {
+      const ops = operations();
+      const fetcher = vi
+        .fn<typeof fetch>()
+        .mockResolvedValue(reply(apiPayload()));
+      fetcher.mockResolvedValueOnce(reply({}, 404));
+      if (typeof failure === "number")
+        fetcher.mockResolvedValueOnce(reply({}, failure));
+      else fetcher.mockRejectedValueOnce(new Error("network unavailable"));
+      ops.lookup.mockImplementation(() => registryEntry(manifest, fetcher));
+      await expect(publishAndVerify(ops)).resolves.toBe("published");
+      expect(ops.publish).toHaveBeenCalledTimes(1);
+      expect(ops.sleep).toHaveBeenCalledExactlyOnceWith(5_000);
+    },
+  );
+
+  it.each([
+    { status: 401, body: {} },
+    { status: 403, body: {} },
+    { status: 200, body: {} },
+    { status: 200, body: apiPayload(manifest, "deleted") },
+    { status: 200, body: apiPayload({ ...manifest, description: "Changed" }) },
+  ])(
+    "never retries a permanent or conflicting read: %j",
+    async ({ status, body }) => {
+      const ops = operations();
+      const fetcher = vi
+        .fn<typeof fetch>()
+        .mockResolvedValueOnce(reply({}, 404))
+        .mockResolvedValueOnce(reply(body, status));
+      ops.lookup.mockImplementation(() => registryEntry(manifest, fetcher));
+      await expect(publishAndVerify(ops)).rejects.toThrow();
+      expect(ops.publish).toHaveBeenCalledTimes(1);
+      expect(ops.sleep).not.toHaveBeenCalled();
+      expect(ops.lookup).toHaveBeenCalledTimes(2);
+    },
+  );
+
+  it("does not republish a deleted exact version during preflight", async () => {
+    const ops = operations();
+    ops.lookup.mockImplementation(() =>
+      registryEntry(manifest, async () =>
+        reply(apiPayload(manifest, "deleted")),
+      ),
+    );
+    await expect(publishAndVerify(ops)).rejects.toThrow();
+    expect(ops.authenticate).not.toHaveBeenCalled();
+    expect(ops.publish).not.toHaveBeenCalled();
+  });
+
+  it("bounds transient read retries without repeating the publication", async () => {
+    const ops = operations();
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(reply({}, 404))
+      .mockResolvedValue(reply({}, 503));
+    ops.lookup.mockImplementation(() => registryEntry(manifest, fetcher));
+    await expect(publishAndVerify(ops)).rejects.toThrow(
+      "could not be confirmed: Registry lookup failed: HTTP 503",
+    );
+    expect(ops.publish).toHaveBeenCalledTimes(1);
+    expect(ops.lookup).toHaveBeenCalledTimes(7);
+    expect(ops.sleep).toHaveBeenCalledTimes(5);
   });
 
   it("recovers a lost publish response only when the public payload matches", async () => {
@@ -388,6 +521,9 @@ describe("release workflow safety", () => {
     expect(workflow.concurrency["cancel-in-progress"]).toBe(false);
     const image = workflow.jobs.image;
     const registry = workflow.jobs.registry;
+    const policy = workflow.jobs["release-policy"];
+    expect(policy.permissions).toEqual({ contents: "read" });
+    expect(image.needs).toBe("release-policy");
     expect(registry.needs).toBe("image");
     expect(registry.if).toBe("needs.image.outputs.stable == 'true'");
     expect(registry.permissions).toEqual({
@@ -395,7 +531,7 @@ describe("release workflow safety", () => {
       "id-token": "write",
     });
     expect(image.permissions["id-token"]).toBeUndefined();
-    for (const job of [image, registry]) {
+    for (const job of [policy, image, registry]) {
       expect(job.steps[0].with).toMatchObject({
         ref: expression("github.sha"),
         "fetch-depth": 0,
@@ -429,5 +565,52 @@ describe("release workflow safety", () => {
     const cleanup = registry.steps.at(-1);
     expect(cleanup.if).toBe("always()");
     expect(cleanup.run).toBe('rm -f "$HOME/.config/mcp-publisher/token.json"');
+  });
+
+  it("runs the actual read-only policy against fresh main, older main, and an unmerged commit", async () => {
+    const workflow = parse(await read(".github/workflows/release.yml"));
+    const gate = workflow.jobs["release-policy"].steps[1];
+    expect(gate.if).toBe("startsWith(github.ref, 'refs/tags/')");
+    const directory = await mkdtemp(join(tmpdir(), "trello-registry-policy-"));
+    const git = (...args: string[]) =>
+      execFileSync(
+        "git",
+        [
+          "-c",
+          "core.hooksPath=/dev/null",
+          "-c",
+          "commit.gpgsign=false",
+          ...args,
+        ],
+        { cwd: directory, encoding: "utf8", stdio: "pipe", timeout: 10_000 },
+      ).trim();
+    try {
+      git("init", "--initial-branch=main");
+      git("config", "user.name", "Registry Test");
+      git("config", "user.email", "registry-test@example.invalid");
+      git("commit", "--allow-empty", "-m", "Initial main commit");
+      const older = git("rev-parse", "HEAD");
+      git("switch", "-c", "unmerged");
+      git("commit", "--allow-empty", "-m", "Unmerged commit");
+      const unmerged = git("rev-parse", "HEAD");
+      git("switch", "main");
+      git("commit", "--allow-empty", "-m", "Current main commit");
+      const current = git("rev-parse", "HEAD");
+      git("remote", "add", "origin", directory);
+      git("update-ref", "refs/remotes/origin/main", older);
+      const runGate = (sha: string) =>
+        execFileSync("bash", ["-c", gate.run], {
+          cwd: directory,
+          env: { ...process.env, GITHUB_SHA: sha },
+          stdio: "pipe",
+          timeout: 10_000,
+        });
+      expect(() => runGate(current)).not.toThrow();
+      expect(git("rev-parse", "origin/main")).toBe(current);
+      expect(() => runGate(older)).not.toThrow();
+      expect(() => runGate(unmerged)).toThrow("already on protected main");
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
   });
 });

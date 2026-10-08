@@ -248,8 +248,10 @@ tracking issue open with a precise next action until all acceptance criteria pas
 
 ## Official Registry Job And Verification
 
-The tag workflow validates the tag/package/manifest/image versions at the exact
-release commit before building. It checks whether the exact GHCR image already
+The read-only `release-policy` job freshly fetches protected `main` and rejects
+unmerged tag commits before jobs with publishing permissions start. The tag
+workflow validates the tag/package/manifest/image versions at the exact release
+commit before building. It checks whether the exact GHCR image already
 exists, validates and reuses a matching image, and fails on conflicting metadata.
 After publication it verifies public anonymous access, the index ownership
 annotation and both architecture labels, version, revision, source, and digest.
@@ -258,13 +260,14 @@ networking disabled; this installation check cannot call Trello.
 
 The dependent `registry` job runs only on stable tag pushes, after image
 verification succeeds. It uses the checksum-verified pinned official publisher
-and GitHub Actions OIDC (`id-token: write` only in that job). No routine device
-login or long-lived publishing secret is needed. PRs, ordinary main pushes,
+to validate `server.json` through the production API before GitHub Actions OIDC
+(`id-token: write` only in that job). No routine device login or long-lived
+publishing secret is needed. PRs, ordinary main pushes,
 prereleases, and manual image dispatches must not publish Registry entries.
 
-Watch both `image` and `registry` jobs in the original tag Release run. Require
-its summary to report the release commit, verified image digest, exact version
-URL, and full payload match. From the exact release checkout, independently run:
+Watch `release-policy`, `image`, and `registry` in the original tag Release run.
+Require its summary to report the release commit, verified image digest, exact
+version URL, and full payload match. From the exact release checkout, independently run:
 
 ```bash
 corepack pnpm registry:release verify
@@ -283,12 +286,15 @@ evidence in the tracking issue before closing it.
   `gh run rerun <TAG_RUN_ID> --failed --repo enthouan/trello-mcp`. The original
   image digest and release manifest are reused. Even a full rerun verifies and
   reuses the existing exact image instead of rebuilding it.
-- Identical active Registry metadata is a verified no-op. Only 404 means absent.
-  Conflicts, inactive entries, malformed responses, unexpected HTTP errors, and
-  image metadata mismatches must fail clearly. Do not overwrite entries.
+- Identical active Registry metadata is a verified no-op. Exact-version lookups
+  include `?include_deleted=true`; only 404 means absent. Conflicts, inactive or
+  deleted entries, malformed responses, preflight HTTP errors, and image metadata
+  mismatches must fail clearly. Do not overwrite entries.
 - If a publish response was lost, check production before retrying. The script
-  reconciles a matching entry and polls briefly for propagation, then fails if
-  verification remains inconclusive. Retry the same version and immutable image.
+  reconciles a matching entry and makes at most six read-back attempts for
+  propagation, network failures, or HTTP 408/429/5xx. It never retries the write
+  and stops immediately on invalid or conflicting metadata. If verification
+  remains inconclusive, retry the same version and immutable image.
 - Never move tags, replace images, or invent a new version merely to retry.
   An image that actually lacks ownership metadata requires a real packaging
   release through the usual PR review boundary.

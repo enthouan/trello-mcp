@@ -110,14 +110,43 @@ const request = (
     redirect: "error",
   });
 
+export class TransientRegistryLookupError extends Error {}
+
 export async function registryEntry(
   manifest: Manifest,
   fetcher: Fetcher = fetch,
 ): Promise<"absent" | "identical"> {
-  const response = await request(fetcher, versionUrl(manifest));
+  let response: Response;
+  try {
+    // Deleted versions must not look absent and trigger an attempted republish.
+    response = await request(
+      fetcher,
+      `${versionUrl(manifest)}?include_deleted=true`,
+    );
+  } catch {
+    throw new TransientRegistryLookupError(
+      "Registry lookup failed: network request did not complete.",
+    );
+  }
   if (response.status === 404) return "absent";
+  if (
+    response.status === 408 ||
+    response.status === 429 ||
+    response.status >= 500
+  )
+    throw new TransientRegistryLookupError(
+      `Registry lookup failed: HTTP ${response.status}.`,
+    );
   if (response.status !== 200)
     throw new Error(`Registry lookup failed: HTTP ${response.status}.`);
+  let text: string;
+  try {
+    text = await response.text();
+  } catch {
+    throw new TransientRegistryLookupError(
+      "Registry lookup failed: response body did not complete.",
+    );
+  }
   const body = z
     .object({
       server: z.unknown(),
@@ -127,7 +156,7 @@ export async function registryEntry(
         }),
       }),
     })
-    .parse(await response.json());
+    .parse(JSON.parse(text));
   // Compare every publisher field; ignore only the separate Registry-managed envelope.
   if (!isDeepStrictEqual(body.server, manifest)) {
     throw new Error(
@@ -263,11 +292,15 @@ export async function verifyImage(
 export async function publishAndVerify(options: {
   verifyArtifact: () => Promise<void>;
   lookup: () => Promise<"absent" | "identical">;
+  validate: () => Promise<void>;
+  authenticate: () => Promise<void>;
   publish: () => Promise<void>;
   sleep: (milliseconds: number) => Promise<void>;
 }): Promise<"published" | "already published"> {
   await options.verifyArtifact();
   if ((await options.lookup()) === "identical") return "already published";
+  await options.validate();
+  await options.authenticate();
   let publishError: unknown;
   try {
     await options.publish();
@@ -275,10 +308,23 @@ export async function publishAndVerify(options: {
     // A request can succeed remotely even when the CLI loses its connection.
     publishError = error;
   }
+  let lookupError: TransientRegistryLookupError | undefined;
   for (let attempt = 0; attempt < 6; attempt++) {
-    if ((await options.lookup()) === "identical") return "published";
+    try {
+      if ((await options.lookup()) === "identical") return "published";
+      lookupError = undefined;
+    } catch (error) {
+      // Retry only transient reads after the single write; preflight errors,
+      // conflicts, inactive entries, and malformed responses still fail closed.
+      if (!(error instanceof TransientRegistryLookupError)) throw error;
+      lookupError = error;
+    }
     if (attempt < 5) await options.sleep(5_000);
   }
+  if (lookupError)
+    throw new Error(
+      `Registry publication could not be confirmed: ${lookupError.message} Rerun the failed Registry job.`,
+    );
   if (publishError) throw publishError;
   throw new Error(
     "Registry publication was not visible at the exact version URL after verification; rerun the failed job.",

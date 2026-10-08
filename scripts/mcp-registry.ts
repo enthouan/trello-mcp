@@ -181,14 +181,16 @@ async function main() {
     );
   } else if (command === "publish") {
     const revision = await releaseCommit();
+    const publisher = z.string().min(1).parse(process.env.MCP_PUBLISHER);
     let digest = "";
     const outcome = await publishAndVerify({
       verifyArtifact: async () => {
         digest = await requiredImage(revision);
       },
       lookup: () => registryEntry(manifest),
-      publish: async () => {
-        const publisher = z.string().min(1).parse(process.env.MCP_PUBLISHER);
+      validate: () =>
+        runPublisher(publisher, ["validate", "server.json"], "validation"),
+      authenticate: async () => {
         // The official publisher obtains a short-lived GitHub Actions identity.
         // Do not print authentication output or persist it as an artifact.
         await runPublisher(
@@ -196,12 +198,9 @@ async function main() {
           ["login", "github-oidc", `--registry=${registryUrl}`],
           "OIDC authentication",
         );
-        await runPublisher(
-          publisher,
-          ["publish", "server.json"],
-          "publication",
-        );
       },
+      publish: () =>
+        runPublisher(publisher, ["publish", "server.json"], "publication"),
       sleep: async (milliseconds) => {
         await setTimeout(milliseconds);
       },
