@@ -18,8 +18,11 @@ before choosing where to store a setting.
 ## Where each setting applies
 
 The checked-in Compose files are designed for Streamable HTTP. Running them
-with `TRANSPORT=stdio` leaves no MCP client attached to the process and makes
-the HTTP health check fail, so use a direct child process for stdio instead.
+with `TRANSPORT=stdio` leaves no MCP client attached, so let the MCP client
+launch a direct child process or an attached `docker run --rm -i` container.
+Both Compose files inherit the image health check: HTTP probes `/healthz` on
+the configured `PORT` (default `3000`); stdio uses container process liveness
+without opening an HTTP listener. The MCP client checks protocol responsiveness.
 
 | Setting | Direct stdio | Direct Streamable HTTP | Current Docker Compose files |
 | --- | --- | --- | --- |

@@ -77,7 +77,7 @@ corepack pnpm lint
 corepack pnpm build
 corepack pnpm test
 corepack pnpm registry:check
-corepack pnpm exec vitest run tests/mcp-registry.test.ts tests/workflow-actions.test.ts
+corepack pnpm exec vitest run tests/mcp-registry.test.ts tests/container-health.test.ts tests/workflow-actions.test.ts
 ```
 
 Use `corepack pnpm test:coverage` if the release prep includes core behavior,
@@ -198,7 +198,10 @@ git push origin vX.Y.Z
 
 Watch release workflows for both the merged `main` push and the tag push. The
 main workflow publishes `latest` and `sha-<full-main-sha>`; the tag workflow
-publishes `X.Y.Z`, moving minor `X.Y`, and `sha-<full-main-sha>`.
+publishes only `X.Y.Z` initially, verifies the image and its attestations, then
+repairs `sha-<full-main-sha>` and minor `X.Y` from the verified digest. A retry
+of an older release leaves a newer release's minor line untouched. Repository-wide
+Release concurrency serializes these shared alias checks and writes.
 
 ```bash
 gh run list --repo enthouan/trello-mcp --workflow Release --limit 10 \
@@ -248,15 +251,23 @@ tracking issue open with a precise next action until all acceptance criteria pas
 
 ## Official Registry Job And Verification
 
-The read-only `release-policy` job freshly fetches protected `main` and rejects
-unmerged tag commits before jobs with publishing permissions start. The tag
+The read-only `release-policy` job rejects lightweight tags, requires the
+annotated tag target to match the event commit, freshly fetches protected `main`,
+and rejects unmerged tag commits before jobs with publishing permissions start. The tag
 workflow validates the tag/package/manifest/image versions at the exact release
 commit before building. It checks whether the exact GHCR image already
 exists, validates and reuses a matching image, and fails on conflicting metadata.
-After publication it verifies public anonymous access, the index ownership
-annotation and both architecture labels, version, revision, source, and digest.
-It initializes stdio and lists tools with synthetic credentials and container
-networking disabled; this installation check cannot call Trello.
+Builds explicitly generate SPDX SBOMs and maximum BuildKit provenance. Before
+Registry publication, verification checks public anonymous access, ownership
+metadata, version, revision, source, and digest on both architectures. It verifies
+the SHA-256 chain through the attestation manifests and blobs, requires maximum
+provenance build steps and populated SPDX SBOMs, and binds their in-toto subjects
+to each platform image digest. Missing or mismatched attestations block reuse.
+It initializes stdio, lists tools, and waits for the actual image health check
+with synthetic credentials and container networking disabled. Stdio health uses
+process liveness; HTTP health probes the configured port. This check cannot call
+Trello. Only after verification may alias repair copy the unchanged index and
+read back its digest; alias failure blocks the dependent Registry job.
 
 The dependent `registry` job runs only on stable tag pushes, after image
 verification succeeds. It uses the checksum-verified pinned official publisher
@@ -285,7 +296,11 @@ evidence in the tracking issue before closing it.
   API entry and rerun only failed jobs:
   `gh run rerun <TAG_RUN_ID> --failed --repo enthouan/trello-mcp`. The original
   image digest and release manifest are reused. Even a full rerun verifies and
-  reuses the existing exact image instead of rebuilding it.
+  reuses the existing exact image instead of rebuilding it. If alias publication
+  failed, rerun the image job to repair missing/stale commit and minor aliases
+  from that digest. A newer remote annotated release tag owns its minor line;
+  retry that newer release for minor-alias repair. An already-published newer
+  exact image also prevents moving the minor alias backward.
 - Identical active Registry metadata is a verified no-op. Exact-version lookups
   include `?include_deleted=true`; only 404 means absent. Conflicts, inactive or
   deleted entries, malformed responses, preflight HTTP errors, and image metadata
@@ -295,9 +310,11 @@ evidence in the tracking issue before closing it.
   propagation, network failures, or HTTP 408/429/5xx. It never retries the write
   and stops immediately on invalid or conflicting metadata. If verification
   remains inconclusive, retry the same version and immutable image.
-- Never move tags, replace images, or invent a new version merely to retry.
-  An image that actually lacks ownership metadata requires a real packaging
-  release through the usual PR review boundary.
+- Never move Git release tags, replace exact version images, or invent a new
+  version merely to retry. Repairing moving image aliases from a verified digest
+  is part of normal recovery. An image that lacks required ownership metadata
+  or SBOM/provenance requires a real packaging release through the usual PR
+  review boundary.
 - Workflow reruns use the original workflow commit. For a defect requiring new
   tooling, prepare a reviewed fix and follow the manual recovery procedure in
   `docs/mcp-registry.md` against the original tag's manifest and image. Pause for

@@ -37,8 +37,11 @@ Do not add `-t`: stdout carries MCP protocol messages. Do not put credentials
 in `server.json`, command arguments, issues, or logs.
 
 For release validation, the discovery command uses synthetic credentials and
-`--network=none`, initializes MCP, checks the server version, and compares
-`tools/list` with the release source. It never invokes a Trello tool:
+`--network=none`, initializes MCP, checks the server version, compares
+`tools/list` with the release source, and waits for the image-defined Docker
+health check to pass. Stdio health uses process liveness without HTTP; HTTP
+deployments probe `/healthz` on `PORT` (default `3000`). The discovery command
+never invokes a Trello tool:
 
 ```bash
 corepack pnpm registry:check
@@ -66,38 +69,55 @@ The exact release PR review remains the single normal approval boundary.
    can publish to the Registry. PRs, main pushes, prereleases, other repositories,
    and manual dispatches do not publish entries. Manual image dispatches are
    restricted to `main` and keep their existing dry-run default.
-4. A read-only `release-policy` job checks out `github.sha`, freshly fetches
-   `origin/main`, and rejects tags whose commits are not on main before either
-   publishing job starts. All jobs use the exact event commit. The release
-   scripts also require the checkout, tag target, and event SHA to agree.
+4. A read-only `release-policy` job checks out `github.sha`, requires an
+   annotated tag object (lightweight tags fail), freshly fetches `origin/main`,
+   and rejects tags whose commits are not on main before either publishing job
+   starts. All jobs use the exact event commit. The release scripts also require
+   an annotated tag and the checkout, tag target, and event SHA to agree.
 5. Before building, query the exact public image. If it exists, verify its
    digest, ownership, revision, version, source, command, and both supported
-   architectures and reuse it. A conflicting image stops the release. A new
-   image is published only when that exact version is absent.
+   architectures, plus the attestations below, and reuse it. A conflicting image
+   stops the release. A new image is published only when that exact version is
+   absent, with explicit `sbom: true` and `provenance: mode=max`. Stable builds
+   initially publish only the exact version tag.
 6. Verify anonymous GHCR access, the ownership annotation on the index and
    `io.modelcontextprotocol.server.name` label on both linux/amd64 and linux/arm64
-   configurations, the image digest, and offline stdio discovery. Only successful
-   verification produces the digest consumed by the Registry job.
-7. The dependent `registry` job rechecks the exact image digest and production
+   configurations, the image digest, and offline stdio discovery and health.
+   For each platform, verify the SHA-256 chain from the index through its
+   attestation manifest and statement blobs. Require one SPDX SBOM with packages
+   and one BuildKit provenance statement with maximum-mode build steps; both
+   in-toto subjects must name that platform's digest. Accept the documented
+   BuildKit SLSA v0.2 and v1 formats, including OCI artifact manifests.
+7. Repair `sha-<full-commit>` and minor `X.Y` image aliases by copying that
+   verified index digest, preserving its attestations, and read back each write.
+   Inspect fresh remote annotated release tags before touching the minor alias:
+   an older release leaves the line to a newer stable release in the same minor.
+   A minor alias already pointing to a verified newer exact image also stays
+   untouched. Missing or stale aliases for the current release are repaired on
+   reruns without rebuilding or replacing `X.Y.Z`. Alias failures block Registry
+   publication.
+8. The dependent `registry` job rechecks the exact image digest and production
    Registry entry. An identical active payload is success without authentication
    or republishing. Lookups include `?include_deleted=true` so a deleted version
    cannot be mistaken for an unused version. Only 404 permits publication;
    conflicting metadata, malformed responses, inactive entries, and other
    preflight HTTP errors fail closed.
-8. Install the pinned official `mcp-publisher` with its checked-in SHA-256,
+9. Install the pinned official `mcp-publisher` with its checked-in SHA-256,
    run `validate server.json` against the production validation API, then
    authenticate using `login github-oidc` and publish the unchanged manifest.
    Only this job has `id-token: write`; only the image job has `packages: write`.
    No long-lived Registry secret or device login is needed for normal releases.
-9. Read the exact version anonymously from the production API, compare every
+10. Read the exact version anonymously from the production API, compare every
    publisher field, and require active status. Ignore only the separate
    Registry-managed response envelope. The workflow summary records version,
    commit, digest, exact API URL, and publication/reuse outcome.
 
-Workflows serialize runs for the same ref. They never intentionally replace an
-existing exact release image. `latest`, minor-line, and commit tags retain their
-normal release conventions for newly built images; retrying a completed image
-does not move those tags backwards.
+Release workflow runs serialize across the repository so shared image alias
+checks and writes cannot race another main or tag run. They never intentionally
+replace an existing exact release image. `latest` is updated only on main;
+release retries repair the commit alias and the minor alias when the release
+still owns that minor line. Retry the newer release to repair a minor alias it
+owns, even when an older release's Registry publication remains outstanding.
 
 The ancestry gate verifies release lineage for this workflow. Registry OIDC
 authorizes the owner's namespace, so repository write access must remain
@@ -132,6 +152,10 @@ only when its other acceptance criteria and issues are also complete.
   The successful image job stays complete. The Registry job verifies its original
   digest and manifest before retrying. A full rerun also reuses the already
   published image after checking all metadata; it does not rebuild that version.
+- **Exact image succeeded; aliases failed:** rerun the failed image job. It
+  verifies and reuses the exact image, repairs missing or stale aliases from
+  the same digest, and verifies the writes before allowing the Registry job.
+  An older release never takes the minor alias back from a newer release.
 - **Publish response lost:** the script checks production even after a publisher
   error. It accepts success only if the exact active entry matches. It makes
   at most six read-back attempts with five-second pauses for an absent entry,
@@ -142,9 +166,10 @@ only when its other acceptance criteria and issues are also complete.
 - **Conflicting/inactive entry:** stop and record the exact version URL and
   differing non-secret metadata. Do not overwrite or delete the entry, move the
   tag, relabel the published image, or invent a new version just to retry.
-- **Image not public or ownership metadata missing:** fix package visibility
+- **Image not public or required metadata missing:** fix package visibility
   without rebuilding when that is the only problem. A missing ownership label
-  cannot be retrofitted: prepare a real new packaging release through the normal
+  or required SBOM/provenance cannot be retrofitted onto an immutable exact
+  image: prepare a real new packaging release through the normal
   PR approval process. For initial publication, `1.0.2` lacked this label;
   `1.0.3` is the first prepared candidate.
 - **Workflow/publisher defect:** a rerun uses the original workflow commit, so a
@@ -159,6 +184,12 @@ only when its other acceptance criteria and issues are also complete.
   exercises the corrected workflow. No fake release is needed.
 
 ## Upstream evidence and pinned tools
+
+Image verification follows Docker's [attestation storage format](https://docs.docker.com/build/metadata/attestations/attestation-storage/)
+and BuildKit's [SLSA definitions](https://github.com/moby/buildkit/blob/master/docs/attestations/slsa-definitions.md).
+In both supported SLSA formats, the LLB build definition is present only in
+maximum mode. Alias repair uses the documented single-index copy behavior of
+[`imagetools create`](https://docs.docker.com/reference/cli/docker/buildx/imagetools/create/).
 
 Requirements were checked on 2026-10-08 against official Registry revision
 `970df037919faa70456dde08c295473002d850e5`:

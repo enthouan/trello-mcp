@@ -145,6 +145,10 @@ Docker Compose values such as image tag, host bind IP, host port, and network na
 
 Set `MCP_AUTH_TOKEN` to require `Authorization: Bearer <token>` on HTTP MCP requests to `/mcp`. Leave it unset for the default unauthenticated local behavior. Health and readiness endpoints remain unauthenticated for container and reverse-proxy checks.
 
+Container health follows `TRANSPORT`: HTTP checks `/healthz` on `PORT` (default
+`3000`), while stdio uses process liveness and lets the attached MCP client check
+protocol responsiveness. Compose inherits this image health check.
+
 Keep the Trello rate-limit and retry values at their defaults unless logs show `trello rate limit wait` or `trello request rate limited; retrying` during large workflows. Lower the capacity for shared tokens or constrained deployments; raise it carefully only after narrowing the workflow's board, card, field, and pagination scope.
 
 For reproducible deployments, prefer an exact `X.Y.Z` tag. Published Docker

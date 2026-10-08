@@ -10,6 +10,7 @@ import {
   ownershipLabel,
   publishAndVerify,
   registryEntry,
+  repairImageTags,
   repository,
   serverName,
   stableRelease,
@@ -216,6 +217,20 @@ function imageFixture(
     badIndex?: boolean;
     badVersion?: boolean;
     badRevision?: boolean;
+    version?: string;
+    revision?: string;
+    missingAttestation?: boolean;
+    missingSbom?: boolean;
+    minimumProvenance?: boolean;
+    emptyBuildConfig?: boolean;
+    wrongBuildType?: boolean;
+    wrongSubject?: boolean;
+    wrongReference?: boolean;
+    wrongManifestSubject?: boolean;
+    badSbom?: boolean;
+    corruptLayer?: boolean;
+    legacyAttestation?: boolean;
+    provenanceV1?: boolean;
   } = {},
 ) {
   const objects = new Map<string, string>();
@@ -229,6 +244,8 @@ function imageFixture(
     options.missingPlatform ? ["amd64"] : ["amd64", "arm64"]
   ).map((architecture) => {
     const config = store("blobs", {
+      architecture,
+      os: "linux",
       config: {
         User: "node",
         Cmd: ["node", "dist/index.js"],
@@ -236,10 +253,10 @@ function imageFixture(
           ...(options.badLabel ? {} : { [ownershipLabel]: serverName }),
           "org.opencontainers.image.version": options.badVersion
             ? "0.0.0"
-            : manifest.version,
+            : (options.version ?? manifest.version),
           "org.opencontainers.image.revision": options.badRevision
             ? "b".repeat(40)
-            : revision,
+            : (options.revision ?? revision),
           "org.opencontainers.image.source": `https://github.com/${repository}`,
         },
       },
@@ -249,12 +266,102 @@ function imageFixture(
       platform: { os: "linux", architecture },
     };
   });
+  const attestations = platforms.flatMap((platform, index) => {
+    if (options.missingAttestation && index === 1) return [];
+    const statement = (
+      predicateType: string,
+      predicate: Record<string, unknown>,
+    ) => {
+      const digest = store("blobs", {
+        _type: "https://in-toto.io/Statement/v1",
+        subject: [
+          {
+            name: "_",
+            digest: {
+              sha256: options.wrongSubject
+                ? "e".repeat(64)
+                : platform.digest.slice(7),
+            },
+          },
+        ],
+        predicateType,
+        predicate,
+      });
+      if (options.corruptLayer) objects.set(`blobs/${digest}`, "{}");
+      return {
+        digest,
+        mediaType: "application/vnd.in-toto+json",
+        annotations: { "in-toto.io/predicate-type": predicateType },
+      };
+    };
+    const build = {
+      buildType: "https://mobyproject.org/buildkit@v1",
+      ...(options.minimumProvenance
+        ? {}
+        : {
+            buildConfig: {
+              llbDefinition: options.emptyBuildConfig
+                ? []
+                : [{ id: "step0", op: {} }],
+            },
+          }),
+    };
+    const provenance = options.provenanceV1
+      ? {
+          buildDefinition: {
+            buildType: options.wrongBuildType
+              ? build.buildType
+              : "https://github.com/moby/buildkit/blob/master/docs/attestations/slsa-definitions.md",
+            internalParameters: { buildConfig: build.buildConfig },
+          },
+        }
+      : build;
+    const layers = [
+      statement(
+        `https://slsa.dev/provenance/${options.provenanceV1 ? "v1" : "v0.2"}`,
+        provenance,
+      ),
+    ];
+    if (!options.missingSbom)
+      layers.push(
+        statement("https://spdx.dev/Document", {
+          SPDXID: options.badSbom ? "invalid" : "SPDXRef-DOCUMENT",
+          spdxVersion: "SPDX-2.3",
+          packages: [{ name: "node" }],
+        }),
+      );
+    return [
+      {
+        digest: store("manifests", {
+          layers,
+          ...(options.legacyAttestation
+            ? {}
+            : {
+                artifactType:
+                  "application/vnd.docker.attestation.manifest.v1+json",
+                subject: {
+                  digest: options.wrongManifestSubject
+                    ? `sha256:${"f".repeat(64)}`
+                    : platform.digest,
+                },
+              }),
+        }),
+        platform: { os: "unknown", architecture: "unknown" },
+        annotations: {
+          "vnd.docker.reference.type": "attestation-manifest",
+          "vnd.docker.reference.digest": options.wrongReference
+            ? `sha256:${"e".repeat(64)}`
+            : platform.digest,
+        },
+      },
+    ];
+  });
   const digest = store("manifests", {
     annotations: options.badIndex ? {} : { [ownershipLabel]: serverName },
-    manifests: platforms,
+    manifests: [...platforms, ...attestations],
   });
   objects.set(
-    `manifests/${manifest.version}`,
+    `manifests/${options.version ?? manifest.version}`,
     objects.get(`manifests/${digest}`) ?? "",
   );
   const fetcher = vi.fn<typeof fetch>(async (url) => {
@@ -278,7 +385,7 @@ describe("public immutable image verification", () => {
       fixture.fetcher.mock.calls.filter(([url]) =>
         String(url).includes("/blobs/"),
       ),
-    ).toHaveLength(2);
+    ).toHaveLength(6);
   });
 
   it("returns absence only for a missing top-level version manifest", async () => {
@@ -295,12 +402,33 @@ describe("public immutable image verification", () => {
     { missingPlatform: true },
     { badRevision: true },
     { badVersion: true },
+    { missingAttestation: true },
+    { missingSbom: true },
+    { minimumProvenance: true },
+    { minimumProvenance: true, provenanceV1: true },
+    { emptyBuildConfig: true },
+    { wrongBuildType: true, provenanceV1: true },
+    { wrongSubject: true },
+    { wrongReference: true },
+    { wrongManifestSubject: true },
+    { badSbom: true },
+    { corruptLayer: true },
   ])("rejects an existing invalid image: %j", async (options) => {
     const fixture = imageFixture(options);
     await expect(
       verifyImage(manifest, revision, undefined, fixture.fetcher),
     ).rejects.toThrow();
   });
+
+  it.each([{ legacyAttestation: true }, { provenanceV1: true }])(
+    "accepts valid BuildKit attestation formats: %j",
+    async (options) => {
+      const fixture = imageFixture(options);
+      await expect(
+        verifyImage(manifest, revision, fixture.digest, fixture.fetcher),
+      ).resolves.toBe(fixture.digest);
+    },
+  );
 
   it("rejects a changed image digest and damaged referenced blobs", async () => {
     const fixture = imageFixture();
@@ -338,6 +466,150 @@ describe("public immutable image verification", () => {
     await expect(
       verifyImage(manifest, revision, undefined, fixture.fetcher),
     ).rejects.toThrow("HTTP 500");
+  });
+});
+
+describe("release image alias recovery", () => {
+  const setup = () => {
+    const fixture = imageFixture();
+    const publishAlias = vi.fn(async (tag: string, digest: string) => {
+      const body = fixture.objects.get(`manifests/${digest}`);
+      if (!body) throw new Error("Unknown source digest");
+      fixture.objects.set(`manifests/${tag}`, body);
+    });
+    const options = { releaseTags: [`v${manifest.version}`], publishAlias };
+    const repair = () =>
+      repairImageTags(
+        manifest,
+        revision,
+        fixture.digest,
+        options,
+        fixture.fetcher,
+      );
+    const addAlias = (tag: string, other: ReturnType<typeof imageFixture>) => {
+      for (const [key, value] of other.objects) {
+        if (key !== `manifests/${manifest.version}`)
+          fixture.objects.set(key, value);
+      }
+      fixture.objects.set(
+        `manifests/${tag}`,
+        other.objects.get(`manifests/${other.digest}`) ?? "",
+      );
+    };
+    return { fixture, publishAlias, options, repair, addAlias };
+  };
+
+  it("repairs missing aliases from the existing index and is a verified no-op on rerun", async () => {
+    const context = setup();
+    const exact = context.fixture.objects.get(`manifests/${manifest.version}`);
+    await context.repair();
+    expect(context.publishAlias.mock.calls).toEqual([
+      [`sha-${revision}`, context.fixture.digest],
+      ["1.0", context.fixture.digest],
+    ]);
+    expect(context.fixture.objects.get(`manifests/${manifest.version}`)).toBe(
+      exact,
+    );
+    context.publishAlias.mockClear();
+    await context.repair();
+    expect(context.publishAlias).not.toHaveBeenCalled();
+  });
+
+  it("recovers after only one alias was written", async () => {
+    const context = setup();
+    context.publishAlias
+      .mockImplementationOnce(async (tag, digest) => {
+        context.fixture.objects.set(
+          `manifests/${tag}`,
+          context.fixture.objects.get(`manifests/${digest}`) ?? "",
+        );
+      })
+      .mockRejectedValueOnce(new Error("registry unavailable"));
+    await expect(context.repair()).rejects.toThrow("registry unavailable");
+    expect(context.fixture.objects.has(`manifests/sha-${revision}`)).toBe(true);
+    expect(context.fixture.objects.has("manifests/1.0")).toBe(false);
+    context.publishAlias.mockClear();
+    await context.repair();
+    expect(context.publishAlias).toHaveBeenCalledExactlyOnceWith(
+      "1.0",
+      context.fixture.digest,
+    );
+  });
+
+  it("repairs a stale minor and a same-commit main-build alias", async () => {
+    const context = setup();
+    context.addAlias(
+      "1.0",
+      imageFixture({ version: "1.0.2", revision: "b".repeat(40) }),
+    );
+    context.addAlias(`sha-${revision}`, imageFixture({ version: "latest" }));
+    await context.repair();
+    expect(context.publishAlias).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([false, true])(
+    "preserves the minor line for a newer remote release (alias present: %s)",
+    async (present) => {
+      const context = setup();
+      context.options.releaseTags.push("v1.0.10");
+      if (present)
+        context.addAlias(
+          "1.0",
+          imageFixture({ version: "1.0.10", revision: "b".repeat(40) }),
+        );
+      const before = context.fixture.objects.get("manifests/1.0");
+      await context.repair();
+      expect(context.fixture.objects.get("manifests/1.0")).toBe(before);
+      expect(context.publishAlias).toHaveBeenCalledExactlyOnceWith(
+        `sha-${revision}`,
+        context.fixture.digest,
+      );
+    },
+  );
+
+  it("also preserves a newer published minor if its remote Git tag is missing", async () => {
+    const context = setup();
+    context.addAlias(
+      "1.0",
+      imageFixture({ version: "1.0.10", revision: "b".repeat(40) }),
+    );
+    const results = await context.repair();
+    expect(results).toContain("1.0: preserved newer 1.0.10");
+    expect(context.publishAlias).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores prereleases, non-release tags, and other minor lines for minor ownership", async () => {
+    const context = setup();
+    context.options.releaseTags.push(
+      "v1.0.10-rc.1",
+      "1.0.10",
+      "v1.1.0",
+      "v2.0.0",
+    );
+    await context.repair();
+    expect(context.publishAlias).toHaveBeenCalledTimes(2);
+  });
+
+  it("fails before alias writes when the exact artifact or remote tag is missing", async () => {
+    const context = setup();
+    context.options.releaseTags = [];
+    await expect(context.repair()).rejects.toThrow("still exist");
+    context.fixture.objects.delete(`manifests/${manifest.version}`);
+    await expect(context.repair()).rejects.toThrow("verified exact");
+    expect(context.publishAlias).not.toHaveBeenCalled();
+  });
+
+  it("rejects a commit alias from another revision and an unconfirmed write", async () => {
+    const context = setup();
+    context.addAlias(
+      `sha-${revision}`,
+      imageFixture({ version: "latest", revision: "b".repeat(40) }),
+    );
+    await expect(context.repair()).rejects.toThrow("different source revision");
+    expect(context.publishAlias).not.toHaveBeenCalled();
+    context.fixture.objects.delete(`manifests/sha-${revision}`);
+    context.publishAlias.mockImplementation(async () => undefined);
+    await expect(context.repair()).rejects.toThrow("HTTP 404");
   });
 });
 
@@ -519,6 +791,9 @@ describe("release workflow safety", () => {
     expect(workflow.on.push.tags).toEqual(["v*.*.*"]);
     expect(workflow.permissions).toEqual({ contents: "read" });
     expect(workflow.concurrency["cancel-in-progress"]).toBe(false);
+    expect(workflow.concurrency.group).toBe(
+      `release-${expression("github.repository")}`,
+    );
     const image = workflow.jobs.image;
     const registry = workflow.jobs.registry;
     const policy = workflow.jobs["release-policy"];
@@ -551,6 +826,17 @@ describe("release workflow safety", () => {
     expect(build).toBeLessThan(verify);
     expect(image.steps[build].if).toBe(
       "steps.release.outputs.existing != 'true'",
+    );
+    expect(image.steps[build].with).toMatchObject({
+      sbom: true,
+      provenance: "mode=max",
+      tags: expression(
+        "steps.release.outputs.exact-tag || steps.meta.outputs.tags",
+      ),
+    });
+    expect(image.steps.at(-1).run).toBe("pnpm registry:release repair-tags");
+    expect(image.steps.at(-1).env.IMAGE_DIGEST).toBe(
+      expression("steps.verify.outputs.digest"),
     );
     expect(image.steps[verify].run).toBe("pnpm registry:release verify-image");
     expect(image.outputs.digest).toBe(
@@ -598,17 +884,36 @@ describe("release workflow safety", () => {
       const current = git("rev-parse", "HEAD");
       git("remote", "add", "origin", directory);
       git("update-ref", "refs/remotes/origin/main", older);
-      const runGate = (sha: string) =>
-        execFileSync("bash", ["-c", gate.run], {
+      let number = 0;
+      const runGate = (sha: string, annotated = true, eventSha = sha) => {
+        const tag = `v9.8.${number++}`;
+        git(
+          "-c",
+          "tag.gpgSign=false",
+          "tag",
+          ...(annotated ? ["-a", "-m", "Fixture"] : []),
+          tag,
+          sha,
+        );
+        return execFileSync("bash", ["-c", gate.run], {
           cwd: directory,
-          env: { ...process.env, GITHUB_SHA: sha },
+          env: {
+            ...process.env,
+            GITHUB_SHA: eventSha,
+            GITHUB_REF: `refs/tags/${tag}`,
+          },
           stdio: "pipe",
           timeout: 10_000,
         });
+      };
       expect(() => runGate(current)).not.toThrow();
       expect(git("rev-parse", "origin/main")).toBe(current);
       expect(() => runGate(older)).not.toThrow();
       expect(() => runGate(unmerged)).toThrow("already on protected main");
+      expect(() => runGate(current, false)).toThrow("annotated tag objects");
+      expect(() => runGate(older, true, current)).toThrow(
+        "event commit must agree",
+      );
     } finally {
       await rm(directory, { recursive: true, force: true });
     }

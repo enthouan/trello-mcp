@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { appendFile, readFile } from "node:fs/promises";
 import { setTimeout } from "node:timers/promises";
 import { promisify } from "node:util";
@@ -11,6 +12,7 @@ import {
   publishAndVerify,
   registryEntry,
   registryUrl,
+  repairImageTags,
   stableRelease,
   validateManifest,
   verifyImage,
@@ -54,6 +56,12 @@ async function releaseCommit(): Promise<string> {
     .regex(/^[a-f0-9]{40}$/)
     .parse(process.env.GITHUB_SHA);
   const head = (await exec("git", ["rev-parse", "HEAD"])).stdout.trim();
+  if (
+    (
+      await exec("git", ["cat-file", "-t", `refs/tags/v${releaseVersion}`])
+    ).stdout.trim() !== "tag"
+  )
+    throw new Error("Release tags must be annotated tag objects.");
   const tag = (
     await exec("git", ["rev-parse", `refs/tags/v${releaseVersion}^{commit}`])
   ).stdout.trim();
@@ -68,6 +76,7 @@ async function releaseCommit(): Promise<string> {
 }
 
 async function discover(image: string) {
+  const container = `trello-mcp-registry-${randomUUID()}`;
   const client = new Client({
     name: "trello-mcp-registry-check",
     version: "1.0.0",
@@ -79,7 +88,8 @@ async function discover(image: string) {
       "--rm",
       "-i",
       "--network=none",
-      "--no-healthcheck",
+      "--name",
+      container,
       "-e",
       "TRANSPORT=stdio",
       "-e",
@@ -102,12 +112,38 @@ async function discover(image: string) {
       throw new Error(
         "Container tool discovery differs from the release source.",
       );
+    // Keep the actual image health check enabled and wait for Docker to run it.
+    for (let attempt = 0; ; attempt++) {
+      const health = JSON.parse(
+        (
+          await exec("docker", [
+            "inspect",
+            "--format",
+            "{{json .State.Health}}",
+            container,
+          ])
+        ).stdout,
+      ) as unknown;
+      const status = z
+        .object({ Status: z.enum(["starting", "healthy", "unhealthy"]) })
+        .parse(health).Status;
+      if (status === "healthy") break;
+      if (status === "unhealthy" || attempt >= 25)
+        throw new Error(
+          "The stdio container did not pass its image-defined health check.",
+        );
+      await setTimeout(2_000);
+    }
     console.log(
-      `Offline stdio discovery passed: ${actual.length} tools; container networking disabled.`,
+      `Offline stdio discovery and Docker health passed: ${actual.length} tools; container networking disabled.`,
     );
   } finally {
-    await client.close();
-    await transport.close();
+    try {
+      await client.close();
+      await transport.close();
+    } finally {
+      await exec("docker", ["rm", "-f", container]).catch(() => undefined);
+    }
   }
 }
 
@@ -152,6 +188,7 @@ async function main() {
     await output("stable", String(releaseVersion !== undefined));
     if (!releaseVersion) return;
     const revision = await releaseCommit();
+    await output("exact-tag", `${imageName}:${manifest.version}`);
     const digest = await verifyImage(manifest, revision);
     await output("existing", String(digest !== undefined));
     await output("digest", digest ?? "");
@@ -166,7 +203,39 @@ async function main() {
     await exec("docker", ["pull", `${imageName}@${digest}`]);
     await discover(`${imageName}@${digest}`);
     await output("digest", digest);
-    const evidence = `## Verified release image\n\n- Version: ${manifest.version}\n- Commit: ${revision}\n- Public image: ${imageName}@${digest}\n- Ownership, version, and revision match on linux/amd64 and linux/arm64.\n- Offline stdio initialization and ${allTools.length}-tool discovery passed.\n`;
+    const evidence = `## Verified release image\n\n- Version: ${manifest.version}\n- Commit: ${revision}\n- Public image: ${imageName}@${digest}\n- Ownership, version, revision, maximum provenance, and SPDX SBOM verified on linux/amd64 and linux/arm64, bound to each platform digest.\n- Offline stdio initialization, ${allTools.length}-tool discovery, and image-defined health check passed.\n`;
+    console.log(evidence);
+    if (process.env.GITHUB_STEP_SUMMARY)
+      await appendFile(process.env.GITHUB_STEP_SUMMARY, evidence);
+  } else if (command === "repair-tags") {
+    const revision = await releaseCommit();
+    const digest = z
+      .string()
+      .regex(/^sha256:[a-f0-9]{64}$/)
+      .parse(process.env.IMAGE_DIGEST);
+    const remote = (await exec("git", ["ls-remote", "--tags", "origin"]))
+      .stdout;
+    const releaseTags = remote
+      .trim()
+      .split("\n")
+      .map((line) => line.split("\t")[1] ?? "")
+      .filter((ref) => ref.startsWith("refs/tags/") && ref.endsWith("^{}"))
+      .map((ref) => ref.slice("refs/tags/".length, -3));
+    const results = await repairImageTags(manifest, revision, digest, {
+      releaseTags,
+      publishAlias: async (tag, sourceDigest) => {
+        // A single existing index source is copied verbatim, including attestations.
+        await exec("docker", [
+          "buildx",
+          "imagetools",
+          "create",
+          "--tag",
+          `${imageName}:${tag}`,
+          `${imageName}@${sourceDigest}`,
+        ]);
+      },
+    });
+    const evidence = `## Release image aliases\n\n${results.map((result) => `- ${result}`).join("\n")}\n`;
     console.log(evidence);
     if (process.env.GITHUB_STEP_SUMMARY)
       await appendFile(process.env.GITHUB_STEP_SUMMARY, evidence);
@@ -211,7 +280,7 @@ async function main() {
       await appendFile(process.env.GITHUB_STEP_SUMMARY, evidence);
   } else {
     throw new Error(
-      "Use check, prepare, verify-image, discover <image>, verify, or publish.",
+      "Use check, prepare, verify-image, repair-tags, discover <image>, verify, or publish.",
     );
   }
 }

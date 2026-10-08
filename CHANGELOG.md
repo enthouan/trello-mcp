@@ -15,6 +15,12 @@ surface are unchanged.
   discovery verification.
 - Verify complete Registry metadata before accepting reruns, preserve existing
   exact release images, and document publication recovery in the release skill.
+- Repair commit and minor image tags from the verified release digest after
+  partial failures, while preserving minor tags owned by newer releases.
+- Require annotated release tags on protected main and verify per-platform
+  SPDX SBOMs and maximum BuildKit provenance before Registry publication.
+- Make container health transport-aware: stdio uses process liveness, while
+  HTTP probes its configured port. Verify stdio installation with health enabled.
 
 ## v1.0.2
 
