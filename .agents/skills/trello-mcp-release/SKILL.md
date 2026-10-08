@@ -201,7 +201,8 @@ main workflow publishes `latest` and `sha-<full-main-sha>`; the tag workflow
 publishes only `X.Y.Z` initially, verifies the image and its attestations, then
 repairs `sha-<full-main-sha>` and minor `X.Y` from the verified digest. A retry
 of an older release leaves a newer release's minor line untouched. Repository-wide
-Release concurrency serializes these shared alias checks and writes.
+Release concurrency serializes these shared alias checks and writes, using
+`queue: max` with `cancel-in-progress: false` to preserve up to 100 pending runs.
 
 ```bash
 gh run list --repo enthouan/trello-mcp --workflow Release --limit 10 \
@@ -255,8 +256,12 @@ The read-only `release-policy` job rejects lightweight tags, requires the
 annotated tag target to match the event commit, freshly fetches protected `main`,
 and rejects unmerged tag commits before jobs with publishing permissions start. The tag
 workflow validates the tag/package/manifest/image versions at the exact release
-commit before building. It checks whether the exact GHCR image already
-exists, validates and reuses a matching image, and fails on conflicting metadata.
+commit before building. First read the exact Registry entry with
+`include_deleted=true`; conflicts, inactive/deleted entries, malformed responses,
+and unsuccessful lookups must stop before any image work. Then check the exact
+GHCR image, validate and reuse it when present, and fail on conflicting metadata.
+Only a confirmed absent Registry entry and absent image allow a new build. An
+existing Registry entry with a missing image must fail without rebuilding.
 Builds explicitly generate SPDX SBOMs and maximum BuildKit provenance. Before
 Registry publication, verification checks public anonymous access, ownership
 metadata, version, revision, source, and digest on both architectures. It verifies
@@ -266,8 +271,15 @@ to each platform image digest. Missing or mismatched attestations block reuse.
 It initializes stdio, lists tools, and waits for the actual image health check
 with synthetic credentials and container networking disabled. Stdio health uses
 process liveness; HTTP health probes the configured port. This check cannot call
-Trello. Only after verification may alias repair copy the unchanged index and
-read back its digest; alias failure blocks the dependent Registry job.
+Trello. After image verification and before any alias reads or writes, fetch
+fresh remote annotated tags and require the current tag to peel to the verified
+release commit. Missing, lightweight, or moved remote tags block repair. Only
+then may alias repair copy the unchanged index and read back its digest; alias
+failure blocks the dependent Registry job. Preserve newer-release minor aliases.
+
+Follow the narrow actionlint compatibility exception in
+[Workflow validation](../../../docs/mcp-registry.md#workflow-validation) if the
+installed version does not recognize `queue: max`; keep all other validation.
 
 The dependent `registry` job runs only on stable tag pushes, after image
 verification succeeds. It uses the checksum-verified pinned official publisher

@@ -8,6 +8,8 @@ import { parse } from "yaml";
 import {
   imageName,
   ownershipLabel,
+  parseReleaseTags,
+  prepareImage,
   publishAndVerify,
   registryEntry,
   repairImageTags,
@@ -469,6 +471,123 @@ describe("public immutable image verification", () => {
   });
 });
 
+describe("Registry preflight before image builds", () => {
+  const setup = (
+    registryResponse: () => Response = () => reply({}, 404),
+    imageOptions: Parameters<typeof imageFixture>[0] = {},
+  ) => {
+    const fixture = imageFixture(imageOptions);
+    const fetcher = vi.fn<typeof fetch>(async (url, init) =>
+      String(url) === `${versionUrl(manifest)}?include_deleted=true`
+        ? registryResponse()
+        : fixture.fetcher(url, init),
+    );
+    const prepare = () => prepareImage(manifest, revision, fetcher);
+    return { fixture, fetcher, prepare };
+  };
+
+  it("allows a build only after the Registry and exact image both return 404", async () => {
+    const context = setup();
+    context.fixture.objects.delete(`manifests/${manifest.version}`);
+    await expect(context.prepare()).resolves.toBeUndefined();
+    expect(context.fetcher.mock.calls.map(([url]) => url)).toEqual([
+      `${versionUrl(manifest)}?include_deleted=true`,
+      `https://ghcr.io/token?service=ghcr.io&scope=repository:${repository}:pull`,
+      `https://ghcr.io/v2/${repository}/manifests/${manifest.version}`,
+    ]);
+  });
+
+  it("refuses to rebuild a missing image for an already published Registry version", async () => {
+    const context = setup(() => reply(apiPayload()));
+    context.fixture.objects.delete(`manifests/${manifest.version}`);
+    await expect(context.prepare()).rejects.toThrow("do not rebuild");
+  });
+
+  it.each([false, true])(
+    "verifies and reuses an existing image (Registry entry exists: %s)",
+    async (published) => {
+      const context = setup(() =>
+        published ? reply(apiPayload()) : reply({}, 404),
+      );
+      await expect(context.prepare()).resolves.toBe(context.fixture.digest);
+      expect(context.fetcher.mock.calls[0]?.[0]).toBe(
+        `${versionUrl(manifest)}?include_deleted=true`,
+      );
+      expect(context.fixture.fetcher).toHaveBeenCalled();
+    },
+  );
+
+  it.each([false, true])(
+    "rejects an untrusted existing image (Registry entry exists: %s)",
+    async (published) => {
+      const context = setup(
+        () => (published ? reply(apiPayload()) : reply({}, 404)),
+        { missingSbom: true },
+      );
+      await expect(context.prepare()).rejects.toThrow("SPDX SBOM");
+    },
+  );
+
+  it.each([
+    ["conflict", () => reply(apiPayload({ ...manifest, title: "Changed" }))],
+    ["deleted", () => reply(apiPayload(manifest, "deleted"))],
+    ["deprecated", () => reply(apiPayload(manifest, "deprecated"))],
+    ["null", () => reply(null)],
+    ["missing metadata", () => reply({ server: manifest })],
+    ["invalid JSON", () => new Response("invalid JSON")],
+    ["HTTP 204", () => new Response(null, { status: 204 })],
+    ...[301, 401, 403, 408, 429, 500, 503].map(
+      (status) => [`HTTP ${status}`, () => reply({}, status)] as const,
+    ),
+    [
+      "network failure",
+      () => {
+        throw new Error("network unavailable");
+      },
+    ],
+  ] as const)(
+    "stops on Registry %s before any image lookup or build permission",
+    async (_scenario, response) => {
+      const context = setup(response);
+      await expect(context.prepare()).rejects.toThrow();
+      expect(context.fetcher).toHaveBeenCalledTimes(1);
+      expect(context.fixture.fetcher).not.toHaveBeenCalled();
+    },
+  );
+
+  it("does not treat an unsuccessful image lookup as permission to build", async () => {
+    const context = setup();
+    context.fixture.fetcher.mockResolvedValue(reply({}, 503));
+    await expect(context.prepare()).rejects.toThrow("HTTP 503");
+  });
+});
+
+describe("remote annotated release tags", () => {
+  it("keeps peeled commits only for paired, canonical annotated releases", () => {
+    const tags = parseReleaseTags(
+      [
+        `${"b".repeat(40)}\trefs/tags/v1.0.3`,
+        `${revision}\trefs/tags/v1.0.3^{}`,
+        `${revision}\trefs/tags/v1.0.4`,
+        `${revision}\trefs/tags/v1.0.5-rc.1^{}`,
+        `${revision}\trefs/tags/v01.0.5^{}`,
+        `${revision}\trefs/tags/not-a-release^{}`,
+      ].join("\n"),
+    );
+    expect(tags).toEqual(new Map([["v1.0.3", revision]]));
+    expect(parseReleaseTags("\n")).toEqual(new Map());
+  });
+
+  it.each([
+    "truncated response",
+    `bad-sha\trefs/tags/v1.0.3`,
+    `${revision}\trefs/tags/v1.0.3^{}`,
+    `${revision}\trefs/tags/v1.0.3\n${revision}\trefs/tags/v1.0.3`,
+  ])("rejects malformed, incomplete, or duplicate remote refs", (raw) => {
+    expect(() => parseReleaseTags(raw)).toThrow();
+  });
+});
+
 describe("release image alias recovery", () => {
   const setup = () => {
     const fixture = imageFixture();
@@ -477,7 +596,11 @@ describe("release image alias recovery", () => {
       if (!body) throw new Error("Unknown source digest");
       fixture.objects.set(`manifests/${tag}`, body);
     });
-    const options = { releaseTags: [`v${manifest.version}`], publishAlias };
+    const releaseTags = new Map([[`v${manifest.version}`, revision]]);
+    const options = {
+      releaseTags: vi.fn(async () => releaseTags),
+      publishAlias,
+    };
     const repair = () =>
       repairImageTags(
         manifest,
@@ -496,7 +619,7 @@ describe("release image alias recovery", () => {
         other.objects.get(`manifests/${other.digest}`) ?? "",
       );
     };
-    return { fixture, publishAlias, options, repair, addAlias };
+    return { fixture, publishAlias, releaseTags, options, repair, addAlias };
   };
 
   it("repairs missing aliases from the existing index and is a verified no-op on rerun", async () => {
@@ -551,7 +674,7 @@ describe("release image alias recovery", () => {
     "preserves the minor line for a newer remote release (alias present: %s)",
     async (present) => {
       const context = setup();
-      context.options.releaseTags.push("v1.0.10");
+      context.releaseTags.set("v1.0.10", "b".repeat(40));
       if (present)
         context.addAlias(
           "1.0",
@@ -580,22 +703,49 @@ describe("release image alias recovery", () => {
 
   it("ignores prereleases, non-release tags, and other minor lines for minor ownership", async () => {
     const context = setup();
-    context.options.releaseTags.push(
-      "v1.0.10-rc.1",
-      "1.0.10",
-      "v1.1.0",
-      "v2.0.0",
-    );
+    for (const tag of ["v1.0.10-rc.1", "1.0.10", "v1.1.0", "v2.0.0"])
+      context.releaseTags.set(tag, revision);
     await context.repair();
     expect(context.publishAlias).toHaveBeenCalledTimes(2);
   });
 
-  it("fails before alias writes when the exact artifact or remote tag is missing", async () => {
+  it("fails before remote tag lookup or alias writes when the exact artifact is missing", async () => {
     const context = setup();
-    context.options.releaseTags = [];
-    await expect(context.repair()).rejects.toThrow("still exist");
     context.fixture.objects.delete(`manifests/${manifest.version}`);
     await expect(context.repair()).rejects.toThrow("verified exact");
+    expect(context.options.releaseTags).not.toHaveBeenCalled();
+    expect(context.publishAlias).not.toHaveBeenCalled();
+  });
+
+  it.each([undefined, "b".repeat(40)])(
+    "fails before alias reads or writes if the current remote tag is missing or moved (%s)",
+    async (remoteRevision) => {
+      const context = setup();
+      context.releaseTags.clear();
+      if (remoteRevision)
+        context.releaseTags.set(`v${manifest.version}`, remoteRevision);
+      await expect(context.repair()).rejects.toThrow(
+        "remote annotated release tag",
+      );
+      expect(context.options.releaseTags).toHaveBeenCalledTimes(1);
+      expect(
+        context.fixture.fetcher.mock.calls.map(([url]) => url),
+      ).not.toContain(
+        `https://ghcr.io/v2/${repository}/manifests/sha-${revision}`,
+      );
+      expect(context.publishAlias).not.toHaveBeenCalled();
+    },
+  );
+
+  it("checks fresh remote tags again on retry and stops when the remote is unavailable", async () => {
+    const context = setup();
+    await context.repair();
+    context.publishAlias.mockClear();
+    context.options.releaseTags.mockRejectedValueOnce(
+      new Error("remote unavailable"),
+    );
+    await expect(context.repair()).rejects.toThrow("remote unavailable");
+    expect(context.options.releaseTags).toHaveBeenCalledTimes(2);
     expect(context.publishAlias).not.toHaveBeenCalled();
   });
 
@@ -790,10 +940,11 @@ describe("release workflow safety", () => {
     expect(workflow.on.pull_request).toBeUndefined();
     expect(workflow.on.push.tags).toEqual(["v*.*.*"]);
     expect(workflow.permissions).toEqual({ contents: "read" });
-    expect(workflow.concurrency["cancel-in-progress"]).toBe(false);
-    expect(workflow.concurrency.group).toBe(
-      `release-${expression("github.repository")}`,
-    );
+    expect(workflow.concurrency).toEqual({
+      group: `release-${expression("github.repository")}`,
+      queue: "max",
+      "cancel-in-progress": false,
+    });
     const image = workflow.jobs.image;
     const registry = workflow.jobs.registry;
     const policy = workflow.jobs["release-policy"];
@@ -822,7 +973,13 @@ describe("release workflow safety", () => {
     const verify = image.steps.findIndex(
       (step: { id?: string }) => step.id === "verify",
     );
-    expect(prepare).toBeLessThan(build);
+    expect(prepare).toBeGreaterThan(-1);
+    expect(image.steps[prepare].run).toBe("pnpm registry:release prepare");
+    const login = image.steps.findIndex((step: { uses?: string }) =>
+      step.uses?.startsWith("docker/login-action@"),
+    );
+    expect(prepare).toBeLessThan(login);
+    expect(login).toBeLessThan(build);
     expect(build).toBeLessThan(verify);
     expect(image.steps[build].if).toBe(
       "steps.release.outputs.existing != 'true'",
@@ -914,6 +1071,10 @@ describe("release workflow safety", () => {
       expect(() => runGate(older, true, current)).toThrow(
         "event commit must agree",
       );
+      const remoteTags = parseReleaseTags(git("ls-remote", "--tags", "origin"));
+      expect(remoteTags.get("v9.8.0")).toBe(current);
+      expect(remoteTags.get("v9.8.1")).toBe(older);
+      expect(remoteTags.has("v9.8.3")).toBe(false);
     } finally {
       await rm(directory, { recursive: true, force: true });
     }

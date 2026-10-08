@@ -14,9 +14,12 @@ surface are unchanged.
   publication using GitHub Actions OIDC after public image and offline tool
   discovery verification.
 - Verify complete Registry metadata before accepting reruns, preserve existing
-  exact release images, and document publication recovery in the release skill.
+  exact release images, and block builds if Registry checks fail or an already
+  published version's image is missing.
 - Repair commit and minor image tags from the verified release digest after
-  partial failures, while preserving minor tags owned by newer releases.
+  partial failures, requiring the remote annotated tag to still identify that
+  commit and preserving minor tags owned by newer releases.
+- Queue pending releases without canceling them when later pushes arrive.
 - Require annotated release tags on protected main and verify per-platform
   SPDX SBOMs and maximum BuildKit provenance before Registry publication.
 - Make container health transport-aware: stdio uses process liveness, while

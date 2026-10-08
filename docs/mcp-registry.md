@@ -74,12 +74,17 @@ The exact release PR review remains the single normal approval boundary.
    and rejects tags whose commits are not on main before either publishing job
    starts. All jobs use the exact event commit. The release scripts also require
    an annotated tag and the checkout, tag target, and event SHA to agree.
-5. Before building, query the exact public image. If it exists, verify its
+5. Before any image build, read the exact Registry version with
+   `?include_deleted=true`. Conflicting metadata, inactive/deleted entries,
+   malformed responses, and unsuccessful lookups stop before any image work.
+   Then query the exact public image. If it exists, verify its
    digest, ownership, revision, version, source, command, and both supported
    architectures, plus the attestations below, and reuse it. A conflicting image
-   stops the release. A new image is published only when that exact version is
-   absent, with explicit `sbom: true` and `provenance: mode=max`. Stable builds
-   initially publish only the exact version tag.
+   stops the release. A new image may be built only when both the Registry entry
+   and exact image are confirmed absent. An identical active Registry entry with
+   a missing image fails: never rebuild an already released version. New builds
+   use explicit `sbom: true` and `provenance: mode=max` and initially publish only
+   the exact version tag.
 6. Verify anonymous GHCR access, the ownership annotation on the index and
    `io.modelcontextprotocol.server.name` label on both linux/amd64 and linux/arm64
    configurations, the image digest, and offline stdio discovery and health.
@@ -90,7 +95,10 @@ The exact release PR review remains the single normal approval boundary.
    BuildKit SLSA v0.2 and v1 formats, including OCI artifact manifests.
 7. Repair `sha-<full-commit>` and minor `X.Y` image aliases by copying that
    verified index digest, preserving its attestations, and read back each write.
-   Inspect fresh remote annotated release tags before touching the minor alias:
+   After image verification and before any alias reads or writes, fetch fresh
+   remote annotated release tags. Require the current tag's peeled commit to
+   equal the verified release commit; a missing, lightweight, or moved tag stops
+   repair. Inspect those same refs before touching the minor alias:
    an older release leaves the line to a newer stable release in the same minor.
    A minor alias already pointing to a verified newer exact image also stays
    untouched. Missing or stale aliases for the current release are repaired on
@@ -113,8 +121,11 @@ The exact release PR review remains the single normal approval boundary.
    commit, digest, exact API URL, and publication/reuse outcome.
 
 Release workflow runs serialize across the repository so shared image alias
-checks and writes cannot race another main or tag run. They never intentionally
-replace an existing exact release image. `latest` is updated only on main;
+checks and writes cannot race another main or tag run. The shared concurrency
+group uses `queue: max` with `cancel-in-progress: false` to preserve pending
+releases instead of replacing them with later pushes. GitHub allows up to 100
+pending runs; further arrivals are canceled when the queue is full. Release jobs
+never intentionally replace an existing exact release image. `latest` is updated only on main;
 release retries repair the commit alias and the minor alias when the release
 still owns that minor line. Retry the newer release to repair a minor alias it
 owns, even when an older release's Registry publication remains outstanding.
@@ -147,6 +158,12 @@ only when its other acceptance criteria and issues are also complete.
 
 ## Recovery without rebuilding artifacts
 
+- **Registry entry exists; exact image is missing:** stop and investigate the
+  missing artifact. The pre-build check must fail even when Registry metadata
+  matches. A missing image is not permission to rebuild a published version.
+- **Remote release tag is missing, lightweight, or moved:** stop before alias
+  repair. Investigate the remote identity; do not move tags or use the stale
+  checkout's tag as proof of the current remote release.
 - **Image succeeded; Registry failed:** inspect the failed step and exact public
   entry, then run `gh run rerun <TAG_RUN_ID> --failed --repo enthouan/trello-mcp`.
   The successful image job stays complete. The Registry job verifies its original
@@ -183,6 +200,30 @@ only when its other acceptance criteria and issues are also complete.
   run; leave automation verification outstanding until a genuine stable release
   exercises the corrected workflow. No fake release is needed.
 
+## Workflow validation
+
+Run the workflow regression tests and actionlint when editing release behavior.
+GitHub documents [`queue: max`](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency#example-queueing-multiple-pending-runs),
+but actionlint v1.7.12 rejects that key
+([upstream compatibility issue](https://github.com/rhysd/actionlint/issues/680)).
+Until the installed version supports it, ignore only the exact unsupported-key
+diagnostic on `release.yml`. Keep every other diagnostic and workflow enabled.
+`tests/mcp-registry.test.ts` requires the shared group, `queue: max`, and
+`cancel-in-progress: false`; do not remove the queue to appease an older linter.
+Remove the exception when actionlint gains support.
+
+```bash
+corepack pnpm exec vitest run tests/mcp-registry.test.ts tests/workflow-actions.test.ts
+set -euo pipefail
+for workflow in .github/workflows/*.yml; do
+  if [ "$workflow" = ".github/workflows/release.yml" ]; then
+    actionlint -ignore '^unexpected key "queue" for "concurrency" section\. expected one of "cancel-in-progress", "group"$' "$workflow"
+  else
+    actionlint "$workflow"
+  fi
+done
+```
+
 ## Upstream evidence and pinned tools
 
 Image verification follows Docker's [attestation storage format](https://docs.docker.com/build/metadata/attestations/attestation-storage/)
@@ -213,9 +254,10 @@ Refresh the schema and publisher deliberately, with matching checksums and
 tests, if upstream requirements change.
 
 The [simplelogin-mcp automation PR #136](https://github.com/enthouan/simplelogin-mcp/pull/136),
-reviewed at `4f8ab00ba7de340cbd46254f1ee637a4904bbdce`, informed the read-only
+reviewed at `3c5a658dc154248024a7d0d92d1d9424b132ef4f`, informed the read-only
 ancestry gate, deleted-version lookup, online validation, and read-back retry
-policy. The [official exact-version handler](https://github.com/modelcontextprotocol/registry/blob/970df037919faa70456dde08c295473002d850e5/internal/api/handlers/v0/servers.go)
+policy, plus queued concurrency, the Registry-before-build guard, and remote
+annotated-tag commit verification. The [official exact-version handler](https://github.com/modelcontextprotocol/registry/blob/970df037919faa70456dde08c295473002d850e5/internal/api/handlers/v0/servers.go)
 confirms the `include_deleted` behavior. Trello retains its existing-image reuse
 and offline installation checks. The reference PR is not evidence that Trello
 publication has run.

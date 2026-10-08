@@ -18,6 +18,7 @@ permissions:
 concurrency:
   # Serialize shared minor/commit image tags across main and release-tag runs.
   group: release-${{ github.repository }}
+  queue: max
   cancel-in-progress: false
 
 jobs:
@@ -78,7 +79,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm registry:check
-      - name: Validate release identity and check for an existing immutable image
+      - name: Validate release identity, Registry entry, and exact image
         id: release
         run: pnpm registry:release prepare
       - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0

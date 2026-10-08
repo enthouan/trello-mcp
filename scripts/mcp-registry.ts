@@ -9,6 +9,8 @@ import { z } from "zod";
 import { allTools } from "../src/trello/tools.js";
 import {
   imageName,
+  parseReleaseTags,
+  prepareImage,
   publishAndVerify,
   registryEntry,
   registryUrl,
@@ -188,14 +190,14 @@ async function main() {
     await output("stable", String(releaseVersion !== undefined));
     if (!releaseVersion) return;
     const revision = await releaseCommit();
+    const digest = await prepareImage(manifest, revision);
     await output("exact-tag", `${imageName}:${manifest.version}`);
-    const digest = await verifyImage(manifest, revision);
     await output("existing", String(digest !== undefined));
     await output("digest", digest ?? "");
     console.log(
       digest
         ? `Reusing verified release image ${digest}; no rebuild.`
-        : "Exact release image is absent; publication may proceed.",
+        : "Exact Registry entry and release image are absent; a new build may proceed.",
     );
   } else if (command === "verify-image") {
     const revision = await releaseCommit();
@@ -213,16 +215,11 @@ async function main() {
       .string()
       .regex(/^sha256:[a-f0-9]{64}$/)
       .parse(process.env.IMAGE_DIGEST);
-    const remote = (await exec("git", ["ls-remote", "--tags", "origin"]))
-      .stdout;
-    const releaseTags = remote
-      .trim()
-      .split("\n")
-      .map((line) => line.split("\t")[1] ?? "")
-      .filter((ref) => ref.startsWith("refs/tags/") && ref.endsWith("^{}"))
-      .map((ref) => ref.slice("refs/tags/".length, -3));
     const results = await repairImageTags(manifest, revision, digest, {
-      releaseTags,
+      releaseTags: async () =>
+        parseReleaseTags(
+          (await exec("git", ["ls-remote", "--tags", "origin"])).stdout,
+        ),
       publishAlias: async (tag, sourceDigest) => {
         // A single existing index source is copied verbatim, including attestations.
         await exec("docker", [

@@ -166,6 +166,44 @@ export async function registryEntry(
   return "identical";
 }
 
+// A released version must never be rebuilt, even if its image has disappeared.
+// Check the Registry first so conflicts or unavailable metadata block all image work.
+export async function prepareImage(
+  manifest: Manifest,
+  revision: string,
+  fetcher: Fetcher = fetch,
+): Promise<string | undefined> {
+  const entry = await registryEntry(manifest, fetcher);
+  const digest = await verifyImage(manifest, revision, undefined, fetcher);
+  if (entry === "identical" && digest === undefined)
+    throw new Error(
+      "Published Registry entry has no image; do not rebuild this released version.",
+    );
+  return digest;
+}
+
+// Only paired tag-object and peeled refs identify remote annotated releases.
+export function parseReleaseTags(raw: string): ReadonlyMap<string, string> {
+  const refs = new Map<string, string>();
+  for (const line of raw.trim() ? raw.trim().split("\n") : []) {
+    const match = /^([a-f0-9]{40})\t(refs\/tags\/\S+)$/.exec(line);
+    const [, revision, ref] = match ?? [];
+    if (!revision || !ref || refs.has(ref))
+      throw new Error("Invalid or duplicate remote tag response.");
+    refs.set(ref, revision);
+  }
+  const releases = new Map<string, string>();
+  for (const [ref, revision] of refs) {
+    if (!ref.startsWith("refs/tags/v") || !ref.endsWith("^{}")) continue;
+    const tag = ref.slice("refs/tags/".length, -3);
+    if (!stableVersion.test(tag.slice(1))) continue;
+    if (!refs.has(ref.slice(0, -3)))
+      throw new Error("Missing remote annotated tag object.");
+    releases.set(tag, revision);
+  }
+  return releases;
+}
+
 const descriptor = z.object({ digest: digestSchema });
 const annotations = z.record(z.string(), z.string()).optional();
 const indexSchema = z.object({
@@ -476,8 +514,8 @@ export async function repairImageTags(
   revision: string,
   digest: string,
   options: {
-    // Fresh remote annotated tag names, without refs/tags/ or ^{}.
-    releaseTags: string[];
+    // Fetch fresh remote annotated tags and their peeled commits after verification.
+    releaseTags: () => Promise<ReadonlyMap<string, string>>;
     publishAlias: (tag: string, digest: string) => Promise<void>;
   },
   fetcher: Fetcher = fetch,
@@ -486,11 +524,14 @@ export async function repairImageTags(
     throw new Error(
       "Cannot repair aliases without the verified exact release image.",
     );
-  if (!options.releaseTags.includes(`v${manifest.version}`))
-    throw new Error("The release tag must still exist on the remote.");
+  const releaseTags = await options.releaseTags();
+  if (releaseTags.get(`v${manifest.version}`) !== revision)
+    throw new Error(
+      "The remote annotated release tag is missing or points to a different commit.",
+    );
   const readObject = await imageReader(fetcher);
   const minor = manifest.version.split(".").slice(0, 2).join(".");
-  const newerTags = options.releaseTags
+  const newerTags = [...releaseTags.keys()]
     .filter((tag) => tag.startsWith("v"))
     .map((tag) => tag.slice(1))
     .filter(
