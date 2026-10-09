@@ -1,6 +1,6 @@
 {
   "name": "trello-mcp",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Self-hostable Model Context Protocol server for Trello.",
   "type": "module",
   "license": "MIT",
@@ -30,6 +30,8 @@
     "docs:check": "tsx scripts/generate-tool-docs.ts --check",
     "registry:tools": "tsx scripts/generate-docker-registry-tools.ts",
     "registry:tools:check": "tsx scripts/generate-docker-registry-tools.ts --check",
+    "registry:check": "tsx scripts/mcp-registry.ts check",
+    "registry:release": "tsx scripts/mcp-registry.ts",
     "website:dev": "pnpm --dir website dev",
     "website:typecheck": "pnpm --dir website typecheck",
     "website:build": "pnpm --dir website build",

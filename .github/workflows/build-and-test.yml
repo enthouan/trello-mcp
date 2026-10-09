@@ -23,6 +23,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
+      - run: pnpm registry:check
       - run: pnpm lint
       - run: pnpm build
       - run: pnpm test:coverage
@@ -106,3 +107,5 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: false
           outputs: type=cacheonly
+          sbom: true
+          provenance: mode=max

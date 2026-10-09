@@ -386,7 +386,7 @@ assumed:
   and pinned the exact source revision for the metadata draft. #62 must refresh
   all three decisions immediately before external submission.
 - #60 must observe Docker Desktop behavior for the stdio container, its
-  HTTP-oriented image health check, secret fields, host allowlist, and imported
+  transport-aware image health check, secret fields, host allowlist, and imported
   catalog rather than inferring success from source inspection. Any real Trello
   call must stay behind the repository live-validation skill's explicit opt-in,
   target-confirmation, and cleanup gates.

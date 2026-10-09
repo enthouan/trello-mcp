@@ -105,3 +105,15 @@ The release workflow publishes Docker images to GHCR with these tag conventions:
 | `X.Y` | Moving minor-line tag for the newest patch in that release line. |
 | `X.Y.Z` | Exact release image for the pushed `vX.Y.Z` tag. |
 | `sha-<commit>` | Exact commit image from the workflow run. |
+
+Stable tag releases also publish `server.json` to the official MCP Registry
+after verifying the exact public image and offline stdio tool discovery. Bump
+the manifest version and image identifier with `package.json`, and run
+`corepack pnpm registry:check` before opening the release PR. The Registry job
+uses GitHub OIDC and verifies the full production payload. Existing release
+images are verified and reused on reruns.
+
+Follow the [official MCP Registry release and recovery guide](https://github.com/enthouan/trello-mcp/blob/main/docs/mcp-registry.md)
+and the [repository release skill](https://github.com/enthouan/trello-mcp/blob/main/.agents/skills/trello-mcp-release/SKILL.md).
+A release is complete only after the image and Registry jobs succeed, the exact
+live Registry entry matches the manifest, and the GitHub Release exists.

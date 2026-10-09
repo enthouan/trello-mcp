@@ -11,6 +11,7 @@ RUN pnpm build
 RUN CI=true pnpm prune --prod
 
 FROM node:24-bookworm-slim AS runtime
+LABEL io.modelcontextprotocol.server.name="io.github.enthouan/trello-mcp"
 WORKDIR /app
 ENV NODE_ENV=production \
     TRANSPORT=http \
@@ -20,5 +21,7 @@ COPY --from=builder --chown=node:node /app/node_modules ./node_modules
 COPY --from=builder --chown=node:node /app/dist ./dist
 USER node
 EXPOSE 3000
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 CMD node -e "fetch('http://127.0.0.1:3000/healthz').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"
+# Stdio health is process liveness; its client performs protocol checks. HTTP
+# deployments probe their configured port. Neither path contacts Trello.
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 CMD ["node", "-e", "if (process.env.TRANSPORT !== 'stdio') { fetch('http://127.0.0.1:' + (process.env.PORT || '3000') + '/healthz').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1)); }"]
 CMD ["node", "dist/index.js"]

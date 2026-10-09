@@ -1,0 +1,41 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.enthouan/trello-mcp",
+  "title": "trello-mcp",
+  "description": "Independent, community-maintained Trello MCP server. Not an official Trello or Atlassian product.",
+  "version": "1.0.3",
+  "repository": {
+    "url": "https://github.com/enthouan/trello-mcp",
+    "source": "github",
+    "id": "1256352869"
+  },
+  "websiteUrl": "https://trello-mcp.com/",
+  "packages": [
+    {
+      "registryType": "oci",
+      "identifier": "ghcr.io/enthouan/trello-mcp:1.0.3",
+      "transport": { "type": "stdio" },
+      "environmentVariables": [
+        {
+          "name": "TRANSPORT",
+          "description": "Run the container as an MCP stdio server.",
+          "value": "stdio"
+        },
+        {
+          "name": "TRELLO_API_KEY",
+          "description": "Your Trello API key from https://trello.com/power-ups/admin.",
+          "isRequired": true,
+          "isSecret": true,
+          "format": "string"
+        },
+        {
+          "name": "TRELLO_TOKEN",
+          "description": "Your Trello API token authorizing access to your boards.",
+          "isRequired": true,
+          "isSecret": true,
+          "format": "string"
+        }
+      ]
+    }
+  ]
+}

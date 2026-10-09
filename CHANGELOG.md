@@ -1,5 +1,30 @@
 # Changelog
 
+## v1.0.3
+
+Packaging release preparing official MCP Registry distribution for the existing
+self-hosted server. Trello behavior, configuration, and the public 77-tool
+surface are unchanged.
+
+### Registry Distribution And Releases
+
+- Add the official Registry manifest for `io.github.enthouan/trello-mcp`, using
+  the exact GHCR release image over stdio with required secret Trello inputs.
+- Include ownership metadata in container images and automate stable-release
+  publication using GitHub Actions OIDC after public image and offline tool
+  discovery verification.
+- Verify complete Registry metadata before accepting reruns, preserve existing
+  exact release images, and block builds if Registry checks fail or an already
+  published version's image is missing.
+- Repair commit and minor image tags from the verified release digest after
+  partial failures, requiring the remote annotated tag to still identify that
+  commit and preserving minor tags owned by newer releases.
+- Queue pending releases without canceling them when later pushes arrive.
+- Require annotated release tags on protected main and verify per-platform
+  SPDX SBOMs and maximum BuildKit provenance before Registry publication.
+- Make container health transport-aware: stdio uses process liveness, while
+  HTTP probes its configured port. Verify stdio installation with health enabled.
+
 ## v1.0.2
 
 Maintenance release refreshing runtime, documentation, and development

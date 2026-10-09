@@ -26,6 +26,7 @@ The complete project documentation is available at [trello-mcp.com](https://trel
 - [Understand Security & Data](https://trello-mcp.com/guides/security/)
 - [Operate a running deployment](https://trello-mcp.com/guides/operations/)
 - [Troubleshoot an installation](https://trello-mcp.com/guides/troubleshooting/)
+- [Official MCP Registry installation, releases, and recovery](docs/mcp-registry.md)
 
 ## Features
 
@@ -143,6 +144,10 @@ ghcr.io/enthouan/trello-mcp:latest
 Docker Compose values such as image tag, host bind IP, host port, and network name can be overridden with environment variables or the `.env` file. The compose files document their defaults at the top; for example, `TRELLO_MCP_IMAGE_TAG` defaults to the `latest` tag in `docker-compose.yml` (`latest` follows the `main` branch, and release tags such as `X.Y` and `X.Y.Z` are available for versioned deployments), `TRELLO_MCP_HOST_BIND_IP` defaults to `127.0.0.1` for local-only access, `TRELLO_MCP_HOST_PORT` defaults to `3000` and maps that host port to the container's fixed internal `3000` listener, while `TRELLO_MCP_NETWORK` defaults to `trello-mcp_network`. Set `TRELLO_MCP_HOST_BIND_IP=0.0.0.0` only when you intentionally want Docker to publish the service on all host interfaces, such as for LAN access.
 
 Set `MCP_AUTH_TOKEN` to require `Authorization: Bearer <token>` on HTTP MCP requests to `/mcp`. Leave it unset for the default unauthenticated local behavior. Health and readiness endpoints remain unauthenticated for container and reverse-proxy checks.
+
+Container health follows `TRANSPORT`: HTTP checks `/healthz` on `PORT` (default
+`3000`), while stdio uses process liveness and lets the attached MCP client check
+protocol responsiveness. Compose inherits this image health check.
 
 Keep the Trello rate-limit and retry values at their defaults unless logs show `trello rate limit wait` or `trello request rate limited; retrying` during large workflows. Lower the capacity for shared tokens or constrained deployments; raise it carefully only after narrowing the workflow's board, card, field, and pagination scope.
 

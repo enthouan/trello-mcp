@@ -14,14 +14,74 @@ on:
 
 permissions:
   contents: read
-  packages: write
+
+concurrency:
+  # Serialize shared minor/commit image tags across main and release-tag runs.
+  group: release-${{ github.repository }}
+  queue: max
+  cancel-in-progress: false
 
 jobs:
-  image:
+  release-policy:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 5
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Require release tags to belong to protected main
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$(git cat-file -t "$GITHUB_REF")" != tag ]; then
+            echo "Release tags must be annotated tag objects." >&2
+            exit 1
+          fi
+          if [ "$(git rev-parse "$GITHUB_REF^{commit}")" != "$GITHUB_SHA" ]; then
+            echo "Release tag and event commit must agree." >&2
+            exit 1
+          fi
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" refs/remotes/origin/main; then
+            echo "Release tags must point to a commit already on protected main." >&2
+            exit 1
+          fi
+
+  image:
+    needs: release-policy
+    # Manual image builds are for main only. Recovery uses the original tag run.
+    if: github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      stable: ${{ steps.release.outputs.stable }}
+      digest: ${{ steps.verify.outputs.digest }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          version: 10.34.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm registry:check
+      - name: Validate release identity, Registry entry, and exact image
+        id: release
+        run: pnpm registry:release prepare
       - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
         with:
           platforms: arm64
@@ -50,19 +110,71 @@ jobs:
             org.opencontainers.image.url=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.licenses=MIT
+            io.modelcontextprotocol.server.name=io.github.enthouan/trello-mcp
             io.github.actions.run.url=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           annotations: |
             org.opencontainers.image.description=Self-hostable MCP server for Trello, built for LLM clients and local workflows.
+            io.modelcontextprotocol.server.name=io.github.enthouan/trello-mcp
             io.github.actions.run.url=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         env:
           DOCKER_METADATA_ANNOTATIONS_LEVELS: index
       - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        id: build
+        if: steps.release.outputs.existing != 'true'
         with:
           context: .
           platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'workflow_dispatch' || inputs.push }}
-          tags: ${{ steps.meta.outputs.tags }}
+          # Stable aliases are repaired only after the exact image is verified.
+          tags: ${{ steps.release.outputs.exact-tag || steps.meta.outputs.tags }}
+          sbom: true
+          provenance: mode=max
           labels: ${{ steps.meta.outputs.labels }}
           annotations: ${{ steps.meta.outputs.annotations }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      - name: Verify public image ownership, version, digest, and offline tool discovery
+        id: verify
+        if: steps.release.outputs.stable == 'true'
+        env:
+          IMAGE_DIGEST: ${{ steps.release.outputs.digest || steps.build.outputs.digest }}
+        run: pnpm registry:release verify-image
+      - name: Repair and verify release image aliases without rebuilding
+        if: steps.release.outputs.stable == 'true'
+        env:
+          IMAGE_DIGEST: ${{ steps.verify.outputs.digest }}
+        run: pnpm registry:release repair-tags
+
+  registry:
+    needs: image
+    if: needs.image.outputs.stable == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          version: 10.34.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install the pinned, checksum-verified official publisher
+        run: bash scripts/install-mcp-publisher.sh "$RUNNER_TEMP/mcp-publisher"
+      - name: Publish with OIDC and verify the exact production entry
+        env:
+          IMAGE_DIGEST: ${{ needs.image.outputs.digest }}
+          MCP_PUBLISHER: ${{ runner.temp }}/mcp-publisher
+        run: pnpm registry:release publish
+      - name: Remove temporary Registry credentials
+        if: always()
+        # Publisher v1.8.1 uses this path and does not honor XDG_CONFIG_HOME.
+        run: rm -f "$HOME/.config/mcp-publisher/token.json"
