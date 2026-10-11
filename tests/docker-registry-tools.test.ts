@@ -178,6 +178,89 @@ describe("Docker MCP Registry tools.json generator", () => {
     });
   });
 
+  it("preserves the non-null primitive type of nullable inputs", () => {
+    const generated = generateDockerRegistryTools([
+      syntheticTool("card_attachment_upload"),
+      syntheticTool(
+        "nullable_primitives",
+        z.object({
+          integer: z.number().int().nullable().describe("Nullable integer."),
+          number: z.number().nullable().describe("Nullable number."),
+          boolean: z.boolean().nullable().describe("Nullable boolean."),
+          string: z.string().nullable().describe("Nullable string."),
+          mixed: z
+            .union([z.string(), z.number(), z.null()])
+            .describe("Mixed primitive union."),
+        }),
+      ),
+    ]);
+
+    expect(
+      generated[0]?.arguments?.map(({ name, type }) => ({ name, type })),
+    ).toEqual([
+      { name: "boolean", type: "boolean" },
+      { name: "integer", type: "integer" },
+      { name: "mixed", type: "string" },
+      { name: "number", type: "number" },
+      { name: "string", type: "string" },
+    ]);
+  });
+
+  it("handles nullable type arrays without changing mixed-type fallback", () => {
+    const generated = generateDockerRegistryTools([
+      syntheticTool("card_attachment_upload"),
+      syntheticTool(
+        "nullable_type_arrays",
+        z.object({
+          integer: z
+            .number()
+            .int()
+            .nullable()
+            .meta({
+              type: ["integer", "null"],
+              anyOf: undefined,
+              description: "Nullable integer type array.",
+            }),
+          mixed: z.union([z.string(), z.number(), z.null()]).meta({
+            type: ["string", "number", "null"],
+            anyOf: undefined,
+            description: "Mixed primitive type array.",
+          }),
+        }),
+      ),
+    ]);
+
+    expect(
+      generated[0]?.arguments?.map(({ name, type }) => ({ name, type })),
+    ).toEqual([
+      { name: "integer", type: "integer" },
+      { name: "mixed", type: "string" },
+    ]);
+  });
+
+  it("advertises integer reminders while preserving runtime null clearing", () => {
+    expect(argument("card_checklist_item_update", "dueReminder")).toEqual({
+      name: "dueReminder",
+      type: "integer",
+      desc: "New reminder offset in minutes, or null to clear it.",
+      optional: true,
+    });
+
+    const inputSchema = allTools.find(
+      ({ name }) => name === "card_checklist_item_update",
+    )?.inputSchema;
+    const input = { cardId: "example", checkItemId: "example" };
+    expect(inputSchema?.safeParse({ ...input, dueReminder: 7 }).success).toBe(
+      true,
+    );
+    expect(
+      inputSchema?.safeParse({ ...input, dueReminder: null }).success,
+    ).toBe(true);
+    expect(inputSchema?.safeParse({ ...input, dueReminder: "7" }).success).toBe(
+      false,
+    );
+  });
+
   it("rejects missing exclusions, duplicate tools, and blank metadata", () => {
     const excluded = syntheticTool("card_attachment_upload");
 
@@ -305,9 +388,16 @@ describe("Docker MCP Registry tools.json generator", () => {
           expect(generatedArgument.optional).toBe(
             required.has(generatedArgument.name) ? undefined : true,
           );
-          expect(generatedArgument.type).toBe(
-            typeof property?.type === "string" ? property.type : "string",
-          );
+          const alternatives = (
+            Array.isArray(property?.anyOf) ? property.anyOf : [property]
+          ) as Array<Record<string, unknown>>;
+          const nonNullTypes = alternatives
+            .flatMap(({ type }) => (Array.isArray(type) ? type : [type]))
+            .filter((type) => type !== "null");
+          expect(
+            nonNullTypes,
+            `${generatedTool.name}.${generatedArgument.name} compact type must be accepted by the runtime schema`,
+          ).toContain(generatedArgument.type);
           if (generatedArgument.type === "array") {
             const items = property?.items as
               | Record<string, unknown>

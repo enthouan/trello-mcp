@@ -270,10 +270,11 @@ Input metadata comes from Zod's public `toJSONSchema` API in input mode, matchin
 the MCP SDK's client-facing `tools/list` requiredness. Required argument names
 sort alphabetically before optional argument names, and tool names sort
 alphabetically. Docker's compact model preserves one top-level string type and
-array item type. Nullable and mixed unions have no equivalent compact union
-encoding, so they use Docker's current lossy `string` fallback. The runtime
-surface currently exposes no client-facing tool annotations, so the generated
-objects correctly contain none.
+array item type. Nullable single-primitive unions use their non-null type;
+null clearing behavior remains in the description and runtime schema because
+the compact model has no nullability field. Mixed unions retain Docker's
+current lossy `string` fallback. The runtime surface currently exposes no
+client-facing tool annotations, so the generated objects correctly contain none.
 
 - [x] Generate the submission's `servers/trello-mcp/tools.json` data from the
   canonical [`allTools`](../src/trello/tools.ts) registry through a deterministic
@@ -612,12 +613,25 @@ through website/development tooling. None of those reported affected packages
 is in the root production dependency tree. This is not a clean security or
 container-scan claim; dependency remediation and #61's trust work remain open.
 
+Submission review identified one misleading compact type hint:
+`card_checklist_item_update.dueReminder` was rendered as `string` by Docker's
+lossy union fallback despite accepting only an integer or `null` at runtime.
+The generator now retains the non-null primitive for nullable single-type
+inputs, and the regenerated artifact changes only that hint to `integer`.
+The runtime source pin, 76-tool selection, descriptions, and requiredness are
+unchanged. Runtime `tools/list` still exposes the full integer-or-null schema;
+no runtime validation or live behavior was changed.
+The corrected fallback passed the same four upstream checks again; the build
+consumed 76 tools from the revised file against the unchanged `d7c22c7` source.
+Its temporary image tags were removed and the cleaned Docker baseline was
+preserved. Gateway and live calls were not repeated for this metadata-only fix.
+
 ### 5. Review, trust planning, acceptance, and artifact verification
 
 The focused upstream submission is open as
 [Docker MCP Registry PR #5625](https://github.com/docker/mcp-registry/pull/5625),
 with exactly `server.yaml` and `tools.json`, at head
-`49fca6b99e20b83ef58b355f5e02e7d693661eb0`. It targets the audited Registry
+`d522870aeb6a467e12c154ec3fe495d1a0a1a673`. It targets the audited Registry
 base `49b643ce`. The PR discloses all deferred checks and leaves the reviewer
 credential-sharing checkbox unchecked. Initial validation and security-review
 workflows report `action_required`, awaiting upstream approval for the fork;
@@ -713,9 +727,19 @@ local live steps are deferred, not prerequisites for opening the upstream PR.
    securely and confirm the exact disposable validation board. Track which
    secrets were created by this run. Keep credential values out of chat,
    shell arguments, screenshots, and the submission.
-2. Complete `auth_whoami`, `auth_token_info`, and `board_get` through that
-   Gateway profile with `TRELLO_LIVE_SMOKE=1`, the confirmed board ID/URL,
-   and `--block-network`. Record only sanitized results. Stop the Gateway
+2. Before any authenticated Gateway call, implement and review a read-only
+   Gateway validation harness with an enforced preflight equivalent to
+   `loadLiveSmokeConfig` in `scripts/live-smoke.ts`. It must reject missing
+   opt-in (`TRELLO_LIVE_SMOKE=1`), absent or invalid confirmed disposable-board
+   ID/URL, and unavailable securely configured credentials before permitting
+   any `tools/call`. Test those rejection paths without network access.
+   Merely setting these variables does not gate Docker Gateway or the server's
+   handlers; they do not read the live opt-in. No such Gateway harness is
+   provided by this submission. The existing smoke harness calls handlers
+   directly and includes writes, so it is not a substitute for this read-only
+   Gateway check. Only after that preflight is enforced, complete
+   `auth_whoami`, `auth_token_info`, and `board_get` through the isolated
+   Gateway profile with `--block-network`. Record only sanitized results. Stop the Gateway
    before removing only run-created secrets and temporary state, then verify
    cleanup against the baseline. No local live run is included in the current
    submission approval.

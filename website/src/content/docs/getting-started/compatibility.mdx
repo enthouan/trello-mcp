@@ -257,6 +257,14 @@ before any intentional Trello request:
 - `TRELLO_TOKEN`
 - `TRELLO_LIVE_SMOKE_BOARD_ID` or `TRELLO_LIVE_SMOKE_BOARD_URL`
 
+These variables are enforced by the live-smoke harness, not by Docker Gateway
+or normal server handlers. For the deferred read-only Gateway check, a reviewed
+Gateway-specific harness must enforce the equivalent opt-in, disposable-board,
+and secure-credential preflight before allowing any `tools/call`. No such
+harness is included here; setting environment variables alone is not a gate.
+The existing smoke harness invokes handlers directly and includes writes, so
+its success does not validate this Gateway path.
+
 The local named-client pass did not have the explicit live-smoke opt-in plus a
 confirmed disposable board. Discovery therefore used dummy values and stopped
 at `tools/list`. That is the intended safe behavior, not a successful live

@@ -21,6 +21,7 @@ export type DockerRegistryTool = {
 
 type JsonSchema = {
   type?: unknown;
+  anyOf?: JsonSchema[];
   properties?: Record<string, unknown>;
   required?: unknown;
   description?: unknown;
@@ -80,9 +81,27 @@ function argumentDescription(
 }
 
 function compactType(property: JsonSchema): string {
-  return typeof property.type === "string" && property.type.trim() !== ""
+  if (typeof property.type === "string" && property.type.trim() !== "") {
+    return property.type;
+  }
+
+  const types = Array.isArray(property.type)
     ? property.type
-    : "string";
+    : property.anyOf?.map((alternative) => alternative.type);
+  if (types?.includes("null")) {
+    const nonNullTypes = [...new Set(types.filter((type) => type !== "null"))];
+    if (nonNullTypes.length === 1) {
+      switch (nonNullTypes[0]) {
+        case "string":
+        case "integer":
+        case "number":
+        case "boolean":
+          return nonNullTypes[0];
+      }
+    }
+  }
+
+  return "string";
 }
 
 function compactItems(property: JsonSchema): { type: string } {

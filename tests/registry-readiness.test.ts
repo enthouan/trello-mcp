@@ -274,12 +274,18 @@ describe("Docker MCP Registry readiness audit", () => {
       "No local live run is included in the current submission approval",
       "No merge is authorized",
       "#60's unperformed criteria and #61's trust work remain open",
+      "No such Gateway harness is provided by this submission",
+      "Merely setting these variables does not gate Docker Gateway",
+      "before permitting any `tools/call`",
     ]) {
       expect(audit).toContain(marker);
     }
     expect(compatibility).toContain("These checks are not marked passed");
     expect(compatibility).toContain(
       "Submission is not Docker acceptance or public catalog availability",
+    );
+    expect(compatibility).toContain(
+      "setting environment variables alone is not a gate",
     );
   });
 
