@@ -4,7 +4,7 @@ This page records concrete MCP client evidence for `trello-mcp`. It is a dated
 validation record, not a promise that every client has been fully exercised on
 every release.
 
-Last updated: 2026-10-08.
+Last updated: 2026-10-11.
 
 ## Evidence labels
 
@@ -60,15 +60,32 @@ presented as client-run connection evidence.
 
 ## Current validation record
 
+On 2026-10-11, the owner approved submitting the Docker Catalog entry with
+authenticated Gateway calls and direct Desktop credential-form checks
+explicitly deferred. These checks are not marked passed. The submission source
+is now merged `v1.0.3` commit `d7c22c7`; older image observations below remain
+dated evidence, not claims about that refreshed candidate. Submission is not
+Docker acceptance or public catalog availability.
+
+The refreshed candidate passed Registry validation, build, catalog generation,
+and unit tests. A file-backed, dummy-only Gateway run discovered exactly 76
+tools matching the fallback, rejected invalid input locally, and kept the
+stdio container healthy for the 35-second observation. Stdout contained only
+JSON-RPC and logs stayed on stderr. Secure defaults rejected the unsigned local
+tag; discovery used a one-command signature-verification exception. No Trello
+request ran. All new test resources and the obsolete continuation profile,
+catalog, and trusted copy were removed; unrelated Docker state was preserved.
+See the [submission evidence](https://github.com/enthouan/trello-mcp/blob/main/docs/registry-readiness.md#2026-10-11-submission-candidate-and-deferred-checks).
+
 The Docker row and named-client details record the August observations; the
-following paragraphs record the current refresh. On 2026-10-08, the
+following paragraphs retain the historical October 8 refresh. On 2026-10-08, the
 repository validation base was `d7c22c7` (`v1.0.3`) and the upstream Registry
 validate/build/catalog checks passed again at `49b643ce`. The installed
-environment is now Docker Desktop `4.94.0` build `241994`, CLI/Engine `29.8.2`
-with API `1.56`, and Toolkit/Gateway `v0.44.1`. The submission still pins
-`17679f1`; the newer transport-aware health check on main is not in that image.
-No authenticated Trello request completed during the October pass. See the
-[current readiness evidence](https://github.com/enthouan/trello-mcp/blob/main/docs/registry-readiness.md#2026-10-08-refresh-after-rebase).
+environment was Docker Desktop `4.94.0` build `241994`, CLI/Engine `29.8.2`
+with API `1.56`, and Toolkit/Gateway `v0.44.1`. At that pass, the submission
+pinned `17679f1`; the newer transport-aware health check on main was not in
+that image. No authenticated Trello request completed during the October 8
+pass. See the [historical readiness evidence](https://github.com/enthouan/trello-mcp/blob/main/docs/registry-readiness.md#2026-10-08-refresh-after-rebase).
 
 October discovery also passed through an isolated OCI/profile fixture using
 unique dummy secret names and unchanged environment mappings. Gateway
@@ -82,13 +99,14 @@ input-validation calls continued. A separate dummy-only negative fixture with
 `example.com:443` and `--block-network` returned `Unable to reach Trello API`;
 no unblocked control was run in October.
 
-All October offline/negative fixtures, dummy secrets, captures, checkout, and
+All October 8 offline/negative fixtures, dummy secrets, captures, checkout, and
 run-created containers were removed, including six leftover L7 proxy sidecars.
 Profile, catalog, and secret-name inventories matched the October baseline.
-The pinned test image is intentionally retained for the pending owner
+The pinned test image was intentionally retained for the pending owner
 continuation; the canonical August profile/catalog already existed at that
 baseline. Canonical credential UI confirmation, the authenticated positive
-call, and final cleanup of that continuation remain pending.
+call, and final cleanup of that continuation were pending at that date. The
+October 11 cleanup above supersedes that retained-state inventory.
 
 | Client | Official docs reviewed | Installed client and transport | Client connected | Tools discovered | Live Trello workflow | Restart requirement, limitation, or blocker |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -98,7 +116,7 @@ call, and final cleanup of that continuation remain pending.
 | VS Code | Yes, 2026-08-09: [MCP server guide](https://code.visualstudio.com/docs/agent-customization/mcp-servers) and [configuration reference](https://code.visualstudio.com/docs/agents/reference/mcp-configuration) | Not exercised for this record; current `stdio` and Streamable HTTP configurations reviewed and syntax-checked | Not tested. | Not tested. | No. No Trello tool was called. | Use **MCP: List Servers** to start, restart, and inspect output. The documented password-input recipes target desktop VS Code; Agent Host does not forward servers that require interactive inputs. |
 | OpenCode | Yes, 2026-08-07: [MCP servers](https://opencode.ai/v2/docs/mcp-servers) | Not installed; current `stdio` and Streamable HTTP configurations reviewed and syntax-checked | Not tested. | Not tested. | No. | The current configuration requires entries under `mcp.servers`, uses `disabled` rather than `enabled`, and groups MCP tools in Code Mode by default. Relaunch after config edits. |
 | MCP Inspector | Yes, 2026-08-07: [Inspector documentation](https://modelcontextprotocol.io/docs/tools/inspector) | `@modelcontextprotocol/inspector` `2.0.0`; Node.js `24.17.0`; `stdio` and Streamable HTTP with bearer auth | Yes on both transports. | Yes. `tools/list` returned exactly 77 tools on both transports. | No. No Trello tool was called. | No restart required. The guide uses an ignored, read-only Inspector config so credentials do not appear in process arguments. `--cli` must be the first Inspector argument. Version 2.0.0 requires Node.js `22.19.0` or newer. |
-| Docker MCP Toolkit/Gateway | Yes, 2026-08-29–30: [CLI](https://docs.docker.com/ai/mcp-catalog-and-toolkit/cli/), [catalog](https://docs.docker.com/ai/mcp-catalog-and-toolkit/catalog/), and [profile](https://docs.docker.com/ai/mcp-catalog-and-toolkit/profiles/) documentation | Docker Desktop `4.88.0` build `237115` initially and `4.88.1` build `237512` for the prepared continuation; Docker CLI/Engine `29.7.2`; Toolkit/Gateway `v0.43.3`; stdio through an isolated OCI catalog and profile | Yes. Gateway completed initialization against the temporary profile without connecting a persistent MCP client. | Yes. Exactly 76 Trello tools were callable and matched the Registry fallback; raw `tools/list` also contained eight Toolkit-internal helpers. | No. Live authorization is recorded, but no authenticated Gateway Trello request has run; secure credential entry and exact disposable-board confirmation remain pending. | Secure defaults rejected the unsigned tag-referenced local image, so only scoped test runs used `--verify-signatures=false`. The tested direct Gateway CLI path required `--block-network` to enforce the host list. Docker reported the long-lived stdio container unhealthy, but Gateway calls continued. Docker Desktop UI confirmation remains pending. The 2026-08-29 targeted cleanup restored the sanitized Toolkit inventory; the fresh 2026-08-30 profile remains active only for the authorized continuation. |
+| Docker MCP Toolkit/Gateway | Yes, 2026-08-29–30: [CLI](https://docs.docker.com/ai/mcp-catalog-and-toolkit/cli/), [catalog](https://docs.docker.com/ai/mcp-catalog-and-toolkit/catalog/), and [profile](https://docs.docker.com/ai/mcp-catalog-and-toolkit/profiles/) documentation | Docker Desktop `4.88.0` build `237115` initially and `4.88.1` build `237512` for the prepared continuation; Docker CLI/Engine `29.7.2`; Toolkit/Gateway `v0.43.3`; stdio through an isolated OCI catalog and profile | Yes. Gateway completed initialization against the temporary profile without connecting a persistent MCP client. | Yes. Exactly 76 Trello tools were callable and matched the Registry fallback; raw `tools/list` also contained eight Toolkit-internal helpers. | No. Live authorization is recorded, but no authenticated Gateway Trello request has run; secure credential entry and exact disposable-board confirmation remain pending. | Secure defaults rejected the unsigned tag-referenced local image, so only scoped test runs used `--verify-signatures=false`. The tested direct Gateway CLI path required `--block-network` to enforce the host list. Docker reported the long-lived stdio container unhealthy, but Gateway calls continued. Docker Desktop UI confirmation remains pending. The 2026-08-29 targeted cleanup restored the sanitized Toolkit inventory; the fresh 2026-08-30 profile was retained for the authorized continuation and removed on 2026-10-11. |
 
 ## Named-client test details
 
@@ -216,9 +234,9 @@ containers. The original catalog, profiles, client connections, secret-name
 inventory, and pre-existing Trello image matched the sanitized baseline
 afterward. A fresh issue-specific profile, OCI catalog, trusted catalog copy,
 and temporary checkout were prepared on 2026-08-30 for the authorized
-continuation. The October inventory still found that profile and catalog,
-with no saved secret names or Trello containers. Final targeted cleanup of
-the continuation remains pending.
+continuation. The October 8 inventory still found that profile and catalog,
+with no saved secret names or Trello containers. The October 11 submission
+pass removed that obsolete continuation state; the live checks remain deferred.
 
 ## Live Trello workflow status
 

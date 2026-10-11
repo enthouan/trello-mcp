@@ -46,13 +46,13 @@ describe("Docker MCP Registry readiness audit", () => {
       ),
     ].map((match) => match[1]);
 
-    expect(audit).toContain("Last verified: **2026-10-08**");
+    expect(audit).toContain("Last verified: **2026-10-11**");
     expect(audit).toContain(
       "submit `trello-mcp` as a **Docker-built local server**",
     );
     expect(audit).toContain("`mcp/trello-mcp`");
     expect(audit).toContain("self-provided GHCR fallback");
-    expect(audit).toContain("must define the pre-submission trust plan");
+    expect(audit).toContain("owns the outstanding trust plan");
     expect(audit).toContain("actually produces after acceptance");
     expect(audit).toContain(REPOSITORY_REVISION);
     expect(audit).toContain(REFRESHED_REGISTRY_REVISION);
@@ -220,7 +220,7 @@ describe("Docker MCP Registry readiness audit", () => {
       "if either canonical name already exists, do not overwrite it",
       "confirm the exact disposable validation board",
       "Stop the Gateway before removing only run-created secrets",
-      "Start #62 with owner approval",
+      "Proceed with #62 under the recorded owner approval",
       "official MCP Registry publication do not themselves create the public Docker Catalog listing",
     ]) {
       expect(ownerSteps).toContain(marker);
@@ -231,7 +231,7 @@ describe("Docker MCP Registry readiness audit", () => {
     const compatibility = normalizeWhitespace(await compatibilityAudit());
 
     for (const marker of [
-      "Last updated: 2026-10-08.",
+      "Last updated: 2026-10-11.",
       "| Docker MCP Toolkit/Gateway |",
       "Exactly 76 Trello tools were callable",
       "Live authorization is recorded, but no authenticated Gateway Trello request has run",
@@ -242,7 +242,7 @@ describe("Docker MCP Registry readiness audit", () => {
       "marked the stdio container unhealthy",
       "Docker Desktop UI confirmation remains pending",
       "2026-08-29 targeted cleanup restored the sanitized Toolkit inventory",
-      "fresh 2026-08-30 profile remains active only for the authorized continuation",
+      "fresh 2026-08-30 profile was retained for the authorized continuation and removed on 2026-10-11",
     ]) {
       expect(compatibility).toContain(marker);
     }
@@ -260,6 +260,47 @@ describe("Docker MCP Registry readiness audit", () => {
       "After #62 records upstream acceptance",
     ]) {
       expect(audit).toContain(marker);
+    }
+  });
+
+  it("discloses the owner-approved submission-first boundary", async () => {
+    const audit = normalizeWhitespace(await readinessAudit());
+    const compatibility = normalizeWhitespace(await compatibilityAudit());
+
+    for (const marker of [
+      "owner approved proceeding with #62's upstream submission",
+      "Deferred means not run, not passed",
+      "does not complete #60's original acceptance criteria",
+      "No local live run is included in the current submission approval",
+      "No merge is authorized",
+      "#60's unperformed criteria and #61's trust work remain open",
+    ]) {
+      expect(audit).toContain(marker);
+    }
+    expect(compatibility).toContain("These checks are not marked passed");
+    expect(compatibility).toContain(
+      "Submission is not Docker acceptance or public catalog availability",
+    );
+  });
+
+  it("separates the refreshed submission image from historical observations", async () => {
+    const candidate = normalizeWhitespace(
+      section(
+        await readinessAudit(),
+        "#### 2026-10-11 submission candidate and deferred checks",
+        "### 5. Review, trust planning, acceptance, and artifact verification",
+      ),
+    );
+    for (const marker of [
+      "merged `v1.0.3` source `d7c22c7`, not the old `17679f1` test image",
+      "local test image identity, not a Docker-published digest",
+      "exactly 76 tools, with no internal helpers in this mode",
+      "healthy and running during the 35-second observation",
+      "No Trello request ran",
+      "All newly created app containers, two owned proxy sidecars",
+      "no secrets remained",
+    ]) {
+      expect(candidate).toContain(marker);
     }
   });
 
