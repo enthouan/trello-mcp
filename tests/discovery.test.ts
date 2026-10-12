@@ -16,7 +16,9 @@ import {
   assertNoFilesystemChanges,
   assertNoSyntheticSecrets,
   discoveryWriter,
+  dockerClientEnvironment,
   inspectDiscovery,
+  safeImageIdentity,
   validateProtocolStdout,
 } from "../scripts/lib/mcp-discovery.js";
 import { loadConfig } from "../src/config.js";
@@ -30,6 +32,52 @@ const version = JSON.parse(
 ).version as string;
 
 describe("credential-independent MCP discovery", () => {
+  it("omits image configuration and embedded environment values from evidence", () => {
+    const identity = {
+      Id: `sha256:${"a".repeat(64)}`,
+      Architecture: "amd64",
+      Os: "linux",
+    };
+    const actual = safeImageIdentity({
+      ...identity,
+      Config: {
+        Env: [
+          "TRELLO_TOKEN=synthetic-baked-token",
+          "HTTPS_PROXY=http://user:synthetic-password@proxy",
+        ],
+        Labels: { arbitrary: "synthetic-label-secret" },
+      },
+      ContainerConfig: { Cmd: ["synthetic-command-secret"] },
+    });
+    expect(actual).toEqual(identity);
+    expect(JSON.stringify(actual)).not.toContain("synthetic");
+  });
+
+  it("preserves Docker daemon selection without inheriting unrelated variables", () => {
+    const expected = {
+      PATH: "/safe/bin",
+      HOME: "/home/operator",
+      DOCKER_HOST: "tcp://docker-test:2376",
+      DOCKER_CONTEXT: "selected",
+      DOCKER_CONFIG: "/tmp/docker-config",
+      DOCKER_TLS: "1",
+      DOCKER_TLS_VERIFY: "1",
+      DOCKER_CERT_PATH: "/tmp/certs",
+      DOCKER_API_VERSION: "1.54",
+    };
+    expect(
+      dockerClientEnvironment({
+        ...expected,
+        TRELLO_TOKEN: "synthetic-private",
+        NODE_OPTIONS: "synthetic-private",
+        TRELLO_ATTACHMENT_UPLOAD_ROOT: "/private",
+      }),
+    ).toEqual(expected);
+    expect(dockerClientEnvironment({}).PATH).toBe(
+      "/usr/local/bin:/usr/bin:/bin",
+    );
+  });
+
   it("requires complete, valid UTF-8 JSON-RPC frames on stdout", () => {
     const frame = '{"jsonrpc":"2.0","id":1,"result":{"label":"café"}}\n';
     const bytes = Buffer.from(frame);

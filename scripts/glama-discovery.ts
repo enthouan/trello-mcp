@@ -20,7 +20,9 @@ import {
   assertNoFilesystemChanges,
   assertNoSyntheticSecrets,
   discoveryWriter,
+  dockerClientEnvironment,
   inspectDiscovery,
+  safeImageIdentity,
   validateProtocolStdout,
 } from "./lib/mcp-discovery.js";
 
@@ -49,12 +51,9 @@ const expectedVersion = JSON.parse(
   await readFile(resolve("package.json"), "utf8"),
 ).version as string;
 const container = `trello-mcp-65-${randomUUID()}`;
-const dockerEnv = {
-  PATH: process.env.PATH ?? "/usr/local/bin:/usr/bin:/bin",
-  // Docker needs its existing local socket/context configuration, never forwarded
-  // into the container. No Trello variables or NODE_OPTIONS are inherited.
-  ...(process.env.HOME ? { HOME: process.env.HOME } : {}),
-};
+// Client settings select the operator's daemon; none are forwarded to the MCP
+// process, container, or evidence. No Trello variables or NODE_OPTIONS are inherited.
+const dockerEnv = dockerClientEnvironment(process.env);
 const docker = async (args: string[]) =>
   (await exec("docker", args, { env: dockerEnv })).stdout;
 const command = mode === "source" ? "/usr/bin/sandbox-exec" : "docker";
@@ -75,6 +74,14 @@ const args =
         ...Object.entries(config).flatMap(([key, value]) => [
           "-e",
           `${key}=${value}`,
+        ]),
+        // Docker can inject proxies from client config even with an isolated
+        // CLI environment. Clear both cases to exclude host proxy credentials.
+        ...["http", "https", "ftp", "all", "no"].flatMap((name) => [
+          "-e",
+          `${name}_proxy=`,
+          "-e",
+          `${name.toUpperCase()}_PROXY=`,
         ]),
         image as string,
       ];
@@ -166,14 +173,16 @@ try {
   let health: unknown;
   let filesystemChanges: string | undefined;
   if (mode === "image") {
-    imageEvidence = JSON.parse(
-      await docker([
-        "image",
-        "inspect",
-        image as string,
-        "--format",
-        "{{json .}}",
-      ]),
+    imageEvidence = safeImageIdentity(
+      JSON.parse(
+        await docker([
+          "image",
+          "inspect",
+          image as string,
+          "--format",
+          "{{json .}}",
+        ]),
+      ),
     );
     for (let attempt = 0; ; attempt++) {
       const state = JSON.parse(
@@ -216,6 +225,9 @@ try {
     mode,
     transport: "stdio",
     environmentNames: Object.keys(config),
+    ...(mode === "image"
+      ? { dockerClientEnvironmentNames: Object.keys(dockerEnv) }
+      : {}),
     expectedVersion,
     initialize: initialization,
     ...discovery,

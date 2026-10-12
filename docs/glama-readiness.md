@@ -78,7 +78,7 @@ was changed to conceal source-versus-release drift.
 | Artifact | Identity | stdio discovery | Actual image health | Shutdown / cleanup |
 | --- | --- | --- | --- | --- |
 | Built source | `76fe34b9347dc4d5faaf5dfd1f77c94dcda2e06f` | Pass; macOS `(deny network*)`; 77 tools | Not applicable | SIGTERM, code 0, shutdown log |
-| Source-built image | Local ID `sha256:a44df37a44120a35e5528d7bb043c86c95072dc2f7d10c750d06c97b154d0485` | Pass; `--network=none`; full definitions equal built source | Healthy in stdio and HTTP | Code 0; empty `docker diff`; temporary containers removed |
+| Source-built image | Local ID `sha256:d2af1821366a44f92fd562e378c40777ddc1b03869f907e4c1c02fc5639fb7bc` | Pass; `--network=none`; full definitions equal built source | Healthy in stdio and HTTP | Code 0; empty `docker diff`; temporary containers removed |
 | Published image | `ghcr.io/enthouan/trello-mcp@sha256:198f6758ea06fb786622a5335ad68d6a618adf3e20d1dda1094754d4a02b48a6` | Pass against matching `v1.0.3`; `--network=none`; 77 tools | Healthy in stdio and HTTP | Code 0; empty `docker diff`; temporary containers removed |
 
 All three initialize responses negotiated **2025-11-25**, server name
@@ -132,9 +132,11 @@ corepack pnpm registry:release discover trello-mcp:issue65-glama-20261012
 ```
 
 The new probe writes complete initialization, tool schemas/metadata, resource/
-prompt responses, stderr, image configuration, health, filesystem changes and
+prompt responses, stderr, image identity/platform, health, filesystem changes and
 exit results to the specified local file. It checks server identity/version,
 negotiated SDK protocol and advertised capabilities against the source contract.
+Image evidence is limited to ID, architecture and OS; image environment values,
+labels, history and command text are excluded.
 It rejects any description, schema or
 metadata drift from the matching source, even with identical names/version, and
 rejects nonempty filesystem diffs both before and after shutdown. It verifies
@@ -164,6 +166,12 @@ These failures wrote no success report, leaked no synthetic values, and removed
 all containers. Matching-source source/image/release probes still passed.
 Temporary image tags were removed after validation.
 
+A separate disposable image with synthetic baked environment/label markers
+passed discovery without persisting those markers. Its entrypoint asserted that
+all proxy variables were empty, while the client used an explicit `DOCKER_HOST`
+and a synthetic `DOCKER_CONFIG` containing proxy credentials. Source/release
+image checks also passed with an explicit `DOCKER_CONTEXT`.
+
 For the published image, extract `v1.0.3` with `git archive` into a separate
 directory, install its frozen dependencies, copy `scripts/glama-discovery.ts` and
 `scripts/lib/mcp-discovery.ts` there, and run the same image probe and existing
@@ -180,9 +188,15 @@ The in-memory regression injects a throw-on-use fetcher and asserts **zero
 requests and zero fetch calls** through initialization and all discovery methods.
 
 Docker receives explicit synthetic runtime variables, no `--env-file`, no host
-mount, no upload root and no published port. Only PATH and HOME are allowed into
-the Docker CLI for its local context/socket; these are not forwarded into the
-container. Source startup does not load `.env`. No real Trello credentials were
+mount, no upload root and no published port. The Docker CLI allowlist preserves
+`PATH`, `HOME`, `DOCKER_HOST`, `DOCKER_CONTEXT`, `DOCKER_CONFIG`, `DOCKER_TLS`,
+`DOCKER_TLS_VERIFY`, `DOCKER_CERT_PATH` and `DOCKER_API_VERSION` to honor the
+operator's selected daemon. These values are not forwarded into the container
+or saved in evidence. Following the documented
+[Docker client configuration behavior](https://docs.docker.com/reference/cli/docker/#environment-variables),
+the probe also explicitly clears upper/lowercase HTTP, HTTPS, FTP, ALL and NO
+proxy variables to prevent automatic container injection from client settings.
+Source startup does not load `.env`. No real Trello credentials were
 read, passed, or used by the validation probes.
 
 ### Transport-specific health

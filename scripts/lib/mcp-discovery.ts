@@ -13,6 +13,38 @@ import {
   McpError,
   type Tool,
 } from "@modelcontextprotocol/sdk/types.js";
+import { z } from "zod";
+
+const ImageIdentitySchema = z.object({
+  Id: z.string().regex(/^sha256:[0-9a-f]{64}$/),
+  Architecture: z.string(),
+  Os: z.string(),
+});
+
+export function safeImageIdentity(inspectResult: unknown) {
+  // Strip configuration, history, labels, environment values and command text.
+  return ImageIdentitySchema.parse(inspectResult);
+}
+
+export function dockerClientEnvironment(environment: NodeJS.ProcessEnv) {
+  const selected: Record<string, string> = {
+    PATH: environment.PATH ?? "/usr/local/bin:/usr/bin:/bin",
+  };
+  for (const key of [
+    "HOME",
+    "DOCKER_HOST",
+    "DOCKER_CONTEXT",
+    "DOCKER_CONFIG",
+    "DOCKER_TLS",
+    "DOCKER_TLS_VERIFY",
+    "DOCKER_CERT_PATH",
+    "DOCKER_API_VERSION",
+  ]) {
+    const value = environment[key];
+    if (value !== undefined) selected[key] = value;
+  }
+  return selected;
+}
 
 export function validateProtocolStdout(bytes: Uint8Array): string {
   try {
