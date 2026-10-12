@@ -46,7 +46,9 @@ const SearchQueryInput = z.object({
     .trim()
     .min(1)
     .max(16384)
-    .describe("Natural language Trello search query."),
+    .describe(
+      "Trello search text, passed through unchanged. For search, use Trello operators such as is:open; for search_members, use a member name or username.",
+    ),
 });
 
 const SearchModelTypeSchema = z.enum([
@@ -176,7 +178,7 @@ export const searchTools = [
   defineTool({
     name: "search",
     description:
-      "Use when you need to find Trello cards, boards, members, or workspaces by natural language search terms.",
+      "Search Trello and return grouped cards, boards, members, and workspaces visible to the token. Defaults to cards and boards; scope and limit results, and use cardsPage for card pagination. Use search_members for a focused member lookup.",
     inputSchema: SearchInput,
     handler: async (
       {

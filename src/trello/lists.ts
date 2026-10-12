@@ -104,7 +104,8 @@ export const listTools = [
   }),
   defineTool({
     name: "list_move_to_board",
-    description: "Use when moving an existing Trello list to another board.",
+    description:
+      "Move an existing list and its cards to another board, changing who can access them. Use list_update to reorder within the current board.",
     inputSchema: ListIdInput.extend({
       boardId: TrelloIdSchema.describe("Destination board id."),
     }),
