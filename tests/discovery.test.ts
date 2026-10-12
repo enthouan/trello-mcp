@@ -156,6 +156,8 @@ describe("credential-independent MCP discovery", () => {
       { ...expected, protocolVersion: "2024-11-05" },
       { ...expected, capabilities: { ...expected.capabilities, prompts: {} } },
       { ...expected, capabilities: {} },
+      { ...expected, instructions: "synthetic-unexpected-instructions" },
+      { ...expected, _meta: { private: "synthetic-unexpected-metadata" } },
     ])
       expect(() => assertMatchingInitialization(actual, version)).toThrow(
         "Discovery initialization differs from matching source.",

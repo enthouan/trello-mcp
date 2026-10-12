@@ -135,8 +135,10 @@ The new probe writes complete initialization, tool schemas/metadata, resource/
 prompt responses, a stderr byte-count/shutdown summary, image identity/platform,
 health status/exit codes, filesystem changes and exit results to the specified
 local file. Raw stderr and health-command output are checked for synthetic
-credential leaks but omitted from the saved evidence. It checks server identity/version,
-negotiated SDK protocol and advertised capabilities against the source contract.
+credential leaks but omitted from the saved evidence. It compares the entire
+initialization response with the source contract: server identity/version,
+negotiated SDK protocol, advertised capabilities and the absence of instructions
+or extra metadata.
 Image evidence is limited to ID, architecture and OS; image environment values,
 labels, history and command text are excluded.
 Image mode requires a local image: pull a verified immutable release reference

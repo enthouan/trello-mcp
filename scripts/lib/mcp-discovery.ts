@@ -91,12 +91,11 @@ export function assertMatchingInitialization(
   expectedVersion: string,
 ): void {
   if (
-    actual.protocolVersion !== LATEST_PROTOCOL_VERSION ||
-    !isDeepStrictEqual(actual.serverInfo, {
-      name: "trello-mcp",
-      version: expectedVersion,
-    }) ||
-    !isDeepStrictEqual(actual.capabilities, { tools: { listChanged: true } })
+    !isDeepStrictEqual(actual, {
+      protocolVersion: LATEST_PROTOCOL_VERSION,
+      serverInfo: { name: "trello-mcp", version: expectedVersion },
+      capabilities: { tools: { listChanged: true } },
+    })
   )
     throw new Error("Discovery initialization differs from matching source.");
 }
