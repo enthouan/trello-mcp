@@ -78,7 +78,7 @@ was changed to conceal source-versus-release drift.
 | Artifact | Identity | stdio discovery | Actual image health | Shutdown / cleanup |
 | --- | --- | --- | --- | --- |
 | Built source | `76fe34b9347dc4d5faaf5dfd1f77c94dcda2e06f` | Pass; macOS `(deny network*)`; 77 tools | Not applicable | SIGTERM, code 0, shutdown log |
-| Source-built image | Local ID `sha256:dc99dbda1cb1a6a8cc78dd08a762611865c13dcf55c040f717f03dbaeee9029e` | Pass; `--network=none`; full definitions equal built source | Healthy in stdio and HTTP | Code 0; empty `docker diff`; temporary containers removed |
+| Source-built image | Local ID `sha256:a44df37a44120a35e5528d7bb043c86c95072dc2f7d10c750d06c97b154d0485` | Pass; `--network=none`; full definitions equal built source | Healthy in stdio and HTTP | Code 0; empty `docker diff`; temporary containers removed |
 | Published image | `ghcr.io/enthouan/trello-mcp@sha256:198f6758ea06fb786622a5335ad68d6a618adf3e20d1dda1094754d4a02b48a6` | Pass against matching `v1.0.3`; `--network=none`; 77 tools | Healthy in stdio and HTTP | Code 0; empty `docker diff`; temporary containers removed |
 
 All three initialize responses negotiated **2025-11-25**, server name
@@ -92,7 +92,8 @@ fallback intentionally excludes that tool and is not the expected Glama catalog.
 Both `resources/list` and `prompts/list` returned protocol **-32601
 MethodNotFound**. Neither capability is advertised. These are unsupported
 methods, not successful empty catalogs. The low-level client request records the
-server response rather than a local convenience-method capability error.
+server response rather than a local convenience-method capability error. A
+supported result from either method is rejected even if it is unadvertised.
 
 All 77 definitions expose descriptions and Zod-derived object input schemas;
 every top-level property has a description. Full source and source-image schemas
@@ -137,13 +138,15 @@ negotiated SDK protocol and advertised capabilities against the source contract.
 It rejects any description, schema or
 metadata drift from the matching source, even with identical names/version, and
 rejects nonempty filesystem diffs both before and after shutdown. It verifies
-output safety and cleanup before reporting success. Stdin failures reject through
+output safety and cleanup before reporting success. Stdout is decoded as complete
+UTF-8 and every newline-delimited record must validate as a JSON-RPC message;
+unterminated output is rejected. Stdin failures reject through
 the transport and cannot escape cleanup as unhandled stream errors. The older
 `discover` command remains a separate check
 of names, version and Docker health; it does not provide the full-schema proof.
 Neither command publishes anything or invokes a tool handler.
 
-Four isolated negative controls also passed:
+Five isolated negative controls also passed:
 
 - Comparing the release against newer source rejected its stale definition
   despite identical names/version.
@@ -153,6 +156,9 @@ Four isolated negative controls also passed:
   exception or leftover container; a deterministic unit test also induces EPIPE.
 - An image with identical tool definitions/version but a changed server name
   was rejected at initialization. Unit tests also reject protocol/capability drift.
+- A derivative appending an unterminated JSON footer at exit was rejected.
+  Unit tests also reject invalid UTF-8/JSON-RPC records and unexpected supported
+  resource/prompt catalogs.
 
 These failures wrote no success report, leaked no synthetic values, and removed
 all containers. Matching-source source/image/release probes still passed.

@@ -4,7 +4,9 @@ import { setImmediate } from "node:timers/promises";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import {
+  ErrorCode,
   LATEST_PROTOCOL_VERSION,
+  McpError,
   ToolSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { describe, expect, it, vi } from "vitest";
@@ -15,6 +17,7 @@ import {
   assertNoSyntheticSecrets,
   discoveryWriter,
   inspectDiscovery,
+  validateProtocolStdout,
 } from "../scripts/lib/mcp-discovery.js";
 import { loadConfig } from "../src/config.js";
 import { createServer } from "../src/server.js";
@@ -27,6 +30,31 @@ const version = JSON.parse(
 ).version as string;
 
 describe("credential-independent MCP discovery", () => {
+  it("requires complete, valid UTF-8 JSON-RPC frames on stdout", () => {
+    const frame = '{"jsonrpc":"2.0","id":1,"result":{"label":"café"}}\n';
+    const bytes = Buffer.from(frame);
+    const accent = bytes.indexOf(Buffer.from("é"));
+    expect(
+      validateProtocolStdout(
+        Buffer.concat([
+          bytes.subarray(0, accent + 1),
+          bytes.subarray(accent + 1),
+        ]),
+      ),
+    ).toBe(frame);
+    for (const invalid of [
+      Buffer.from(frame.trimEnd()),
+      Buffer.from(`${frame}{"jsonrpc":"2.0"}`),
+      Buffer.from('{"jsonrpc":"2.0"}\n'),
+      Buffer.from(`${frame}ordinary log\n`),
+      Buffer.from('{"jsonrpc":"2.0",\n'),
+      Uint8Array.from([0xff, 0x0a]),
+    ])
+      expect(() => validateProtocolStdout(invalid)).toThrow(
+        "Discovery stdout contains an invalid JSON-RPC frame.",
+      );
+  });
+
   it("handles a broken stdin stream without an unhandled or sensitive error", async () => {
     const onError = vi.fn();
     const stream = new Writable({
@@ -204,7 +232,11 @@ describe("credential-independent MCP discovery", () => {
       getServerVersion: () => ({ version }),
       getServerCapabilities: () => ({}),
       listTools: vi.fn().mockImplementation(async () => pages.shift()),
-      request: vi.fn().mockResolvedValue({}),
+      request: vi
+        .fn()
+        .mockRejectedValue(
+          new McpError(ErrorCode.MethodNotFound, "unsupported"),
+        ),
     });
     const client = fake([{ tools: [a], nextCursor: "next" }, { tools: [b] }]);
     expect(
@@ -248,6 +280,33 @@ describe("credential-independent MCP discovery", () => {
         inspectDiscovery(client as never, [expected], version),
       ).rejects.toThrow(
         "Discovery definition differs from matching source: read.",
+      );
+    }
+  });
+
+  it("rejects unadvertised resource or prompt handlers", async () => {
+    const tool = ToolSchema.parse({
+      name: "read",
+      description: "Read a card",
+      inputSchema: { type: "object" },
+    });
+    for (const supported of ["resources/list", "prompts/list"]) {
+      const client = {
+        getServerVersion: () => ({ name: "trello-mcp", version }),
+        getServerCapabilities: () => ({ tools: { listChanged: true } }),
+        listTools: vi.fn().mockResolvedValue({ tools: [tool] }),
+        request: vi.fn().mockImplementation(async ({ method }) => {
+          if (method === supported)
+            return method === "resources/list"
+              ? { resources: [] }
+              : { prompts: [] };
+          throw new McpError(ErrorCode.MethodNotFound, "unsupported");
+        }),
+      };
+      await expect(
+        inspectDiscovery(client as never, [tool], version),
+      ).rejects.toThrow(
+        `Discovery ${supported} behavior differs from matching source.`,
       );
     }
   });

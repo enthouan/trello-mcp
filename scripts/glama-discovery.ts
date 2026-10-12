@@ -21,6 +21,7 @@ import {
   assertNoSyntheticSecrets,
   discoveryWriter,
   inspectDiscovery,
+  validateProtocolStdout,
 } from "./lib/mcp-discovery.js";
 
 const exec = promisify(execFile);
@@ -84,7 +85,7 @@ const child = spawn(command, args, {
 const buffer = new ReadBuffer();
 const messages: JSONRPCMessage[] = [];
 let stderr = "";
-let stdout = "";
+const stdoutChunks: Buffer[] = [];
 let serialized = "";
 let protocolError = false;
 let exit: { code: number | null; signal: NodeJS.Signals | null } | undefined;
@@ -109,7 +110,7 @@ child.on("error", () => {
   transport.onerror?.(new Error("Discovery child failed to start."));
 });
 child.stdout.on("data", (chunk: Buffer) => {
-  stdout += chunk.toString();
+  stdoutChunks.push(chunk);
   try {
     buffer.append(chunk);
     for (
@@ -204,14 +205,7 @@ try {
     }),
   ]);
   await client.close();
-  for (const line of stdout.trim().split("\n")) {
-    // Also reject unterminated/trailing output that ReadBuffer has not consumed.
-    try {
-      if (JSON.parse(line).jsonrpc !== "2.0") protocolError = true;
-    } catch {
-      protocolError = true;
-    }
-  }
+  const stdout = validateProtocolStdout(Buffer.concat(stdoutChunks));
   if (
     protocolError ||
     exit?.code !== 0 ||

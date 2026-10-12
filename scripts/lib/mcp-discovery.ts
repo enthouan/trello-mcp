@@ -6,12 +6,25 @@ import {
   ErrorCode,
   type InitializeResult,
   type JSONRPCMessage,
+  JSONRPCMessageSchema,
   LATEST_PROTOCOL_VERSION,
   ListPromptsResultSchema,
   ListResourcesResultSchema,
   McpError,
   type Tool,
 } from "@modelcontextprotocol/sdk/types.js";
+
+export function validateProtocolStdout(bytes: Uint8Array): string {
+  try {
+    const output = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+    if (!output.endsWith("\n")) throw new Error("Missing stdio delimiter.");
+    for (const line of output.slice(0, -1).split("\n"))
+      JSONRPCMessageSchema.parse(JSON.parse(line));
+    return output;
+  } catch {
+    throw new Error("Discovery stdout contains an invalid JSON-RPC frame.");
+  }
+}
 
 export function discoveryWriter(
   stream: Writable,
@@ -112,13 +125,24 @@ export async function inspectDiscovery(
     }
   }
 
+  const resources = await catalog("resources/list");
+  const prompts = await catalog("prompts/list");
+  for (const [method, result] of [
+    ["resources/list", resources],
+    ["prompts/list", prompts],
+  ] as const)
+    if (result.status !== "unsupported")
+      throw new Error(
+        `Discovery ${method} behavior differs from matching source.`,
+      );
+
   return {
     server: client.getServerVersion(),
     capabilities: client.getServerCapabilities(),
     pages,
     tools,
-    resources: await catalog("resources/list"),
-    prompts: await catalog("prompts/list"),
+    resources,
+    prompts,
   };
 }
 
