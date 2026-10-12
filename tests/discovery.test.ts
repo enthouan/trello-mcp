@@ -1,9 +1,11 @@
 import { readFile } from "node:fs/promises";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { ToolSchema } from "@modelcontextprotocol/sdk/types.js";
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import {
+  assertNoFilesystemChanges,
   assertNoSyntheticSecrets,
   inspectDiscovery,
 } from "../scripts/lib/mcp-discovery.js";
@@ -88,7 +90,17 @@ describe("credential-independent MCP discovery", () => {
       await client.connect(clientTransport);
       const result = await inspectDiscovery(
         client,
-        allTools.map(({ name }) => name),
+        allTools.map(({ name, description, inputSchema }) =>
+          ToolSchema.parse({
+            name,
+            description,
+            execution: { taskSupport: "forbidden" },
+            inputSchema: z.toJSONSchema(inputSchema, {
+              io: "input",
+              target: "draft-7",
+            }),
+          }),
+        ),
         version,
       );
       expect(result.tools).toHaveLength(77);
@@ -134,7 +146,7 @@ describe("credential-independent MCP discovery", () => {
     const a = {
       name: "a",
       description: "Read A",
-      inputSchema: { type: "object" },
+      inputSchema: { type: "object" as const },
     };
     const b = { ...a, name: "b" };
     const fake = (pages: unknown[]) => ({
@@ -145,7 +157,7 @@ describe("credential-independent MCP discovery", () => {
     });
     const client = fake([{ tools: [a], nextCursor: "next" }, { tools: [b] }]);
     expect(
-      (await inspectDiscovery(client as never, ["a", "b"], version)).pages,
+      (await inspectDiscovery(client as never, [a, b], version)).pages,
     ).toBe(2);
     expect(client.listTools).toHaveBeenLastCalledWith({ cursor: "next" });
     for (const pages of [
@@ -158,8 +170,47 @@ describe("credential-independent MCP discovery", () => {
       ],
     ])
       await expect(
-        inspectDiscovery(fake(pages) as never, ["a", "b"], version),
+        inspectDiscovery(fake(pages) as never, [a, b], version),
       ).rejects.toThrow();
+  });
+
+  it("rejects stale descriptions, schemas, or metadata with unchanged names and version", async () => {
+    const expected = ToolSchema.parse({
+      name: "read",
+      description: "Read one card",
+      inputSchema: {
+        type: "object",
+        properties: { id: { type: "string" } },
+        required: ["id"],
+      },
+    });
+    for (const stale of [
+      { ...expected, description: "Old description" },
+      { ...expected, inputSchema: { ...expected.inputSchema, required: [] } },
+      { ...expected, annotations: { openWorldHint: false } },
+    ]) {
+      const client = {
+        getServerVersion: () => ({ version }),
+        listTools: vi.fn().mockResolvedValue({ tools: [stale] }),
+      };
+      await expect(
+        inspectDiscovery(client as never, [expected], version),
+      ).rejects.toThrow(
+        "Discovery definition differs from matching source: read.",
+      );
+    }
+  });
+
+  it("rejects added, changed, or deleted image files", () => {
+    expect(() => assertNoFilesystemChanges("")).not.toThrow();
+    for (const diff of [
+      "A /app/cache",
+      "C /app/package.json",
+      "D /app/dist/index.js",
+    ])
+      expect(() => assertNoFilesystemChanges(diff)).toThrow(
+        "Discovery image changed its filesystem.",
+      );
   });
 
   it("fails on credential leaks without echoing the credential", () => {

@@ -14,9 +14,12 @@ import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import {
   InitializeResultSchema,
   type JSONRPCMessage,
+  ToolSchema,
 } from "@modelcontextprotocol/sdk/types.js";
+import { z } from "zod";
 import { allTools } from "../src/trello/tools.js";
 import {
+  assertNoFilesystemChanges,
   assertNoSyntheticSecrets,
   inspectDiscovery,
 } from "./lib/mcp-discovery.js";
@@ -135,7 +138,18 @@ try {
   await client.connect(transport, { timeout: 30_000 });
   const discovery = await inspectDiscovery(
     client,
-    allTools.map(({ name }) => name),
+    allTools.map(({ name, description, inputSchema }) =>
+      ToolSchema.parse({
+        name,
+        description,
+        // The SDK publishes this default for ordinary, non-task handlers.
+        execution: { taskSupport: "forbidden" },
+        inputSchema: z.toJSONSchema(inputSchema, {
+          io: "input",
+          target: "draft-7",
+        }),
+      }),
+    ),
     expectedVersion,
   );
   const initialize = messages.flatMap((message) => {
@@ -176,7 +190,10 @@ try {
       await setTimeout(2_000);
     }
     filesystemChanges = await docker(["diff", container]);
+    assertNoFilesystemChanges(filesystemChanges);
     await docker(["stop", "--time", "5", container]);
+    filesystemChanges = await docker(["diff", container]);
+    assertNoFilesystemChanges(filesystemChanges);
   } else child.kill("SIGTERM");
   await Promise.race([
     exited,

@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from "node:util";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import {
   ErrorCode,
@@ -10,7 +11,7 @@ import {
 /** Discovery only: never invokes a tool handler. Preserve the wire schemas. */
 export async function inspectDiscovery(
   client: Client,
-  expectedNames: readonly string[],
+  expectedTools: readonly Tool[],
   expectedVersion: string,
 ) {
   if (client.getServerVersion()?.version !== expectedVersion)
@@ -32,6 +33,7 @@ export async function inspectDiscovery(
   } while (cursor !== undefined);
 
   const names = tools.map(({ name }) => name);
+  const expectedNames = expectedTools.map(({ name }) => name);
   if (
     new Set(names).size !== names.length ||
     new Set(expectedNames).size !== expectedNames.length ||
@@ -42,6 +44,19 @@ export async function inspectDiscovery(
   for (const tool of tools) {
     if (!tool.description?.trim() || tool.inputSchema.type !== "object")
       throw new Error(`Incomplete tool definition: ${tool.name}.`);
+    if (
+      !isDeepStrictEqual(
+        // In-memory SDK transports retain optional undefined properties that
+        // JSON-RPC serialization omits. Compare the actual JSON representations.
+        JSON.parse(JSON.stringify(tool)),
+        JSON.parse(
+          JSON.stringify(expectedTools.find(({ name }) => name === tool.name)),
+        ),
+      )
+    )
+      throw new Error(
+        `Discovery definition differs from matching source: ${tool.name}.`,
+      );
   }
 
   // request() intentionally bypasses the client's convenience-method capability
@@ -68,6 +83,10 @@ export async function inspectDiscovery(
     resources: await catalog("resources/list"),
     prompts: await catalog("prompts/list"),
   };
+}
+
+export function assertNoFilesystemChanges(diff: string): void {
+  if (diff.trim()) throw new Error("Discovery image changed its filesystem.");
 }
 
 export function assertNoSyntheticSecrets(

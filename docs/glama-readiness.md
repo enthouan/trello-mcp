@@ -29,7 +29,7 @@ its separate upstream submission is outside this work.
 | Evidence | Revision / observation |
 | --- | --- |
 | Starting `origin/main` | `e6bacd34b03542663548ae00e85160571dd2bdce`, containing merged PR #227; canonical checkout clean, one commit behind, before branching from the fetched remote. |
-| Tested implementation source | `76fe34b9347dc4d5faaf5dfd1f77c94dcda2e06f`; later audit-only edits do not alter the tested runtime. |
+| Tested implementation source | `76fe34b9347dc4d5faaf5dfd1f77c94dcda2e06f`; later audit and validation-harness edits do not alter the tested runtime. |
 | Published release | [v1.0.3](https://github.com/enthouan/trello-mcp/releases/tag/v1.0.3), published 2026-10-09; annotated tag source `d7c22c78223b60ccabe269ae3af2415957fed861`. |
 | TDQS | [v1.3 specification at b9881b0cfec88969e42672c92544487ca191a992](https://github.com/glama-ai/tool-definition-quality-score/blob/b9881b0cfec88969e42672c92544487ca191a992/README.md), current upstream head when read. |
 | Mutable requirements | [Methodology](https://glama.ai/mcp/methodology), [server directory](https://glama.ai/mcp/servers), [ownership guidance](https://glama.ai/blog/2025-07-08-what-is-glamajson), and [server schema](https://glama.ai/mcp/schemas/server.json), read 2026-10-12. |
@@ -78,7 +78,7 @@ was changed to conceal source-versus-release drift.
 | Artifact | Identity | stdio discovery | Actual image health | Shutdown / cleanup |
 | --- | --- | --- | --- | --- |
 | Built source | `76fe34b9347dc4d5faaf5dfd1f77c94dcda2e06f` | Pass; macOS `(deny network*)`; 77 tools | Not applicable | SIGTERM, code 0, shutdown log |
-| Source-built image | Local ID `sha256:427b9c70e4b0120c86fe0fe80a0318b6931a97d35873d2b38ef1c5920da2056d` | Pass; `--network=none`; full definitions equal built source | Healthy in stdio and HTTP | Code 0; empty `docker diff`; temporary containers removed |
+| Source-built image | Local ID `sha256:2251d1405d31da5ec3beb22e6a1371d3cb001305db4a1a94d588888a7c4db685` | Pass; `--network=none`; full definitions equal built source | Healthy in stdio and HTTP | Code 0; empty `docker diff`; temporary containers removed |
 | Published image | `ghcr.io/enthouan/trello-mcp@sha256:198f6758ea06fb786622a5335ad68d6a618adf3e20d1dda1094754d4a02b48a6` | Pass against matching `v1.0.3`; `--network=none`; 77 tools | Healthy in stdio and HTTP | Code 0; empty `docker diff`; temporary containers removed |
 
 All three initialize responses negotiated **2025-11-25**, server name
@@ -97,7 +97,9 @@ server response rather than a local convenience-method capability error.
 All 77 definitions expose descriptions and Zod-derived object input schemas;
 every top-level property has a description. Full source and source-image schemas
 match, including requiredness, defaults, enums, constraints and nullable inputs.
-No tool has a title, annotations or outputSchema. JSON text is the existing
+No tool has a title, annotations or outputSchema. Every tool also carries the
+SDK's `execution.taskSupport: "forbidden"` default for ordinary handlers.
+JSON text is the existing
 handler-result format. Refinements such as custom-field type/value requirements
 remain enforced at invocation even when not expressible in the wire schema;
 parameter prose now states that particular conditional contract explicitly.
@@ -124,17 +126,27 @@ Run from the source being compared, using its pinned Node/pnpm versions:
 CI=true corepack pnpm install --frozen-lockfile
 corepack pnpm build
 node --import tsx scripts/glama-discovery.ts source /tmp/glama-source.json
-docker build --label org.opencontainers.image.revision=76fe34b9347dc4d5faaf5dfd1f77c94dcda2e06f -t trello-mcp:issue65-glama-20261012 .
+git archive 76fe34b9347dc4d5faaf5dfd1f77c94dcda2e06f | docker build --label org.opencontainers.image.revision=76fe34b9347dc4d5faaf5dfd1f77c94dcda2e06f -t trello-mcp:issue65-glama-20261012 -
 node --import tsx scripts/glama-discovery.ts image /tmp/glama-image.json trello-mcp:issue65-glama-20261012
 corepack pnpm registry:release discover trello-mcp:issue65-glama-20261012
 ```
 
 The new probe writes complete initialization, tool schemas/metadata, resource/
 prompt responses, stderr, image configuration, health, filesystem changes and
-exit results to the specified local file. It verifies output safety and cleanup
-before reporting success. The older `discover` command remains a separate check
+exit results to the specified local file. It rejects any description, schema or
+metadata drift from the matching source, even with identical names/version, and
+rejects nonempty filesystem diffs both before and after shutdown. It verifies
+output safety and cleanup before reporting success. The older `discover` command remains a separate check
 of names, version and Docker health; it does not provide the full-schema proof.
 Neither command publishes anything or invokes a tool handler.
+
+Two isolated negative controls also passed: comparing the release against newer
+source rejected its stale definition despite identical names/version; a disposable
+derivative of the source image that wrote `/tmp/glama-discovery-negative` was
+rejected for a nonempty filesystem diff. Both failures wrote no success report,
+leaked no synthetic values, and removed their containers. Matching-source
+source/image/release probes still passed. Temporary image tags were removed
+after validation.
 
 For the published image, extract `v1.0.3` with `git archive` into a separate
 directory, install its frozen dependencies, copy `scripts/glama-discovery.ts` and
