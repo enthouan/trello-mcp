@@ -47,7 +47,7 @@ const SearchQueryInput = z.object({
     .min(1)
     .max(16384)
     .describe(
-      "Trello search text, passed through unchanged. For search, use Trello operators such as is:open; for search_members, use a member name or username.",
+      "Trello search text, trimmed and sent directly to Trello. For search, use Trello operators such as is:open; for search_members, use a member name or username.",
     ),
 });
 

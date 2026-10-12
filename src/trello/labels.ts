@@ -85,7 +85,7 @@ export const labelTools = [
   defineTool({
     name: "label_delete",
     description:
-      "Permanently delete a board label, removing it from every card using it. Use card_label_remove to unassign it from just one card while preserving the label.",
+      "Use only when explicitly asked to permanently delete a board label, removing it from every card using it. Use card_label_remove to unassign it from just one card while preserving the label.",
     inputSchema: LabelIdInput,
     handler: async ({ labelId }, { trello }) =>
       trello.request(

@@ -34,6 +34,7 @@ describe("credential-independent MCP discovery", () => {
     ])
       expect(find(name).description).toMatch(/permanent/i);
     expect(find("label_delete").description).toContain("card_label_remove");
+    expect(find("label_delete").description).toContain("explicitly asked");
     expect(find("card_attachment_upload").description).toMatch(
       /transmit.*Trello/,
     );

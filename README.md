@@ -602,7 +602,7 @@ See [docs/api-coverage.md](docs/api-coverage.md) for the Trello REST API group c
 | `label_get` | Use when you need the current name, color, or board for a specific Trello label before editing it. | labelId |
 | `label_create` | Use when creating a new reusable label on a Trello board before applying it to cards. | boardId, name, color |
 | `label_update` | Use when renaming a Trello label or changing its color without changing any card assignments. | labelId, name, color |
-| `label_delete` | Permanently delete a board label, removing it from every card using it. Use card_label_remove to unassign it from just one card while preserving the label. | labelId |
+| `label_delete` | Use only when explicitly asked to permanently delete a board label, removing it from every card using it. Use card_label_remove to unassign it from just one card while preserving the label. | labelId |
 | `card_label_add` | Use when applying an existing Trello label to a card by label id. | cardId, labelId |
 | `card_label_remove` | Use when removing an existing Trello label from a card by label id. | cardId, labelId |
 | `custom_field_get` | Use when you need one Trello custom field definition by id, including its type and any dropdown/list options Trello returns. | customFieldId |

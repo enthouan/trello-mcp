@@ -1270,7 +1270,7 @@
   },
   {
     "name": "label_delete",
-    "description": "Permanently delete a board label, removing it from every card using it. Use card_label_remove to unassign it from just one card while preserving the label.",
+    "description": "Use only when explicitly asked to permanently delete a board label, removing it from every card using it. Use card_label_remove to unassign it from just one card while preserving the label.",
     "arguments": [
       {
         "name": "labelId",
@@ -1685,7 +1685,7 @@
       {
         "name": "query",
         "type": "string",
-        "desc": "Trello search text, passed through unchanged. For search, use Trello operators such as is:open; for search_members, use a member name or username."
+        "desc": "Trello search text, trimmed and sent directly to Trello. For search, use Trello operators such as is:open; for search_members, use a member name or username."
       },
       {
         "name": "boardFields",
@@ -1813,7 +1813,7 @@
       {
         "name": "query",
         "type": "string",
-        "desc": "Trello search text, passed through unchanged. For search, use Trello operators such as is:open; for search_members, use a member name or username."
+        "desc": "Trello search text, trimmed and sent directly to Trello. For search, use Trello operators such as is:open; for search_members, use a member name or username."
       },
       {
         "name": "boardId",
