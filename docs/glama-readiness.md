@@ -1,437 +1,386 @@
 # Glama MCP registry readiness audit
 
-Last verified: **2026-08-23**
+Last verified: **2026-10-12**. Implementation: [#65](https://github.com/enthouan/trello-mcp/issues/65).
 
-## Decision
+## Readiness decision and disposition
 
-Pursue a **Glama open-source MCP server listing first**, after the repository
-preparation work described below. This is the route Glama documents for a public
-GitHub repository that users can build and run themselves.
+The repository has a **locally verified candidate Glama-compatible build and
+stdio discovery path**. Built source, its Docker image, and the published
+`v1.0.3` image initialize without functional credentials and enumerate all 77
+intended tools under network isolation. This is not a Glama acceptance, indexing,
+security, or TDQS result. Actual Glama configuration remains unobserved.
 
-Do not treat Glama Hosting, the Glama Gateway, or a hosted connector as listing
-prerequisites:
-
-- Glama Hosting is an optional deployment product. It connects a repository with
-  the Glama GitHub App, builds it, and exposes a private-by-default hosted
-  instance.
-- The Gateway is an optional reverse proxy and control plane in front of a hosted
-  server or connector.
-- A hosted connector represents a remote MCP endpoint that somebody already
-  operates. Connector introspection may require sandbox credentials or a
-  non-production OAuth configuration. `trello-mcp` has neither such a plan nor a
-  maintainer-operated public endpoint.
-
-Reconsider Hosting only after the open-source profile is accepted and its exact
-build/runtime behavior is known. Reconsider a connector only if the project later
-operates a stable remote endpoint. Neither is necessary for the selected first
-submission.
-
-Glama describes its directory as a superset of the official MCP Registry. An
-exact-repository profile can therefore appear through automatic ingestion before
-the owner submits one directly. The later submission run must search again and
-claim an automatically ingested exact match instead of creating a duplicate.
-
-This audit performed **no Glama authentication, OAuth consent, submission,
-claim, GitHub App installation, build-spec change, deployment, Glama release,
-manual sync, rescan, Inspector session, or listing mutation**. It used no real
-Trello credentials and made no live Trello API calls.
-
-## Scope and evidence policy
-
-This document records current public Glama requirements, maps them to the
-repository, and assigns the remaining work. Glama pages and APIs are unversioned,
-so every mutable observation below includes the retrieval date. Requirements
-must be refreshed immediately before authenticated submission.
-
-| Evidence | Snapshot used by this audit |
+| Disposition | Evidence / decision |
 | --- | --- |
-| `trello-mcp` source | `00a5915e2d0888ec0b65c75728f8e11b2becf35a` (`origin/main` at audit start) |
-| TDQS specification | [`c8c6b0c291466fe13e22dbfedcea0af1f1ca47b7`](https://github.com/glama-ai/tool-definition-quality-score/tree/c8c6b0c291466fe13e22dbfedcea0af1f1ca47b7) |
-| TDQS README bytes | SHA-256 `196ff5cae922534e84621166d8853a37113157dd9c5831dc979d2987e8b65162` |
-| Live server schema | [`https://glama.ai/mcp/schemas/server.json`](https://glama.ai/mcp/schemas/server.json), retrieved 2026-08-23, 345 bytes, SHA-256 `7f652273293b658bcf9156646745c3aa9c42edcbd179ee126361e462814f1508` |
-| Listing/indexing rules | [Glama methodology](https://glama.ai/mcp/methodology), retrieved 2026-08-23 |
-| Product distinction | [Glama home](https://glama.ai/), [Hosting](https://glama.ai/mcp/hosting), and [Gateway](https://glama.ai/mcp/gateway), retrieved 2026-08-23 |
-| Submission UI | [Server directory](https://glama.ai/mcp/servers) and its public [submission bundle](https://glama.ai/client/SearchInput-gNdNux8K.js), retrieved 2026-08-23 |
-| Claim UI | Public [claim bundle](https://glama.ai/client/ClaimMcpServerModal-BUOkjwyt.js), retrieved 2026-08-23 |
-| Current checklist behavior | Public [no-release score page](https://glama.ai/mcp/servers/LeadBroaf/mcp-agent-server/score), [high-quality score page](https://glama.ai/mcp/servers/docmancer/docmancer/score), and [no-license score page](https://glama.ai/mcp/servers/Kminer2053/Artifact-Intelligence-public/score), retrieved 2026-08-23 |
-| Connector ownership contrast | Public [connector claim page](https://glama.ai/mcp/connectors/com.deploytoagents/server), retrieved 2026-08-23 |
-| Directory API contract | [OpenAPI document](https://glama.ai/api/mcp/openapi.json), retrieved 2026-08-23 |
+| Already satisfied | Public personal repository, MIT license, README/install/configuration documentation, Node 24 frozen build, non-root Docker runtime, stdio/Streamable HTTP, transport-aware health, centralized Trello client, disabled-by-default local upload. |
+| Concrete changes required | Correct understated permanent deletion and upload transmission, distinguish label creation from assignment, expose custom-field conditional requirements, and replace misleading natural-language search wording. Add reproducible full-schema discovery and zero-request regression coverage; replace the August audit and obsolete prose assertions. |
+| Local proof needed, now executed | Source, source-image, and immutable-release discovery; stdout/stderr and synthetic-value checks; exact tool/schema comparisons; source network-denial negative control; real image health in stdio and HTTP; clean shutdown and scoped cleanup. See the matrix below. |
+| External observations deferred | [#66](https://github.com/enthouan/trello-mcp/issues/66): exact profile search, ownership verification, approved build instructions, actual Glama discovery, score/security findings and search visibility. |
+| Specifically tracked gaps | [#182](https://github.com/enthouan/trello-mcp/issues/182): typed runtime annotations, catalog alignment, sibling ergonomics and richer parameter/result guidance. [#206](https://github.com/enthouan/trello-mcp/issues/206): deliberate output schemas and structured results after the SDK work. Neither is absorbed into #65. |
 
-The immutable TDQS links are normative for this audit. The live Glama pages,
-bundles, schema, and API are dated observations rather than permanent contracts.
+No evidence establishes a need for new package metadata, `bin`/npx packaging,
+cosmetic titles, or a root `glama.json`. No dependencies, transports, handlers,
+release metadata, or Docker health behavior changed. The Docker fallback was
+regenerated only because its descriptions derive from the runtime definitions;
+its separate upstream submission is outside this work.
 
-## Current Glama directory state
+## Pinned evidence and current requirements
 
-The canonical repository was not listed when checked:
+| Evidence | Revision / observation |
+| --- | --- |
+| Starting `origin/main` | `e6bacd34b03542663548ae00e85160571dd2bdce`, containing merged PR #227; canonical checkout clean, one commit behind, before branching from the fetched remote. |
+| Tested implementation source | `76fe34b9347dc4d5faaf5dfd1f77c94dcda2e06f`; later audit-only edits do not alter the tested runtime. |
+| Published release | [v1.0.3](https://github.com/enthouan/trello-mcp/releases/tag/v1.0.3), published 2026-10-09; annotated tag source `d7c22c78223b60ccabe269ae3af2415957fed861`. |
+| TDQS | [v1.3 specification at b9881b0cfec88969e42672c92544487ca191a992](https://github.com/glama-ai/tool-definition-quality-score/blob/b9881b0cfec88969e42672c92544487ca191a992/README.md), current upstream head when read. |
+| Mutable requirements | [Methodology](https://glama.ai/mcp/methodology), [server directory](https://glama.ai/mcp/servers), [ownership guidance](https://glama.ai/blog/2025-07-08-what-is-glamajson), and [server schema](https://glama.ai/mcp/schemas/server.json), read 2026-10-12. |
+| Submission wording | Public [Add Server bundle](https://glama.ai/client/AddMcpServerModal-Ce09_ZZv.js), read 2026-10-12. The signed-out Add Server button opened sign-up; no authentication or form submission occurred. Bundle URLs are dated observations, not stable API contracts. |
 
-- [`GET /v1/servers?query=enthouan&first=100`](https://glama.ai/api/mcp/v1/servers?query=enthouan&first=100)
-  returned HTTP 200 with zero servers.
-- The [directory owner search](https://glama.ai/mcp/servers?query=enthouan)
-  returned no profile.
-- The expected public profile
-  [`/mcp/servers/enthouan/trello-mcp`](https://glama.ai/mcp/servers/enthouan/trello-mcp)
-  returned HTTP 404.
-- The expected API identifier
-  [`/api/mcp/v1/servers/enthouan/trello-mcp`](https://glama.ai/api/mcp/v1/servers/enthouan/trello-mcp)
-  returned HTTP 404.
-- A public API query for `trello` returned related servers, but none had the
-  exact repository URL `https://github.com/enthouan/trello-mcp`.
+The current public submission client calls its source option **Runs from source**
+and asks for name, description, and GitHub repository URL. Its review message
+says Dockerfile instructions arrive after approval. The authenticated form and
+selected build configuration were not observed. The candidate below must be
+adapted to that actual configuration in #66.
 
-Other Trello-named profiles are unrelated repositories, not aliases of this
-project. There is therefore no existing profile to claim and no duplicate to
-reconcile based on the public evidence. This result is only the dated audit
-snapshot; automatic ingestion means it must be repeated immediately before any
-external action.
+Glama's methodology describes source ingestion, isolated builds, protocol
+introspection, behavioral inspection and repeated scoring. A profile can exist
+while build failure prevents search distribution. Ownership, submission, build,
+introspection, public listing, scoring/security, and search visibility are
+independent states. Hosting, Gateway, deployment and Make Release are not
+established prerequisites for this source-listing preparation.
 
-## Exact open-source submission and claim path
+The ownership guidance permits GitHub association for personal repositories.
+This repository is personal; actual association belongs to #66. An absent
+`glama.json` is not automatically a build or submission blocker. The current
+schema requires `maintainers`, a unique array of strings; it declares no command,
+environment, transport or deployment fields. If observed ownership requirements
+later justify a file, validate the current schema and use only a minimal
+maintainer declaration. Do not create configuration fields by analogy with
+other registries.
 
-The current public path is:
+No current authenticated directory/API identity was established. In particular,
+the planning API HTTP 401 is an authentication failure, not evidence of absence.
+The August claim that no listing exists is withdrawn. #66 must search for the
+exact repository, including automatic ingestion, before choosing claim or submit.
+No badge or accepted-listing link is justified yet.
 
-1. Search the [Glama server directory](https://glama.ai/mcp/servers) and public
-   API again for the exact source URL. If an exact profile appeared through
-   Glama's official-registry ingestion or another indexing path, verify its source
-   URL and use **Claim**; do not submit a duplicate.
-2. If the exact profile is still absent, choose **Add Server**. Signed-out users
-   are sent through sign-up with a return path to `/mcp/servers`; signed-in users
-   receive the Add Server modal. There is no stable standalone public Add Server
-   URL in the current client.
-3. Select **Open-source Server**, which the UI defines as source code hosted on
-   GitHub.
-4. Enter the name, description, and exact GitHub repository URL
-   `https://github.com/enthouan/trello-mcp`.
-5. Choose **Submit for Review**. The public client submits to
-   `POST /api/mcp/servers/submit` and says public submissions are reviewed before
-   becoming publicly visible.
-6. Once a profile exists, choose **Claim** on that exact profile and authenticate
-   with GitHub. The observed public client route is shaped as
-   `/oauth/github/auth?returnPath=/mcp/servers/<namespace>/<slug>`; it is a client
-   implementation detail, not a promised API.
-7. Glama verifies that the GitHub account has **write or admin access** to the
-   repository. Public documentation does not name the exact OAuth scopes or show
-   the current consent text, so those details must be recorded from the actual
-   consent screen before approval.
-8. Inspect the authenticated Docker build-spec, Deploy, and **Make Release**
-   controls without treating the public FAQ's suggested sequence as a verified
-   acceptance contract. Sampled score pages distinguish a Glama release from a
-   GitHub release and describe Claim → build spec → Deploy → Make Release, but the
-   exact fields, required order, and relationship to acceptance remain unverified.
-9. Verify inspectability, at least one detected tool, the public profile, schemas,
-   annotations, score/checklist, security findings, Inspector behavior, install
-   instructions, and API identity.
+## Credential-independent validation matrix
 
-Steps 2 through 9 are external mutations or authenticated observations. They are
-deliberately deferred. The public UI establishes a review stage, but does not
-establish that every ordinary submission receives human review. The methodology
-does explicitly reserve internal review for a `Malicious` security result.
+Host: macOS x64, Node **24.17.0**, pnpm **10.34.1**. Docker Desktop **4.94.0**,
+Engine/CLI **29.8.2**, local execution **linux/amd64**. The matching release
+checkout's probe launcher used Node 24.18.0; the MCP runtime ran inside its image.
 
-### Repository-root `glama.json`
+The source image was built from the committed implementation using the root
+Dockerfile. Published-image comparisons used the `v1.0.3` source/manifest extracted
+separately, with only the non-publishing inspection helper copied into that
+checkout. Shared dependencies match the identical release lockfile. No version
+was changed to conceal source-versus-release drift.
 
-Glama's live server schema requires an object with a unique string array named
-`maintainers`. It does not require `$schema`, require a non-empty array, constrain
-GitHub username syntax, or prohibit additional properties. Use the practical,
-explicit form:
+| Artifact | Identity | stdio discovery | Actual image health | Shutdown / cleanup |
+| --- | --- | --- | --- | --- |
+| Built source | `76fe34b9347dc4d5faaf5dfd1f77c94dcda2e06f` | Pass; macOS `(deny network*)`; 77 tools | Not applicable | SIGTERM, code 0, shutdown log |
+| Source-built image | Local ID `sha256:427b9c70e4b0120c86fe0fe80a0318b6931a97d35873d2b38ef1c5920da2056d` | Pass; `--network=none`; full definitions equal built source | Healthy in stdio and HTTP | Code 0; empty `docker diff`; temporary containers removed |
+| Published image | `ghcr.io/enthouan/trello-mcp@sha256:198f6758ea06fb786622a5335ad68d6a618adf3e20d1dda1094754d4a02b48a6` | Pass against matching `v1.0.3`; `--network=none`; 77 tools | Healthy in stdio and HTTP | Code 0; empty `docker diff`; temporary containers removed |
 
-```json
-{
-  "$schema": "https://glama.ai/mcp/schemas/server.json",
-  "maintainers": ["enthouan"]
-}
+All three initialize responses negotiated **2025-11-25**, server name
+`trello-mcp`, version **1.0.3**, and capabilities
+`{"tools":{"listChanged":true}}`. Each `tools/list` completed in one page with
+no cursor, missing, duplicate or unexpected names. The probe follows pagination
+and rejects repeated cursors; tests exercise these paths. Attachment upload
+remained enumerated with the upload root unset. The 76-tool Docker Registry
+fallback intentionally excludes that tool and is not the expected Glama catalog.
+
+Both `resources/list` and `prompts/list` returned protocol **-32601
+MethodNotFound**. Neither capability is advertised. These are unsupported
+methods, not successful empty catalogs. The low-level client request records the
+server response rather than a local convenience-method capability error.
+
+All 77 definitions expose descriptions and Zod-derived object input schemas;
+every top-level property has a description. Full source and source-image schemas
+match, including requiredness, defaults, enums, constraints and nullable inputs.
+No tool has a title, annotations or outputSchema. JSON text is the existing
+handler-result format. Refinements such as custom-field type/value requirements
+remain enforced at invocation even when not expressible in the wire schema;
+parameter prose now states that particular conditional contract explicitly.
+
+The SHA-256 of `JSON.stringify(capture.tools)` is:
+
+- source and source image: `9d4d75825a0f5ab785661f99e65c07c4833d2ccafc1fb2f6c1aa43a14ecbe559`;
+- published release: `08ad9caa75d0399ee8fb43d843d6beaaddd5c5433551919f35cd5fb8d16863c4`.
+
+Release drift is expected: this change improves 13 descriptions and three
+property descriptions across 14 tools. Names, validation behavior, capabilities,
+version and health are unchanged. The release does not contain these new words.
+The non-publishing `verifyImage` function from the release source independently
+verified the index digest, anonymous accessibility, ownership/source/version/
+revision metadata, both architecture configurations and digest-linked maximum
+provenance/SPDX attestations. Execution was amd64 only; arm64 provenance
+verification is not arm64 runtime testing.
+
+### Reproduction and isolation
+
+Run from the source being compared, using its pinned Node/pnpm versions:
+
+```bash
+CI=true corepack pnpm install --frozen-lockfile
+corepack pnpm build
+node --import tsx scripts/glama-discovery.ts source /tmp/glama-source.json
+docker build --label org.opencontainers.image.revision=76fe34b9347dc4d5faaf5dfd1f77c94dcda2e06f -t trello-mcp:issue65-glama-20261012 .
+node --import tsx scripts/glama-discovery.ts image /tmp/glama-image.json trello-mcp:issue65-glama-20261012
+corepack pnpm registry:release discover trello-mcp:issue65-glama-20261012
 ```
 
-The [Glama `glama.json` guidance](https://glama.ai/blog/2025-07-08-what-is-glamajson)
-says GitHub authentication can associate a personal repository, while an
-organization-owned repository needs the root file. Because this repository is
-personal, the file is not a documented absolute prerequisite. It is still
-strongly recommended before submission: it makes intended ownership explicit,
-is checked by the current quality UI, and avoids relying solely on account/repo
-association. Do not add it as part of this audit.
+The new probe writes complete initialization, tool schemas/metadata, resource/
+prompt responses, stderr, image configuration, health, filesystem changes and
+exit results to the specified local file. It verifies output safety and cleanup
+before reporting success. The older `discover` command remains a separate check
+of names, version and Docker health; it does not provide the full-schema proof.
+Neither command publishes anything or invokes a tool handler.
 
-## Similar names, different ownership mechanisms
+For the published image, extract `v1.0.3` with `git archive` into a separate
+directory, install its frozen dependencies, copy `scripts/glama-discovery.ts` and
+`scripts/lib/mcp-discovery.ts` there, and run the same image probe and existing
+`registry:release discover` using the immutable reference above. Do not compare
+an older image to a newer catalog and call legitimate drift a release failure.
 
-| Mechanism | What it proves or enables | Applies now? |
-| --- | --- | --- |
-| GitHub OAuth | Verifies that the submitting/claiming account has write or admin access to the source repository. Exact OAuth scopes are not public. | Yes, during the later submission/claim. |
-| Repository-root `glama.json` | Declares GitHub usernames permitted to maintain an open-source server profile using the live server schema. | Strongly recommended preparation; absent today. |
-| Glama GitHub App | Lets the separate Hosting product connect a repository, read `glama.json` or a Dockerfile, build, deploy, and roll back. | No; Hosting is optional. |
-| `/.well-known/glama.json` on a service domain | Claims an already-operated hosted connector using the connector schema and account-email maintainers. | No; this is not the repository-root server file and there is no operated endpoint. |
-| GitHub release | Repository maintenance signal shown on score pages. The latest repository release is `v1.0.0`. | Already present, but not a Glama release. |
-| Glama release | Authenticated Glama lifecycle object that public score-page guidance distinguishes from a GitHub release and places after configured build/deploy. Its exact required role is unverified. | Later external work; not created by this audit and not yet an acceptance requirement. |
+The source child receives only `TRANSPORT`, `LOG_LEVEL`, `TRELLO_API_KEY` and
+`TRELLO_TOKEN`, using fixed, nonfunctional synthetic values. It runs the absolute
+Node executable and `dist/index.js` beneath macOS `sandbox-exec` with
+`(version 1)(allow default)(deny network*)`. A negative-control connection to
+`127.0.0.1:9` failed with **EPERM**, confirming denial rather than assuming it.
+On other hosts the source mode fails closed; use an explicitly isolated runtime.
+The in-memory regression injects a throw-on-use fetcher and asserts **zero
+requests and zero fetch calls** through initialization and all discovery methods.
 
-## Repository readiness checklist
+Docker receives explicit synthetic runtime variables, no `--env-file`, no host
+mount, no upload root and no published port. Only PATH and HOME are allowed into
+the Docker CLI for its local context/socket; these are not forwarded into the
+container. Source startup does not load `.env`. No real Trello credentials were
+read, passed, or used by the validation probes.
 
-Status meanings: **Ready** is evidenced at the pinned source revision; **Prepare**
-means a repository change or Glama-specific proof remains; **External** means it
-can only be observed or performed in Glama later.
+### Transport-specific health
 
-| Requirement | Status | Evidence and remaining work |
-| --- | --- | --- |
-| Public, reachable GitHub source | Ready | `https://github.com/enthouan/trello-mcp` is public, active, unarchived, and is the canonical remote. Refresh immediately before submission. |
-| Clear purpose and identity | Ready | `README.md` identifies a self-hostable MCP server for Trello and clearly states that it is independent and unofficial. |
-| Canonical URLs | Ready | Source is `https://github.com/enthouan/trello-mcp`; project documentation is `https://trello-mcp.com/`. |
-| Install/run documentation | Ready | README documents the published image, local Docker build, source install, HTTP, stdio, health checks, client setup, verification, and usage examples. |
-| Configuration contract | Ready | Required `TRELLO_API_KEY` and `TRELLO_TOKEN`; optional `MCP_AUTH_TOKEN` and `TRELLO_ATTACHMENT_UPLOAD_ROOT`; and supported rate/retry settings are documented in README, `.env.example`, and `docs/configuration.md`. `LOG_LEVEL=info` is the safe default. |
-| README, LICENSE, support, privacy, security | Ready | Root README and MIT `LICENSE` exist; `SECURITY.md`, `PRIVACY.md`, and `SUPPORT.md` are linked. Current score pages say a missing license prevents installation. |
-| Release and activity signals | Ready | GitHub [`v1.0.0`](https://github.com/enthouan/trello-mcp/releases/tag/v1.0.0) was published 2026-08-14, the [releases API](https://api.github.com/repos/enthouan/trello-mcp/releases?per_page=100) returned 13 published releases, and [PR #204](https://github.com/enthouan/trello-mcp/pull/204) merged to `main` on 2026-08-23. This dated evidence shows active maintenance and is separate from any Glama release. |
-| Package discoverability metadata | Prepare | `package.json` has name, version, description, license, files, engines, scripts, and pinned package manager, but no `repository`, `homepage`, `bugs`, `keywords`, or `bin`. These are discoverability improvements, not documented Glama build blockers. |
-| Reproducible source build | Prepare | Node is constrained to `>=24.0.0 <25.0.0`; Corepack pins `pnpm@10.34.1`; and `pnpm-lock.yaml` supports `corepack pnpm install --frozen-lockfile`. Glama's exact clone/build must still be reproduced with its chosen spec. |
-| Dockerfile and commands | Ready locally; External on Glama | Root multi-stage Node 24 Dockerfile uses a frozen install, production prune, unprivileged runtime, health check, and `node dist/index.js`. Local image command: `docker build -t trello-mcp .`. Glama may use this file or infer one; confirm which it selects. |
-| Transports and defaults | Ready locally; External on Glama | Runtime supports stdio and Streamable HTTP. Docker defaults to `TRANSPORT=http` on port 3000; `TRANSPORT=stdio` opens no listener, makes `PORT` irrelevant, and is the likely source-inspection mode. |
-| Credential-independent startup | Prepare | Configuration requires non-empty Trello key/token strings, but startup does not validate them against Trello. Synthetic values work for generic Inspector discovery; prove the exact Glama path with outbound Trello access denied. |
-| `tools/list` | Prepare | Existing Inspector documentation records 77 tools with synthetic credentials and no Trello discovery call. Re-run on the exact Glama build/run command and verify the full schemas. |
-| `resources/list` and `prompts/list` | Prepare | No resources or prompts are intentionally registered. Record the exact protocol responses rather than assuming unsupported methods return empty lists. |
-| Tool descriptions and input schemas | Ready for audit; Prepare for score | Every registered tool has a description and Zod-derived input schema; website contracts require described input properties. TDQS-specific quality still needs a full tool-by-tool review. |
-| Tool behavior taxonomy | Ready locally; Prepare for metadata | Website contracts classify the 77 tools as 40 read, 31 write, and 6 permanent-delete. This taxonomy does not reach Glama as MCP annotations today. |
-| Tool titles | Prepare | No tool title is registered. |
-| Output schemas | Prepare | Handlers return JSON-serializable values wrapped as text; no MCP `outputSchema` is registered. |
-| MCP annotations | Prepare | No `readOnlyHint`, `destructiveHint`, `idempotentHint`, or `openWorldHint` is registered. Website read/write/delete taxonomy is not MCP metadata. |
-| Root `glama.json` | Prepare | Missing. Current score pages flag a missing or invalid file as a quality deficiency. Add and validate the minimal maintainer declaration before external submission. |
-| Glama profile/claim | External | No exact profile exists; submit and claim only after preparation is approved. |
-| Inspectability and tool detection | Prepare; External proof | Current score/checklist guidance treats an inspectable server and at least one detected tool as installation/distribution requirements. Do not represent `trello-mcp` as inspectable until its actual Glama build and discovery pass. |
-| Glama build, release, score, and Inspector | External | No authenticated build, deploy, release, score, or Inspector session has occurred. Exact authenticated fields and any Make Release prerequisite must be verified before becoming acceptance requirements. |
-| Hosted connector endpoint | Not applicable | The project is self-hosted and does not operate a canonical public MCP endpoint. |
+The image-defined health command was retained, without `--no-healthcheck` or an
+override. Stdin remained open through the real MCP client during stdio checks.
+The successful initialize/tools exchange proves responsiveness independently of
+Docker's stdio process-liveness status. Executing each image's actual health
+JavaScript with a throw-on-fetch spy in stdio observed zero HTTP probes.
 
-The missing package fields are worth correcting for general discovery, but no
-public Glama source observed in this audit declares them mandatory. They must not
-be presented as submission blockers without new evidence.
+For each image the HTTP check used this shape, with a unique task-specific name:
 
-## Build and live-introspection implications
+```bash
+docker run -d --network=none --name <unique-health-container> \
+  -e TRANSPORT=http -e PORT=4321 -e LOG_LEVEL=debug \
+  -e TRELLO_API_KEY=synthetic-http-glama-key \
+  -e TRELLO_TOKEN=synthetic-http-glama-token <image-reference>
+docker inspect --format '{{json .State.Health}}' <unique-health-container>
+docker exec <unique-health-container> node --input-type=module -e "const r=await fetch('http://127.0.0.1:4321/healthz'); console.log(r.status,await r.json())"
+docker diff <unique-health-container>
+docker stop --time 5 <unique-health-container>
+docker inspect --format '{{.State.ExitCode}}' <unique-health-container>
+docker logs <unique-health-container>
+docker rm <unique-health-container>
+```
 
-Glama's [methodology](https://glama.ai/mcp/methodology) describes this source
-pipeline:
+Both scheduled health checks became healthy; container-local `/healthz` returned
+HTTP **200** and `{"status":"ok"}` on **4321**. Inspected network mode was `none`
+and port bindings were empty. No HTTP endpoint was exposed. HTTP logs used
+stdout, stdio logs used stderr, and no synthetic credential appeared in either
+stream. All stdio stdout lines were JSON-RPC. Both HTTP processes shut down with
+code 0, empty filesystem diffs and removed temporary containers.
 
-1. clone and continuously synchronize the full Git history;
-2. build a repository Dockerfile or an inferred Dockerfile;
-3. run it in an isolated Firecracker microVM with ephemeral filesystem and
-   network;
-4. call MCP discovery methods including `tools/list`, `resources/list`, and
-   `prompts/list`, retaining schemas and annotations;
-5. analyze runtime behavior, publish the profile and findings, and repeat work on
-   commits/rebuilds.
+## Complete tool-quality audit
 
-If a reproducible build fails, a profile may remain visible by direct URL while
-Glama withholds it from search, categories, and recommendations. A successful
-profile submission is therefore not proof of distribution readiness.
+This is an implementation review of actual `tools/list` and all nine definition
+modules, informed by the pinned TDQS specification. It is **not a computed TDQS
+score**. Its dimensions are Purpose Clarity, Usage Guidelines, Behavioral
+Transparency, Parameter Semantics, Conciseness & Structure, and Contextual
+Completeness. The current specification evaluates actual documented output
+fields; a placeholder output schema earns no completeness claim.
 
-At the pinned source revision:
+Every row shares two tracked omissions: **M** = annotations/catalog semantics in
+[#182](https://github.com/enthouan/trello-mcp/issues/182); **O** = output schemas/
+structured results in [#206](https://github.com/enthouan/trello-mcp/issues/206).
+Titles are optional and no functional selection problem requires cosmetic ones.
+**Adequate** means the existing purpose/input wording is usable with M/O still
+open; **Fixed** identifies a concrete wording defect addressed here.
 
-- Node must satisfy `>=24.0.0 <25.0.0`; Corepack uses `pnpm@10.34.1`.
-- `corepack pnpm build` compiles TypeScript to `dist/`; `corepack pnpm start`
-  runs the runtime command `node dist/index.js`; `docker build -t trello-mcp .`
-  builds the root Dockerfile locally.
-- Runtime supports stdio and Streamable HTTP. The Dockerfile defaults to
-  `TRANSPORT=http` and port 3000. For child-process discovery,
-  `TRANSPORT=stdio` avoids opening a listener, makes `PORT` unused, and sends
-  structured logs to stderr. The exact mode Glama chooses is not public and must
-  be observed.
-- `LOG_LEVEL=info` is the default. HTTP deployments can opt into bearer
-  authentication with `MCP_AUTH_TOKEN`; server-local attachment reads stay
-  disabled unless `TRELLO_ATTACHMENT_UPLOAD_ROOT` is an absolute configured root.
-- `TRELLO_API_KEY` and `TRELLO_TOKEN` must be non-empty at startup. Synthetic
-  values such as `validation-only` satisfy schema validation.
-- Server construction registers all 77 tools without contacting Trello. The
-  `TrelloClient` performs network access only when a handler invokes
-  `trello.request(...)`.
-- Generic Inspector documentation already reports 77 tools over both source and
-  Docker startup with synthetic credentials. That is supporting evidence, not a
-  substitute for a network-denied Glama-compatible proof.
-- No resources or prompts are intentionally registered.
+Behavior notation is derived from handlers, not name prefixes: **R** reads Trello
+without mutation; repeated reads may return changed external state. **C** creates
+new state, is not idempotent and can duplicate on replay. **S** sets existing
+state; restoring it needs old values and permissions. **A** adds/removes an
+association, reversible by its sibling while the objects remain accessible.
+**D** permanently removes state; repeating may fail because the resource is gone.
+S/A/D do not promise safe retries or notification-free replay. Reordering and
+cross-board moves can depend on intervening changes. All operations are
+**open-world Trello operations**, including diagnostics; upload additionally
+reads a guarded local file. No runtime hint claims otherwise.
 
-The preparation run must fail closed if any discovery step tries to reach
-`api.trello.com`. It must capture the exact build command, runtime command,
-transport, environment-variable names, protocol responses, tool count, stderr,
-exit state, and whether Glama needs a health check. Do not use real Trello
-credentials or invoke any tool handler merely to prove enumeration.
+| Tool | Purpose, schema/parameter clarity and sibling distinction | Behavior / reversibility | Disposition |
+| --- | --- | --- | --- |
+| `auth_whoami` | Current authenticated member; described fields; unlike member_get, checks configured identity. | R; requires functional credentials when invoked | Adequate; M/O |
+| `auth_token_info` | Configured token owner/expiry/permissions; no token-management side effect; token-sensitive path audited. | R; real Trello request, not offline discovery | Adequate; M/O |
+| `list_boards` | Visible member boards; open default and field projection; initial board selection. | R | Adequate; M/O |
+| `board_create` | Name/workspace/visibility; private default, explicit public opt-in; server leaves other defaults to Trello. | C; no board-delete tool; archive/manage externally | Adequate; M/O |
+| `board_get` | Known board details/preferences/label names; required name preserved. | R | Adequate; M/O |
+| `board_field_get` | One enumerated field; narrower than board_get. | R; response varies by field | Adequate; M/O |
+| `board_actions` | Board-wide history; filters, limit 50, page 0 and since/before; not whole-history retrieval. | R | Adequate; M/O |
+| `board_lists` | Lists on one board, open default; obtains list ids before card workflows. | R | Adequate; M/O |
+| `board_cards` | Cross-list card collection; bounded limit/cursors/fields in schema; list_cards is narrower. | R | Adequate; M/O |
+| `board_custom_fields` | Definitions/options on a board; differs from card values. | R | Adequate; M/O |
+| `board_labels` | Available board labels, fields and bounded limit; differs from applied card labels. | R | Adequate; M/O |
+| `board_members` | Accessible member profiles; token visibility caveat; memberships returns roles. | R | Adequate; M/O |
+| `board_memberships` | Roles/permission context, admins filter and optional profiles. | R | Adequate; M/O |
+| `list_workspaces` | Current member's workspaces; all default, optional paid details. | R | Adequate; M/O |
+| `workspace_get` | One workspace's metadata; described id/name and fields. | R | Adequate; M/O |
+| `workspace_boards` | Boards in one workspace; open default; narrower than list_boards. | R | Adequate; M/O |
+| `workspace_members` | Members in workspace; role filter and fields. | R | Adequate; M/O |
+| `workspace_actions` | Workspace history; shared bounded filters/cursors/page. | R | Adequate; M/O |
+| `member_get` | Member id/username/me profile; complements search_members. | R | Adequate; M/O |
+| `member_boards` | Known member's boards, open filter; visibility caveat. | R | Adequate; M/O |
+| `member_cards` | Assigned cards, visible default, bounded paging/fields. | R | Adequate; M/O |
+| `member_workspaces` | Known member's workspaces; differs from current-member discovery. | R | Adequate; M/O |
+| `list_get` | Known list metadata and field projection. | R | Adequate; M/O |
+| `list_create` | Name/board/position, bottom default. | C; can archive later | Adequate; M/O |
+| `list_update` | Name/position/archive fields; list_archive is focused state alternative. | S; recoverable with prior values | Adequate; M/O |
+| `list_archive` | closed defaults true; false restores; cards retained. | S; reversible archive state | Adequate; M/O |
+| `list_move_to_board` | Destination board; now discloses moving cards and access changes; list_update reorders. | S; move-back depends on permissions/state | Fixed; M/O |
+| `list_actions` | One list's bounded history, distinct scope from board_actions. | R | Adequate; M/O |
+| `card_get` | Known card details; now says short link, not ambiguous short id; all fields default. | R | Fixed; M/O |
+| `card_board` | Parent board object; relationship lookup rather than board-id discovery. | R | Adequate; M/O |
+| `card_list` | Parent list object before moving/reporting status. | R | Adequate; M/O |
+| `card_labels` | Applied label objects and ids, unlike board_labels. | R | Adequate; M/O |
+| `list_cards` | Cards from one list; explicit limit/cursor/fields guidance. | R | Adequate; M/O |
+| `card_create` | Known list, title/description/due/position/members/labels; bottom default. | C; archive or delete new card | Adequate; M/O |
+| `card_update` | Metadata and archive state without movement; null clears due. | S; prior values needed | Adequate; M/O |
+| `card_due_date_set` | Focused due/completion; at least one required in prose and handler. | S; null clears due | Adequate; M/O |
+| `card_position_set` | Current-list position; names card_move alternative. | S; order depends on other cards | Adequate; M/O |
+| `card_cover_set` | Existing attachment or null; display options require attachment; leaves file intact. | S; previous cover needed | Adequate; M/O |
+| `card_label_create_and_add` | New board label plus assignment; now names existing-label alternative and duplicates. | C; remove association does not delete label | Fixed; M/O |
+| `card_delete` | Explicit permanent deletion; archive alternative already disclosed. | D; cannot restore | Adequate; M/O |
+| `card_move` | Optional list/board/position, distinct from metadata; cross-board constraints enforced by Trello. | S; access/labels/member mapping can change | Adequate; M/O; cross-board ergonomics tracked |
+| `card_archive` | closed true/false, reversible alternative to card_delete. | S; restore with false | Adequate; M/O |
+| `card_attachments` | Metadata list, optional fields/filter; does not download files. | R | Adequate; M/O |
+| `card_attachment_get` | One attachment's metadata, no file-content fetch. | R | Adequate; M/O |
+| `card_attachment_add_url` | Public URL, optional display name/cover; distinct from upload. | C; duplicate attachments possible; delete to remove | Adequate; M/O |
+| `card_attachment_upload` | Server-side path/root containment, optional MIME/name/cover; now states transmission and disabled default. | C plus local read; duplicates possible | Fixed; M/O |
+| `card_attachment_delete` | Card and attachment ids; now permanent upload-file removal, with cover-clearing alternative. | D; cannot restore stored upload | Fixed; M/O |
+| `card_checklists` | All card checklists/items; card_checklist_items narrows to one checklist. | R | Adequate; M/O |
+| `card_checklist_create` | Name and optional copy source; new checklist. | C; delete to remove | Adequate; M/O |
+| `card_checklist_update` | Name/position, at least one explicitly required; checklist id suffices. | S; previous values needed | Adequate; M/O |
+| `card_checklist_delete` | Card/checklist ids; now discloses permanent loss of all items and single-item alternative. | D; cannot restore | Fixed; M/O |
+| `card_checklist_item_create` | Text/position/checked/due/reminder/member; existing checklist prerequisite. | C; delete to remove | Adequate; M/O |
+| `card_checklist_items` | One checklist, all/checked/unchecked filter and fields. | R | Adequate; M/O |
+| `card_checklist_item_update` | Text/state/date/reminder/member and destination checklist; null clear semantics described. | S; previous values needed | Adequate; M/O |
+| `card_checklist_item_set_checked` | Boolean checked; focused completion without other edits. | S; toggle to restore | Adequate; M/O |
+| `card_checklist_item_move` | Destination checklist on same card; optional position. | S; prior checklist/order needed | Adequate; M/O |
+| `card_checklist_item_delete` | Card/item ids; now permanent loss, with set_checked alternative. | D; cannot restore | Fixed; M/O |
+| `card_custom_field_items` | Current card values; differs from board definitions/options. | R | Adequate; M/O |
+| `card_custom_field_set` | Exact type/value mapping now in schema prose; definition/options/clear siblings named. | S; replaces value; extra value inputs ignored | Fixed; M/O |
+| `card_custom_field_clear` | Now explains value loss and retained board definition instead of HTTP mechanics. | S; old value needed to restore | Fixed; M/O |
+| `card_members` | Assigned members, visibility/fields; differs from board eligibility. | R | Adequate; M/O |
+| `card_member_add` | Existing member id; requires write access and eligible member. | A; sibling remove, replay effects unpromised | Adequate; M/O |
+| `card_member_remove` | Unassign only, not board-membership deletion. | A; sibling add | Adequate; M/O |
+| `card_comment_add` | New comment action; now warns replay duplicates and names update. | C; update/delete with returned action id | Fixed; M/O |
+| `card_comment_update` | Action id and replacement text; not new comment. | S; previous text needed | Adequate; M/O |
+| `card_comment_delete` | Action id; now permanent loss, with update alternative. | D; cannot restore original action | Fixed; M/O |
+| `card_actions` | Card's bounded action/comment history; scope differs from board/list/workspace. | R | Adequate; M/O |
+| `label_get` | Specific reusable board label details. | R | Adequate; M/O |
+| `label_create` | Name/color/board; palette enum, creates reusable label. | C; delete to remove | Adequate; M/O |
+| `label_update` | Name/color, null removes color; assignments preserved. | S; affects appearance wherever used | Adequate; M/O |
+| `label_delete` | Now discloses board-wide removal and names single-card removal alternative. | D; cannot restore original label | Fixed; M/O |
+| `card_label_add` | Existing label id, not creation. | A; sibling remove | Adequate; M/O |
+| `card_label_remove` | Single-card unassignment; board label remains. | A; sibling add | Adequate; M/O |
+| `custom_field_get` | Definition/type/options, prerequisite to setting correct value type. | R | Adequate; M/O |
+| `custom_field_options` | Dropdown options before selecting optionId; not card values. | R | Adequate; M/O |
+| `search` | Query passed through; now grouped result types, default cards/boards, scope and cardsPage explained. | R; bounded, not exhaustive cross-type pagination | Fixed; M/O |
+| `search_members` | Name/username, small result limit, board/workspace visibility; corrected shared query wording. | R | Fixed; M/O |
 
-The Docker Registry `tools.json` fallback is registry-specific generated
-metadata. It is not evidence that Glama can build or introspect the server and
-must not replace the live Glama-compatible test.
+The consequential corrections are supported by the handlers and Trello's primary
+[card deletion](https://support.atlassian.com/trello/docs/archiving-and-deleting-cards/),
+[checklist deletion](https://support.atlassian.com/trello/docs/adding-checklists-to-cards/),
+[attachments](https://support.atlassian.com/trello/docs/adding-attachments-to-cards/),
+and [search API](https://developer.atlassian.com/cloud/trello/rest/api-group-search/)
+documentation, read 2026-10-12. Create operations have no deduplication key in
+this implementation. Dense setter families remain deliberately distinct; #182
+owns broader annotation/coherence improvements, including formal replay hints.
+No rename, consolidation, blanket annotation, placeholder output schema or
+predicted score was introduced.
 
-## Tool Definition Quality Score readiness
+## Safety assumptions and limits
 
-TDQS evaluates what an MCP client receives from `tools/list`, not runtime
-correctness. Its exact inputs are tool name, optional title, description, input
-schema, optional output schema, annotations, and sibling tool names
-([pinned specification](https://github.com/glama-ai/tool-definition-quality-score/blob/c8c6b0c291466fe13e22dbfedcea0af1f1ca47b7/README.md#L51-L65)).
+- **Credentials:** configuration requires non-empty `TRELLO_API_KEY` and
+  `TRELLO_TOKEN`, not validated credentials at startup. Synthetic values suffice
+  for initialization/discovery only. Auth diagnostic tool invocation is a real
+  Trello request and was not used as an offline probe.
+- **Egress:** application requests originate only in `src/trello/client.ts`, using
+  `https://api.trello.com/1`. Key/token are query parameters; `auth_token_info`
+  additionally encodes the token in `/tokens/{token}`. Do not log request URLs,
+  query strings, token paths or raw environment objects. Expected API use is not
+  a claim of packet-level confinement: redirects/dependency behavior and future
+  authenticated operations were not exercised. HTTP health's only request is
+  container-local `/healthz`.
+- **Logs/output:** redaction removes known credential/authorization and whole
+  URL/path/query fields. Runtime errors avoid raw network errors. Never place
+  credentials in logs, screenshots, committed evidence or review text. Synthetic
+  leak checks cover captured protocol and log output, not every future handler
+  response. Trello-originated content remains untrusted input.
+- **Files:** startup reads package metadata and runtime modules. Upload is disabled
+  unless `TRELLO_ATTACHMENT_UPLOAD_ROOT` is configured. Enabled upload resolves
+  the root and requested file through realpath, rejects paths/symlinks outside
+  the root, requires a regular file, reads it into memory and transmits it to
+  Trello. Those checks are not protection against a hostile concurrent writer
+  changing filesystem entries between validation and read; use an operator-owned
+  upload directory. Discovery uses no upload root or mounted files.
+- **Processes/writes:** production application code does not spawn subprocesses
+  or write application files. Node/module reads and Docker's scheduled health
+  process are expected. Builds and the validation harness legitimately spawn
+  compilers, clients and Docker commands. Empty `docker diff` is supporting
+  evidence, not a syscall trace or proof of no reads. Glama's actual behavioral
+  scan remains external.
+- **Access:** optional `MCP_AUTH_TOKEN` protects HTTP MCP requests, not health
+  endpoints. Stdio opens no HTTP listener. No public endpoint was created.
 
-### Rubric and aggregation
+Glama distinguishes noteworthy **Risky** findings from **Malicious** findings
+that require internal review. No such finding or numeric security grade was
+obtained here. Actual findings must be resolved or linked to a specific issue
+before #66 represents them as handled.
 
-| Dimension | Weight | What to demonstrate |
-| --- | ---: | --- |
-| Purpose Clarity | 25% | Specific verb, resource, and scope; distinguish siblings. |
-| Usage Guidelines | 20% | State when to use it, when not to, and the better alternative. |
-| Behavioral Transparency | 20% | Disclose consequential behavior beyond annotations: mutation, deletion, auth, filesystem/network effects, and constraints. |
-| Parameter Semantics | 15% | Describe properties and enums in the schema rather than duplicating them vaguely in prose. |
-| Conciseness & Structure | 10% | Front-load useful facts and avoid repetition. |
-| Contextual Completeness | 10% | Supply the context appropriate to complexity and structured metadata. |
+## Verification and handoff to #66
 
-The [pinned rubric](https://github.com/glama-ai/tool-definition-quality-score/blob/c8c6b0c291466fe13e22dbfedcea0af1f1ca47b7/README.md#L112-L167)
-gives a missing description 1.0/tier D, caps tautological Purpose Clarity at 2,
-flags annotation contradictions, and records every dimension below 3 as a smell.
-Per-property descriptions and enums improve Parameter Semantics, while an output
-schema reduces how much return-shape explanation the prose description must carry.
-Tiers are A at 3.5+, B at 3.0+ (the passing bar), C at 2.0+, D at 1.0+, and F
-below 1.0
-([tier definition](https://github.com/glama-ai/tool-definition-quality-score/blob/c8c6b0c291466fe13e22dbfedcea0af1f1ca47b7/README.md#L198-L220)).
+Required local checks and final review results are recorded in the implementing
+PR. Offline discovery is a local compatibility baseline; ordinary CI success is
+not Glama validation. The offline matrix does not test live Trello functionality, Glama Firecracker
+execution, authenticated ownership/consent, public profile identity, scan
+findings, or arm64 runtime execution. Separately authorized existing PR smoke CI
+is recorded with its run and cleanup result in the implementing PR.
 
-Server definition quality is `0.6 × mean(TDQS) + 0.4 × minimum(TDQS)` and is
-computed only when at least 80% of tools are scored. A single weak tool therefore
-materially lowers the server score
-([rollup](https://github.com/glama-ai/tool-definition-quality-score/blob/c8c6b0c291466fe13e22dbfedcea0af1f1ca47b7/README.md#L231-L245)).
-The overall score is 70% definition quality and 30% server coherence. Coherence
-equally evaluates disambiguation, naming consistency, tool-count appropriateness,
-and completeness
-([coherence](https://github.com/glama-ai/tool-definition-quality-score/blob/c8c6b0c291466fe13e22dbfedcea0af1f1ca47b7/README.md#L247-L268)).
+[#64](https://github.com/enthouan/trello-mcp/issues/64) supplied the initial audit.
+[#65](https://github.com/enthouan/trello-mcp/issues/65) owns this preparation and
+its merge verification. [#66](https://github.com/enthouan/trello-mcp/issues/66)
+should perform this explicit handoff, under separately authorized external work:
 
-### Current 77-tool risk assessment
+1. Refresh methodology, schema, TDQS revision and the exact-repository search.
+   Check source URL `https://github.com/enthouan/trello-mcp`; claim an existing
+   match instead of creating a duplicate. Do not infer absence from API 401.
+2. Observe actual GitHub association/ownership and consent requirements. Do not
+   install the Hosting GitHub App or add `glama.json` without a demonstrated need.
+3. If needed, submit through Runs from source with the canonical identity and
+   concise description. Record submission/review independently of public listing.
+4. Observe the approved Dockerfile/build/run instructions. Start from this
+   candidate, retain a synthetic-only allowlist and disabled upload root, and
+   reproduce initialize, full tools/list, resource/prompt behavior, output safety,
+   transport health and shutdown under the actual Glama configuration.
+5. Verify detected source revision and full catalog. A scan of the release image
+   legitimately lacks these description fixes; do not republish or alter version
+   metadata merely to hide drift. No real Trello credential is needed for discovery.
+6. Record independent states for ownership, submission, build/introspection,
+   public profile, scoring/security and search visibility. Do not infer that
+   deployment or Make Release is required from unrelated product guidance.
+7. Review every actual score/security finding; resolve it or link a specific
+   follow-up, including #182/#206 when applicable. Use only observed refresh
+   controls and do not promise a sync SLA. Add a badge/link only after verifying
+   the exact accepted public profile.
 
-Current strengths:
-
-- all 77 names are deterministic, unique, and MCP-compatible;
-- every tool has a non-empty description and input schema;
-- input properties are generally described and enum values are explicit;
-- the current website taxonomy records 40 read, 31 write, and 6 permanent-delete
-  tools;
-- domain naming is consistent and CRUD/lifecycle coverage is broad.
-
-Current material gaps:
-
-- no titles, output schemas, or MCP annotations reach `tools/list`;
-- without annotations, descriptions carry the full TDQS behavioral-disclosure
-  burden;
-- 77 tools exceed TDQS's 50+ extreme-mismatch anchor for the tool-count
-  appropriateness dimension, although the rubric is contextual rather than an
-  automatic failure;
-- dense sibling families may not always explain when to choose one operation over
-  another;
-- the minimum-weighted rollup makes the weakest single definition important.
-
-Do not invent a numeric TDQS score before Glama evaluates the actual tool set.
-Instead, review all 77 definitions deterministically and give extra scrutiny to:
-
-- the six permanent-delete operations and their recoverable archive/remove
-  alternatives;
-- attachment upload, which deliberately reads a guarded local file and sends it
-  to Trello;
-- dense card/checklist/member/label sibling families;
-- broad search and action-history tools;
-- discriminated custom-field inputs;
-- board creation's private default;
-- all write operations for idempotency, reversibility, and external-side-effect
-  wording.
-
-For each tool, record name/title/description/input/output/annotations, schema
-description coverage, siblings, expected read/write/delete/open-world behavior,
-and rubric findings. Prefer accurate annotations, per-property descriptions,
-enums, and output schemas over repetitive prose. Never add an annotation that
-contradicts behavior: TDQS forces Behavioral Transparency to 1 and publishes an
-`Annotation Contradiction` flag
-([improvement guidance](https://github.com/glama-ai/tool-definition-quality-score/blob/c8c6b0c291466fe13e22dbfedcea0af1f1ca47b7/README.md#L343-L354)).
-
-## Sandbox and security review mapping
-
-Glama scans build/runtime behavior in addition to TDQS. The table maps its
-published checks to current repository evidence without predicting a grade.
-For open-source sandbox runs, the published checks include unrelated
-credential-path access, undeclared outbound hosts, exfiltration-like payloads,
-unrelated subprocesses, and writes outside the expected working directory. Glama
-also publishes schema-drift and prompt-injection monitoring for hosted connectors;
-that connector-specific wording is distinguished below rather than silently
-promoted into a source-listing gate.
-
-| Glama observation | Current repository behavior | Remaining proof |
-| --- | --- | --- |
-| Credential access | Secrets come from declared environment variables. Trello key/token, optional HTTP bearer token, and optional upload root are read only for their documented functions. | Confirm Glama injects only declared variables and no discovery output contains synthetic values. |
-| Outbound network | Application source centralizes external network access in `src/trello/client.ts` at `https://api.trello.com/1`; no other external application egress path was found. The Docker health check separately fetches only its container-local `/healthz` endpoint. | Prove startup/discovery makes zero Trello requests; later functional validation must separately declare expected Trello egress. |
-| Exfiltration-like payloads and logs | `TRELLO_API_KEY` and `TRELLO_TOKEN` are added to every Trello request as query parameters. `auth_token_info` also URL-encodes `TRELLO_TOKEN` in the `/tokens/{token}` path required by that Trello endpoint; `MCP_AUTH_TOKEN` is compared with an incoming authorization header. Logger redaction removes Trello credentials, authorization values, and whole URL, path, and query fields; stdio logging goes to stderr rather than the MCP protocol stream. | Inspect Glama findings and ensure no payload or log leaks a real or synthetic credential. |
-| Filesystem reads/writes | Normal runtime reads package metadata. Attachment upload is disabled without an explicit root; when enabled, realpath and symlink containment restrict reads to that configured root. Production code has no filesystem writes. | Keep upload disabled for initial discovery; document the intentional file-to-Trello flow if later enabled. |
-| Process spawning | No production subprocess or shell execution was found. | Confirm the built artifact exhibits the same behavior. |
-| Working-directory writes | The service is stateless and has no application database or normal runtime write path. | Confirm the Glama container produces no unexplained writes. |
-| Schema drift and prompt-injection patterns | Glama explicitly documents schema-drift and prompt-injection monitoring for hosted connectors. For open-source servers it confirms repeated commit/rebuild analysis plus schema/history capture. No MCP prompts are registered here, but Trello-originated JSON text remains untrusted. | Do not assume connector-only monitoring is a universal source-listing gate; inspect the actual open-source profile and never claim prompt-injection immunity. |
-| Authentication and exposure | HTTP can require `MCP_AUTH_TOKEN`; stdio is process-local. Published Compose binds the host port to loopback by default. | Determine whether Glama uses stdio or HTTP and how any hosted endpoint is gated. |
-| Offline validation | Normal Vitest coverage uses mocked or injected fetchers and no live Trello credentials or network calls. | Reuse a network-denied or mocked validation path for Glama-compatible discovery. |
-
-The methodology distinguishes two outcomes:
-
-- `Risky`: potentially dangerous behavior may remain publicly listed with its
-  profile.
-- `Malicious`: evidence enters internal review and may lead to maintainer contact
-  or delisting.
-
-There is no public numeric security-grade formula to precompute. Record actual
-findings verbatim, map each to source/runtime evidence, remediate or explain it,
-then trigger only the documented authenticated refresh mechanism.
-
-## Indexing, review, scoring, and refresh lifecycle
-
-Public evidence supports the following lifecycle, with some authenticated details
-still intentionally unknown:
-
-1. Ordinary ecosystem ingestion appears automated. Because Glama is a superset of
-   the official MCP Registry, search for an automatically created exact-repository
-   profile before submitting anything.
-2. If still absent, submit the open-source repository for review. The Add Server
-   UI promises review before public visibility, but does not document universal
-   human approval.
-3. Glama creates or updates a profile and verifies maintainer ownership through
-   GitHub OAuth when claimed.
-4. Glama reproduces the build and introspects protocol capabilities, recording
-   complete tool schemas and annotations. Current score/checklist guidance treats
-   inspectability and at least one detected tool as installation/distribution
-   requirements; a missing LICENSE is an installation blocker.
-5. Public score-page guidance distinguishes a Glama release from a GitHub release
-   and shows Make Release after build/deploy. Authenticated build-spec, Deploy,
-   Make Release, and install fields are unverified and must not become acceptance
-   requirements until observed directly.
-6. Glama runs TDQS/coherence and security analysis. Public profiles expose schema,
-   score/checklist, behavioral information, history, and scan timing.
-7. A failed reproducible build may leave a direct profile while withholding it
-   from search, categories, and recommendations.
-8. Glama periodically synchronizes source and repeats analysis after
-   commits/rebuilds. Current public wording varies between commit-triggered
-   reanalysis and at-least-daily synchronization; do not promise an exact SLA.
-9. Claimed maintainers can use **Sync Server** in the admin UI. The exact rescan
-   controls and timing must be observed during the authenticated run.
-10. Changed tool definitions are rescored by input hash; unchanged scores are
-    reused. Glama publishes per-dimension detail, flags, smells, and server rollups
-    ([pinned lifecycle](https://github.com/glama-ai/tool-definition-quality-score/blob/c8c6b0c291466fe13e22dbfedcea0af1f1ca47b7/README.md#L388-L404)).
-
-Score-page layouts can vary by profile state. Treat checklist text as a dated UI
-observation: do not infer that a Glama release causes inspectability or that one
-sampled sequence is a universal acceptance gate. Reproducible build,
-introspection, inspectability, detected tools, and license expectations are
-separate findings; the authenticated ordering remains to be recorded.
-
-## Downstream issue ownership
-
-Every remaining artifact and external action has one owner:
-
-| Issue | Single responsibility boundary |
-| --- | --- |
-| [#64](https://github.com/enthouan/trello-mcp/issues/64) | Produce this evidence-pinned requirements audit, its deterministic documentation contract, generated website link, and the open-source-first decision. No Glama authentication or submission. |
-| [#65](https://github.com/enthouan/trello-mcp/issues/65) | Add and validate root `glama.json`; close repository metadata gaps selected for submission; reproduce the exact build/start/discovery path without live Trello access; audit all 77 schemas, titles, output schemas, annotations, and TDQS/coherence risks; implement and test approved readiness changes. No external submission. |
-| [#66](https://github.com/enthouan/trello-mcp/issues/66) | Refresh mutable requirements and duplicate search; review OAuth consent; submit/claim the exact repository; configure the authenticated build/deploy flow; create the Glama release if approved; verify profile, installability, Inspector, API identity, tool/resource/prompt schemas, score/checklist, security findings, sync/rescan behavior, and accepted-listing links. |
-
-## Blockers and open questions
-
-No blocker depends on making the repository public: it is already public. The
-remaining blockers are preparation or authenticated observations:
-
-- root `glama.json` is absent;
-- exact Glama build/run behavior has not been reproduced with Trello egress
-  denied;
-- no tool title, output schema, or MCP annotations are registered;
-- the 77-tool TDQS/coherence review has not been completed;
-- exact GitHub OAuth scope names and consent text are not public;
-- authenticated Add Server validation, Docker build-spec, Deploy, Make Release,
-  Sync Server, and rescan controls have not been observed;
-- public evidence does not prove that ordinary review is human;
-- public wording does not establish one exact synchronization SLA;
-- no public source establishes a numeric security-grade formula;
-- it remains to observe how profile creation, inspectability, detected-tool state,
-  build/deploy, scoring, installation, and any Glama release relate in the
-  authenticated UI.
-
-Before any external action, refresh the Glama pages/API/schema, verify the exact
-repository is still absent, compare the live schema digest, pin the then-current
-TDQS commit, and obtain explicit approval for the submission issue. Do not reuse
-real Trello credentials for build or discovery validation.
+The grouped distribution roadmap card stays in Doing until its other Docker
+and Glama outcomes are complete. Finishing #65 does not complete #66, release a
+new version, or make a listing claim.
