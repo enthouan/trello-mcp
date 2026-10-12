@@ -78,7 +78,7 @@ was changed to conceal source-versus-release drift.
 | Artifact | Identity | stdio discovery | Actual image health | Shutdown / cleanup |
 | --- | --- | --- | --- | --- |
 | Built source | `76fe34b9347dc4d5faaf5dfd1f77c94dcda2e06f` | Pass; macOS `(deny network*)`; 77 tools | Not applicable | SIGTERM, code 0, shutdown log |
-| Source-built image | Local ID `sha256:2251d1405d31da5ec3beb22e6a1371d3cb001305db4a1a94d588888a7c4db685` | Pass; `--network=none`; full definitions equal built source | Healthy in stdio and HTTP | Code 0; empty `docker diff`; temporary containers removed |
+| Source-built image | Local ID `sha256:dc99dbda1cb1a6a8cc78dd08a762611865c13dcf55c040f717f03dbaeee9029e` | Pass; `--network=none`; full definitions equal built source | Healthy in stdio and HTTP | Code 0; empty `docker diff`; temporary containers removed |
 | Published image | `ghcr.io/enthouan/trello-mcp@sha256:198f6758ea06fb786622a5335ad68d6a618adf3e20d1dda1094754d4a02b48a6` | Pass against matching `v1.0.3`; `--network=none`; 77 tools | Healthy in stdio and HTTP | Code 0; empty `docker diff`; temporary containers removed |
 
 All three initialize responses negotiated **2025-11-25**, server name
@@ -99,8 +99,7 @@ every top-level property has a description. Full source and source-image schemas
 match, including requiredness, defaults, enums, constraints and nullable inputs.
 No tool has a title, annotations or outputSchema. Every tool also carries the
 SDK's `execution.taskSupport: "forbidden"` default for ordinary handlers.
-JSON text is the existing
-handler-result format. Refinements such as custom-field type/value requirements
+JSON text is the existing handler-result format. Refinements such as custom-field type/value requirements
 remain enforced at invocation even when not expressible in the wire schema;
 parameter prose now states that particular conditional contract explicitly.
 
@@ -133,20 +132,31 @@ corepack pnpm registry:release discover trello-mcp:issue65-glama-20261012
 
 The new probe writes complete initialization, tool schemas/metadata, resource/
 prompt responses, stderr, image configuration, health, filesystem changes and
-exit results to the specified local file. It rejects any description, schema or
+exit results to the specified local file. It checks server identity/version,
+negotiated SDK protocol and advertised capabilities against the source contract.
+It rejects any description, schema or
 metadata drift from the matching source, even with identical names/version, and
 rejects nonempty filesystem diffs both before and after shutdown. It verifies
-output safety and cleanup before reporting success. The older `discover` command remains a separate check
+output safety and cleanup before reporting success. Stdin failures reject through
+the transport and cannot escape cleanup as unhandled stream errors. The older
+`discover` command remains a separate check
 of names, version and Docker health; it does not provide the full-schema proof.
 Neither command publishes anything or invokes a tool handler.
 
-Two isolated negative controls also passed: comparing the release against newer
-source rejected its stale definition despite identical names/version; a disposable
-derivative of the source image that wrote `/tmp/glama-discovery-negative` was
-rejected for a nonempty filesystem diff. Both failures wrote no success report,
-leaked no synthetic values, and removed their containers. Matching-source
-source/image/release probes still passed. Temporary image tags were removed
-after validation.
+Four isolated negative controls also passed:
+
+- Comparing the release against newer source rejected its stale definition
+  despite identical names/version.
+- A disposable source-image derivative writing `/tmp/glama-discovery-negative`
+  was rejected for a nonempty filesystem diff.
+- An immediately exiting entrypoint failed normally without an unhandled pipe
+  exception or leftover container; a deterministic unit test also induces EPIPE.
+- An image with identical tool definitions/version but a changed server name
+  was rejected at initialization. Unit tests also reject protocol/capability drift.
+
+These failures wrote no success report, leaked no synthetic values, and removed
+all containers. Matching-source source/image/release probes still passed.
+Temporary image tags were removed after validation.
 
 For the published image, extract `v1.0.3` with `git archive` into a separate
 directory, install its frozen dependencies, copy `scripts/glama-discovery.ts` and

@@ -6,10 +6,7 @@ import { resolve } from "node:path";
 import { setTimeout } from "node:timers/promises";
 import { promisify } from "node:util";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import {
-  ReadBuffer,
-  serializeMessage,
-} from "@modelcontextprotocol/sdk/shared/stdio.js";
+import { ReadBuffer } from "@modelcontextprotocol/sdk/shared/stdio.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import {
   InitializeResultSchema,
@@ -19,8 +16,10 @@ import {
 import { z } from "zod";
 import { allTools } from "../src/trello/tools.js";
 import {
+  assertMatchingInitialization,
   assertNoFilesystemChanges,
   assertNoSyntheticSecrets,
+  discoveryWriter,
   inspectDiscovery,
 } from "./lib/mcp-discovery.js";
 
@@ -97,9 +96,10 @@ const exited = new Promise<void>((done) =>
 );
 const transport: Transport = {
   start: async () => {},
-  send: async (message) => {
-    child.stdin.write(serializeMessage(message));
-  },
+  send: discoveryWriter(child.stdin, (error) => {
+    protocolError = true;
+    transport.onerror?.(error);
+  }),
   close: async () => {
     child.stdin.end();
   },
@@ -136,6 +136,15 @@ client.onerror = () => {
 
 try {
   await client.connect(transport, { timeout: 30_000 });
+  const initialize = messages.flatMap((message) => {
+    if (!("result" in message)) return [];
+    const parsed = InitializeResultSchema.safeParse(message.result);
+    return parsed.success ? [parsed.data] : [];
+  });
+  const initialization = initialize[0];
+  if (initialize.length !== 1 || !initialization)
+    throw new Error("Expected one initialize response.");
+  assertMatchingInitialization(initialization, expectedVersion);
   const discovery = await inspectDiscovery(
     client,
     allTools.map(({ name, description, inputSchema }) =>
@@ -152,13 +161,6 @@ try {
     ),
     expectedVersion,
   );
-  const initialize = messages.flatMap((message) => {
-    if (!("result" in message)) return [];
-    const parsed = InitializeResultSchema.safeParse(message.result);
-    return parsed.success ? [parsed.data] : [];
-  });
-  if (initialize.length !== 1)
-    throw new Error("Expected one initialize response.");
   let imageEvidence: unknown;
   let health: unknown;
   let filesystemChanges: string | undefined;
@@ -221,7 +223,7 @@ try {
     transport: "stdio",
     environmentNames: Object.keys(config),
     expectedVersion,
-    initialize: initialize[0],
+    initialize: initialization,
     ...discovery,
     image: imageEvidence,
     health,

@@ -1,12 +1,19 @@
 import { readFile } from "node:fs/promises";
+import { Writable } from "node:stream";
+import { setImmediate } from "node:timers/promises";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { ToolSchema } from "@modelcontextprotocol/sdk/types.js";
+import {
+  LATEST_PROTOCOL_VERSION,
+  ToolSchema,
+} from "@modelcontextprotocol/sdk/types.js";
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import {
+  assertMatchingInitialization,
   assertNoFilesystemChanges,
   assertNoSyntheticSecrets,
+  discoveryWriter,
   inspectDiscovery,
 } from "../scripts/lib/mcp-discovery.js";
 import { loadConfig } from "../src/config.js";
@@ -20,6 +27,49 @@ const version = JSON.parse(
 ).version as string;
 
 describe("credential-independent MCP discovery", () => {
+  it("handles a broken stdin stream without an unhandled or sensitive error", async () => {
+    const onError = vi.fn();
+    const stream = new Writable({
+      write(_chunk, _encoding, callback) {
+        callback(
+          Object.assign(new Error("synthetic-sensitive-pipe-detail"), {
+            code: "EPIPE",
+          }),
+        );
+      },
+    });
+    const send = discoveryWriter(stream, onError);
+    await expect(
+      send({ jsonrpc: "2.0", id: 1, method: "initialize" }),
+    ).rejects.toThrow("Discovery stdin pipe failed.");
+    await setImmediate();
+    expect(onError).toHaveBeenCalledExactlyOnceWith(
+      new Error("Discovery stdin pipe failed."),
+    );
+  });
+
+  it("rejects initialization identity, protocol, or capability drift", () => {
+    const expected = {
+      protocolVersion: LATEST_PROTOCOL_VERSION,
+      serverInfo: { name: "trello-mcp", version },
+      capabilities: { tools: { listChanged: true } },
+    };
+    expect(() => assertMatchingInitialization(expected, version)).not.toThrow();
+    for (const actual of [
+      {
+        ...expected,
+        serverInfo: { ...expected.serverInfo, name: "other-server" },
+      },
+      { ...expected, serverInfo: { ...expected.serverInfo, version: "0.0.0" } },
+      { ...expected, protocolVersion: "2024-11-05" },
+      { ...expected, capabilities: { ...expected.capabilities, prompts: {} } },
+      { ...expected, capabilities: {} },
+    ])
+      expect(() => assertMatchingInitialization(actual, version)).toThrow(
+        "Discovery initialization differs from matching source.",
+      );
+  });
+
   it("discloses permanent deletion, upload transmission, and custom-field requirements", () => {
     const find = (name: string) => {
       const tool = allTools.find((candidate) => candidate.name === name);
@@ -104,6 +154,7 @@ describe("credential-independent MCP discovery", () => {
         version,
       );
       expect(result.tools).toHaveLength(77);
+      expect(result.server).toEqual({ name: "trello-mcp", version });
       expect(result.pages).toBe(1);
       expect(result.capabilities).toEqual({ tools: { listChanged: true } });
       expect(result.resources).toEqual({ status: "unsupported", code: -32601 });

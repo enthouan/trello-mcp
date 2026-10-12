@@ -1,12 +1,49 @@
+import type { Writable } from "node:stream";
 import { isDeepStrictEqual } from "node:util";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { serializeMessage } from "@modelcontextprotocol/sdk/shared/stdio.js";
 import {
   ErrorCode,
+  type InitializeResult,
+  type JSONRPCMessage,
+  LATEST_PROTOCOL_VERSION,
   ListPromptsResultSchema,
   ListResourcesResultSchema,
   McpError,
   type Tool,
 } from "@modelcontextprotocol/sdk/types.js";
+
+export function discoveryWriter(
+  stream: Writable,
+  onError: (error: Error) => void,
+): (message: JSONRPCMessage) => Promise<void> {
+  const safeError = () => new Error("Discovery stdin pipe failed.");
+  // A failed write invokes its callback AND emits a stream error. Handle both
+  // so connect/send rejects normally and the caller's finally can clean up.
+  stream.on("error", () => onError(safeError()));
+  return (message) =>
+    new Promise((resolve, reject) => {
+      stream.write(serializeMessage(message), (error) => {
+        if (error) reject(safeError());
+        else resolve();
+      });
+    });
+}
+
+export function assertMatchingInitialization(
+  actual: InitializeResult,
+  expectedVersion: string,
+): void {
+  if (
+    actual.protocolVersion !== LATEST_PROTOCOL_VERSION ||
+    !isDeepStrictEqual(actual.serverInfo, {
+      name: "trello-mcp",
+      version: expectedVersion,
+    }) ||
+    !isDeepStrictEqual(actual.capabilities, { tools: { listChanged: true } })
+  )
+    throw new Error("Discovery initialization differs from matching source.");
+}
 
 /** Discovery only: never invokes a tool handler. Preserve the wire schemas. */
 export async function inspectDiscovery(
