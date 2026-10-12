@@ -29,6 +29,30 @@ describe("Glama readiness evidence", () => {
     expect(names).toContain("card_attachment_upload");
   });
 
+  it("keeps independent external milestones and excludes private receipt data", () => {
+    const externalRecord = audit
+      .split("## External validation record\n")[1]
+      ?.split("\n## Pinned evidence")[0];
+    expect(externalRecord).toBeDefined();
+    const milestones = [
+      ...(externalRecord ?? "").matchAll(/^\| ([^|]+) \| ([^|]+) \|/gm),
+    ].map((match) => match[1]?.trim());
+    expect(milestones).toEqual([
+      "Milestone",
+      "---",
+      "Submission",
+      "Maintainer ownership",
+      "Build and MCP introspection",
+      "Public listing",
+      "Glama Inspector",
+      "Quality/security findings",
+      "Search visibility",
+    ]);
+    expect(externalRecord).not.toMatch(
+      /mail\.google\.com|Message-ID:|Authentication-Results:|[\w.+-]+@[\w.-]+\.[a-z]{2,}|\/private\/tmp\//i,
+    );
+  });
+
   it("links preparation, external validation, and the separately owned gaps", () => {
     for (const issue of [64, 65, 66, 182, 206])
       expect(audit).toContain(
