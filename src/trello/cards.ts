@@ -327,7 +327,9 @@ const CardCustomFieldSetInput = CardIdInput.merge(CustomFieldIdInput)
   .extend({
     type: z
       .enum(["text", "number", "date", "checkbox", "list"])
-      .describe("Custom field type for the value being set."),
+      .describe(
+        "Match the existing field type. Requires text for text, number for number, date for date, checked for checkbox, or optionId for list; other value inputs are ignored.",
+      ),
     text: z.string().optional().describe("Text value for text custom fields."),
     number: z
       .string()
@@ -388,7 +390,7 @@ export const cardTools = [
   defineTool({
     name: "card_get",
     description:
-      "Use when you need the current details of one Trello card by id, short id, or URL before editing or summarizing it.",
+      "Use when you need the current details of one Trello card by id, short link, or URL before editing or summarizing it.",
     inputSchema: CardIdInput.merge(CardFieldsInput),
     handler: async ({ cardId, fields }, { trello }) =>
       trello.request(cardPath(cardId), TrelloCardSchema, {
@@ -563,7 +565,7 @@ export const cardTools = [
   defineTool({
     name: "card_label_create_and_add",
     description:
-      "Use when creating a new label on the card's board and applying it to the card in one Trello operation.",
+      "Create a new board label and apply it to this card. Use card_label_add for an existing label; repeating this creation can create duplicates.",
     inputSchema: CardLabelCreateInput,
     handler: async ({ cardId, ...input }, { trello }) =>
       trello.request(`${cardPath(cardId)}/labels`, TrelloLabelSchema, {
@@ -668,7 +670,7 @@ export const cardTools = [
   defineTool({
     name: "card_attachment_upload",
     description:
-      "Use when uploading a server-local file to a card. Requires TRELLO_ATTACHMENT_UPLOAD_ROOT and only reads files inside that directory.",
+      "Read a server-local file inside TRELLO_ATTACHMENT_UPLOAD_ROOT and transmit its contents to Trello as a new card attachment. Disabled unless that root is configured; repeated uploads can create duplicates. Use card_attachment_add_url for public links.",
     inputSchema: CardAttachmentUploadInput,
     handler: async (
       { cardId, filePath, name, mimeType, setCover },
@@ -693,7 +695,7 @@ export const cardTools = [
   defineTool({
     name: "card_attachment_delete",
     description:
-      "Use when removing a specific attachment from a card by attachment id.",
+      "Permanently delete an attachment from a card, including Trello's stored file for uploads. This cannot be undone; use card_cover_set to clear a cover without deleting its attachment.",
     inputSchema: CardAttachmentDeleteInput,
     handler: async ({ cardId, attachmentId }, { trello }) =>
       trello.request(
@@ -758,7 +760,8 @@ export const cardTools = [
   }),
   defineTool({
     name: "card_checklist_delete",
-    description: "Use when deleting an entire checklist from a Trello card.",
+    description:
+      "Permanently delete a checklist and all its items from a card. This cannot be undone; use card_checklist_item_delete to remove only one item.",
     inputSchema: CardChecklistDeleteInput,
     handler: async ({ cardId, checklistId }, { trello }) =>
       trello.request(
@@ -867,7 +870,7 @@ export const cardTools = [
   defineTool({
     name: "card_checklist_item_delete",
     description:
-      "Use when deleting a checklist item from a Trello card checklist.",
+      "Permanently delete one checklist item. This cannot be undone; use card_checklist_item_set_checked to mark completion while keeping the item.",
     inputSchema: CardChecklistItemDeleteInput,
     handler: async ({ cardId, checkItemId }, { trello }) =>
       trello.request(
@@ -898,7 +901,7 @@ export const cardTools = [
   defineTool({
     name: "card_custom_field_set",
     description:
-      "Use when setting or updating one Trello card custom field value. Use type-specific inputs: text, number string, ISO date, checkbox boolean, or list optionId.",
+      "Set or replace one card custom field value, using the existing definition's type from custom_field_get. Use custom_field_options to find list option ids and card_custom_field_clear to remove a value.",
     inputSchema: CardCustomFieldSetInput,
     handler: async ({ cardId, customFieldId, ...input }, { trello }) =>
       trello.request(
@@ -915,7 +918,7 @@ export const cardTools = [
   defineTool({
     name: "card_custom_field_clear",
     description:
-      "Use when clearing one Trello card custom field value; Trello clears custom field items with an empty PUT body shape rather than DELETE.",
+      "Clear one card's custom field value without deleting the board's field definition. Restoring it requires setting the previous value with card_custom_field_set.",
     inputSchema: CardCustomFieldClearInput,
     handler: async ({ cardId, customFieldId }, { trello }) =>
       trello.request(
@@ -993,7 +996,7 @@ export const cardTools = [
   defineTool({
     name: "card_comment_add",
     description:
-      "Use when adding a new comment to a Trello card; returns the created comment action.",
+      "Add a new comment to a Trello card and return its comment action. Repeating the call creates another comment; use card_comment_update to edit an existing comment.",
     inputSchema: CardCommentCreateInput,
     handler: async ({ cardId, text }, { trello }) =>
       trello.request(
@@ -1027,7 +1030,7 @@ export const cardTools = [
   defineTool({
     name: "card_comment_delete",
     description:
-      "Use when deleting an existing Trello card comment by its comment action id.",
+      "Permanently delete a card comment by its action id. This cannot be undone; use card_comment_update to edit the text instead.",
     inputSchema: CardCommentDeleteInput,
     handler: async ({ actionId }, { trello }) =>
       trello.request(
