@@ -1,7 +1,7 @@
 // Non-publishing evidence capture. Does not read .env or call any tool handler.
 import { execFile, spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { setTimeout } from "node:timers/promises";
 import { promisify } from "node:util";
@@ -19,6 +19,7 @@ import {
   assertMatchingInitialization,
   assertNoFilesystemChanges,
   assertNoSyntheticSecrets,
+  decodeDiscoveryStderr,
   discoveryWriter,
   dockerClientEnvironment,
   inspectDiscovery,
@@ -37,6 +38,8 @@ if (
   throw new Error(
     "Usage: glama-discovery.ts source <output.json> | image <output.json> <image-reference>. Run from the matching source checkout.",
   );
+// A failed validation must not leave an earlier success at this destination.
+await rm(output, { force: true });
 if (mode === "source" && process.platform !== "darwin")
   throw new Error(
     "Source isolation requires macOS sandbox-exec; use an isolated image on other hosts.",
@@ -108,7 +111,7 @@ const child = spawn(command, args, {
 });
 const buffer = new ReadBuffer();
 const messages: JSONRPCMessage[] = [];
-let stderr = "";
+const stderrChunks: Buffer[] = [];
 const stdoutChunks: Buffer[] = [];
 let serialized = "";
 let protocolError = false;
@@ -151,7 +154,7 @@ child.stdout.on("data", (chunk: Buffer) => {
   }
 });
 child.stderr.on("data", (chunk: Buffer) => {
-  stderr += chunk.toString();
+  stderrChunks.push(chunk);
 });
 child.on("close", () => transport.onclose?.());
 const client = new Client({ name: "glama-readiness-check", version: "1" });
@@ -223,10 +226,11 @@ try {
   ]);
   await client.close();
   const stdout = validateProtocolStdout(Buffer.concat(stdoutChunks));
+  const stderr = decodeDiscoveryStderr(stderrChunks);
   if (
     protocolError ||
     exit?.code !== 0 ||
-    !stderr.includes("shutdown complete")
+    !stderr.text.includes("shutdown complete")
   )
     throw new Error("Discovery protocol or shutdown verification failed.");
   const evidence = {
@@ -243,11 +247,11 @@ try {
     health,
     filesystemChanges,
     stdoutProtocolOnly: !protocolError,
-    stderr: { bytes: Buffer.byteLength(stderr), shutdownComplete: true },
+    stderr: { bytes: stderr.bytes, shutdownComplete: true },
     exit,
   };
   serialized = JSON.stringify(evidence, null, 2);
-  assertNoSyntheticSecrets(serialized + stdout + stderr, [
+  assertNoSyntheticSecrets(serialized + stdout + stderr.text, [
     config.TRELLO_API_KEY,
     config.TRELLO_TOKEN,
   ]);

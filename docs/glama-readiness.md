@@ -139,6 +139,9 @@ credential leaks but omitted from the saved evidence. It compares the entire
 initialization response with the source contract: server identity/version,
 negotiated SDK protocol, advertised capabilities and the absence of instructions
 or extra metadata.
+After argument validation, it removes any earlier capture at the requested
+destination before starting, so a failed run cannot retain stale success evidence.
+Stderr is collected as bytes and decoded once to preserve split UTF-8 characters.
 Image evidence is limited to ID, architecture and OS; image environment values,
 labels, history and command text are excluded.
 Image mode requires a local image: pull a verified immutable release reference
@@ -200,8 +203,9 @@ requests and zero fetch calls** through initialization and all discovery methods
 Docker receives explicit synthetic runtime variables, no `--env-file`, no host
 mount, no upload root and no published port. The Docker CLI allowlist preserves
 `PATH`, `HOME`, `DOCKER_HOST`, `DOCKER_CONTEXT`, `DOCKER_CONFIG`, `DOCKER_TLS`,
-`DOCKER_TLS_VERIFY`, `DOCKER_CERT_PATH` and `DOCKER_API_VERSION` to honor the
-operator's selected daemon. These values are not forwarded into the container
+`DOCKER_TLS_VERIFY`, `DOCKER_CERT_PATH`, `DOCKER_API_VERSION` and `SSH_AUTH_SOCK`
+to honor the operator's selected daemon, including SSH-agent authentication.
+These values are not forwarded into the container
 or saved in evidence. Following the documented
 [Docker client configuration behavior](https://docs.docker.com/reference/cli/docker/#environment-variables),
 the probe also explicitly clears upper/lowercase HTTP, HTTPS, FTP, ALL and NO

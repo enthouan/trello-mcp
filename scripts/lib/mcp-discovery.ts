@@ -50,11 +50,17 @@ export function dockerClientEnvironment(environment: NodeJS.ProcessEnv) {
     "DOCKER_TLS_VERIFY",
     "DOCKER_CERT_PATH",
     "DOCKER_API_VERSION",
+    "SSH_AUTH_SOCK",
   ]) {
     const value = environment[key];
     if (value !== undefined) selected[key] = value;
   }
   return selected;
+}
+
+export function decodeDiscoveryStderr(chunks: readonly Uint8Array[]) {
+  const bytes = Buffer.concat(chunks);
+  return { text: bytes.toString("utf8"), bytes: bytes.length };
 }
 
 export function validateProtocolStdout(bytes: Uint8Array): string {

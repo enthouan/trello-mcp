@@ -1,6 +1,11 @@
-import { readFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { Writable } from "node:stream";
 import { setImmediate } from "node:timers/promises";
+import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import {
@@ -15,6 +20,7 @@ import {
   assertMatchingInitialization,
   assertNoFilesystemChanges,
   assertNoSyntheticSecrets,
+  decodeDiscoveryStderr,
   discoveryWriter,
   dockerClientEnvironment,
   inspectDiscovery,
@@ -33,6 +39,47 @@ const version = JSON.parse(
 ).version as string;
 
 describe("credential-independent MCP discovery", () => {
+  it("removes an earlier success capture when validation fails", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "trello-mcp-discovery-"));
+    const output = join(directory, "capture.json");
+    try {
+      await writeFile(output, '{"previousSuccess":true}\n');
+      await expect(
+        promisify(execFile)(
+          process.execPath,
+          [
+            "--import",
+            "tsx",
+            "scripts/glama-discovery.ts",
+            "image",
+            output,
+            "synthetic-unavailable-image",
+          ],
+          {
+            cwd: fileURLToPath(new URL("..", import.meta.url)),
+            // No Docker executable or daemon access; fail at image inspection.
+            env: { PATH: directory },
+          },
+        ),
+      ).rejects.toMatchObject({ code: 1 });
+      await expect(readFile(output)).rejects.toMatchObject({ code: "ENOENT" });
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("preserves split UTF-8 stderr and counts the original bytes", () => {
+    const text = "café: shutdown complete\n";
+    const bytes = Buffer.from(text);
+    const accent = bytes.indexOf(Buffer.from("é"));
+    expect(
+      decodeDiscoveryStderr([
+        bytes.subarray(0, accent + 1),
+        bytes.subarray(accent + 1),
+      ]),
+    ).toEqual({ text, bytes: Buffer.byteLength(text) });
+  });
+
   it("omits image-controlled health output from saved evidence", () => {
     expect(
       safeHealthEvidence({
@@ -80,6 +127,7 @@ describe("credential-independent MCP discovery", () => {
       DOCKER_TLS_VERIFY: "1",
       DOCKER_CERT_PATH: "/tmp/certs",
       DOCKER_API_VERSION: "1.54",
+      SSH_AUTH_SOCK: "/tmp/synthetic-ssh-agent.sock",
     };
     expect(
       dockerClientEnvironment({
