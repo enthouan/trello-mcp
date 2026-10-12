@@ -26,6 +26,17 @@ export function safeImageIdentity(inspectResult: unknown) {
   return ImageIdentitySchema.parse(inspectResult);
 }
 
+const HealthEvidenceSchema = z.object({
+  Status: z.enum(["starting", "healthy", "unhealthy"]),
+  FailingStreak: z.number().int().nonnegative(),
+  Log: z.array(z.object({ ExitCode: z.number().int() })),
+});
+
+export function safeHealthEvidence(health: unknown) {
+  // Health command output can contain arbitrary image-controlled secrets.
+  return HealthEvidenceSchema.parse(health);
+}
+
 export function dockerClientEnvironment(environment: NodeJS.ProcessEnv) {
   const selected: Record<string, string> = {
     PATH: environment.PATH ?? "/usr/local/bin:/usr/bin:/bin",

@@ -78,7 +78,7 @@ was changed to conceal source-versus-release drift.
 | Artifact | Identity | stdio discovery | Actual image health | Shutdown / cleanup |
 | --- | --- | --- | --- | --- |
 | Built source | `76fe34b9347dc4d5faaf5dfd1f77c94dcda2e06f` | Pass; macOS `(deny network*)`; 77 tools | Not applicable | SIGTERM, code 0, shutdown log |
-| Source-built image | Local ID `sha256:d2af1821366a44f92fd562e378c40777ddc1b03869f907e4c1c02fc5639fb7bc` | Pass; `--network=none`; full definitions equal built source | Healthy in stdio and HTTP | Code 0; empty `docker diff`; temporary containers removed |
+| Source-built image | Local ID `sha256:d0f0dcf0dae538091951cafd8c6cc5b12757b6ec559bf24e167c272f0ce81ef8` | Pass; `--network=none`; full definitions equal built source | Healthy in stdio and HTTP | Code 0; empty `docker diff`; temporary containers removed |
 | Published image | `ghcr.io/enthouan/trello-mcp@sha256:198f6758ea06fb786622a5335ad68d6a618adf3e20d1dda1094754d4a02b48a6` | Pass against matching `v1.0.3`; `--network=none`; 77 tools | Healthy in stdio and HTTP | Code 0; empty `docker diff`; temporary containers removed |
 
 All three initialize responses negotiated **2025-11-25**, server name
@@ -132,11 +132,16 @@ corepack pnpm registry:release discover trello-mcp:issue65-glama-20261012
 ```
 
 The new probe writes complete initialization, tool schemas/metadata, resource/
-prompt responses, stderr, image identity/platform, health, filesystem changes and
-exit results to the specified local file. It checks server identity/version,
+prompt responses, a stderr byte-count/shutdown summary, image identity/platform,
+health status/exit codes, filesystem changes and exit results to the specified
+local file. Raw stderr and health-command output are checked for synthetic
+credential leaks but omitted from the saved evidence. It checks server identity/version,
 negotiated SDK protocol and advertised capabilities against the source contract.
 Image evidence is limited to ID, architecture and OS; image environment values,
 labels, history and command text are excluded.
+Image mode requires a local image: pull a verified immutable release reference
+first when needed. It resolves the local image ID before starting the container
+and uses that same immutable ID for execution and evidence.
 It rejects any description, schema or
 metadata drift from the matching source, even with identical names/version, and
 rejects nonempty filesystem diffs both before and after shutdown. It verifies
@@ -167,10 +172,13 @@ all containers. Matching-source source/image/release probes still passed.
 Temporary image tags were removed after validation.
 
 A separate disposable image with synthetic baked environment/label markers
+and synthetic credential output from startup and the original health command
 passed discovery without persisting those markers. Its entrypoint asserted that
 all proxy variables were empty, while the client used an explicit `DOCKER_HOST`
 and a synthetic `DOCKER_CONFIG` containing proxy credentials. Source/release
 image checks also passed with an explicit `DOCKER_CONTEXT`.
+A second control retagged a disposable source alias to the release image while
+discovery was running; the capture still identified the original source image.
 
 For the published image, extract `v1.0.3` with `git archive` into a separate
 directory, install its frozen dependencies, copy `scripts/glama-discovery.ts` and

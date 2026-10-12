@@ -18,6 +18,7 @@ import {
   discoveryWriter,
   dockerClientEnvironment,
   inspectDiscovery,
+  safeHealthEvidence,
   safeImageIdentity,
   validateProtocolStdout,
 } from "../scripts/lib/mcp-discovery.js";
@@ -32,6 +33,21 @@ const version = JSON.parse(
 ).version as string;
 
 describe("credential-independent MCP discovery", () => {
+  it("omits image-controlled health output from saved evidence", () => {
+    expect(
+      safeHealthEvidence({
+        Status: "healthy",
+        FailingStreak: 0,
+        Log: [{ ExitCode: 0, Output: "synthetic-baked-credential" }],
+        extra: "synthetic-private",
+      }),
+    ).toEqual({
+      Status: "healthy",
+      FailingStreak: 0,
+      Log: [{ ExitCode: 0 }],
+    });
+  });
+
   it("omits image configuration and embedded environment values from evidence", () => {
     const identity = {
       Id: `sha256:${"a".repeat(64)}`,

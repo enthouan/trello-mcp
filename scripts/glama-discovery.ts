@@ -22,6 +22,7 @@ import {
   discoveryWriter,
   dockerClientEnvironment,
   inspectDiscovery,
+  safeHealthEvidence,
   safeImageIdentity,
   validateProtocolStdout,
 } from "./lib/mcp-discovery.js";
@@ -56,6 +57,22 @@ const container = `trello-mcp-65-${randomUUID()}`;
 const dockerEnv = dockerClientEnvironment(process.env);
 const docker = async (args: string[]) =>
   (await exec("docker", args, { env: dockerEnv })).stdout;
+// Resolve once before starting: a mutable tag can change while discovery runs.
+// Inspect only identity fields; do not request image configuration values.
+const imageEvidence =
+  mode === "image"
+    ? safeImageIdentity(
+        JSON.parse(
+          await docker([
+            "image",
+            "inspect",
+            image as string,
+            "--format",
+            '{"Id":{{json .Id}},"Architecture":{{json .Architecture}},"Os":{{json .Os}}}',
+          ]),
+        ),
+      )
+    : undefined;
 const command = mode === "source" ? "/usr/bin/sandbox-exec" : "docker";
 const args =
   mode === "source"
@@ -83,7 +100,7 @@ const args =
           "-e",
           `${name.toUpperCase()}_PROXY=`,
         ]),
-        image as string,
+        imageEvidence?.Id as string,
       ];
 const child = spawn(command, args, {
   env: mode === "source" ? config : dockerEnv,
@@ -169,30 +186,21 @@ try {
     ),
     expectedVersion,
   );
-  let imageEvidence: unknown;
   let health: unknown;
   let filesystemChanges: string | undefined;
   if (mode === "image") {
-    imageEvidence = safeImageIdentity(
-      JSON.parse(
-        await docker([
-          "image",
-          "inspect",
-          image as string,
-          "--format",
-          "{{json .}}",
-        ]),
-      ),
-    );
     for (let attempt = 0; ; attempt++) {
-      const state = JSON.parse(
-        await docker([
-          "inspect",
-          "--format",
-          "{{json .State.Health}}",
-          container,
-        ]),
-      );
+      const rawHealth = await docker([
+        "inspect",
+        "--format",
+        "{{json .State.Health}}",
+        container,
+      ]);
+      assertNoSyntheticSecrets(rawHealth, [
+        config.TRELLO_API_KEY,
+        config.TRELLO_TOKEN,
+      ]);
+      const state = safeHealthEvidence(JSON.parse(rawHealth));
       if (state?.Status === "healthy") {
         health = state;
         break;
@@ -235,11 +243,11 @@ try {
     health,
     filesystemChanges,
     stdoutProtocolOnly: !protocolError,
-    stderr,
+    stderr: { bytes: Buffer.byteLength(stderr), shutdownComplete: true },
     exit,
   };
   serialized = JSON.stringify(evidence, null, 2);
-  assertNoSyntheticSecrets(serialized + stdout, [
+  assertNoSyntheticSecrets(serialized + stdout + stderr, [
     config.TRELLO_API_KEY,
     config.TRELLO_TOKEN,
   ]);
