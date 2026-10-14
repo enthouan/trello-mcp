@@ -31,6 +31,7 @@
     "registry:tools": "tsx scripts/generate-docker-registry-tools.ts",
     "registry:tools:check": "tsx scripts/generate-docker-registry-tools.ts --check",
     "registry:check": "tsx scripts/mcp-registry.ts check",
+    "image:verify": "tsx scripts/verify-image.ts",
     "registry:release": "tsx scripts/mcp-registry.ts",
     "website:dev": "pnpm --dir website dev",
     "website:typecheck": "pnpm --dir website typecheck",

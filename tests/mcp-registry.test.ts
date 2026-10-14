@@ -1,6 +1,6 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
@@ -21,6 +21,7 @@ import {
   verifyImage,
   versionUrl,
 } from "../scripts/lib/mcp-registry.js";
+import { verifyImageCommand } from "../scripts/verify-image.js";
 
 const read = (path: string) =>
   readFile(new URL(`../${path}`, import.meta.url), "utf8");
@@ -216,6 +217,10 @@ function imageFixture(
   options: {
     badLabel?: boolean;
     missingPlatform?: boolean;
+    extraPlatform?: boolean;
+    duplicatePlatform?: boolean;
+    duplicateAttestation?: boolean;
+    wrongPredicate?: boolean;
     badIndex?: boolean;
     badVersion?: boolean;
     badRevision?: boolean;
@@ -230,6 +235,11 @@ function imageFixture(
     wrongReference?: boolean;
     wrongManifestSubject?: boolean;
     badSbom?: boolean;
+    unnamedPackages?: boolean;
+    emptySbom?: boolean;
+    badSource?: boolean;
+    badUser?: boolean;
+    badCommand?: boolean;
     corruptLayer?: boolean;
     legacyAttestation?: boolean;
     provenanceV1?: boolean;
@@ -243,14 +253,18 @@ function imageFixture(
     return digest;
   };
   const platforms = (
-    options.missingPlatform ? ["amd64"] : ["amd64", "arm64"]
+    options.missingPlatform
+      ? ["amd64"]
+      : options.extraPlatform
+        ? ["amd64", "arm64", "ppc64le"]
+        : ["amd64", "arm64"]
   ).map((architecture) => {
     const config = store("blobs", {
       architecture,
       os: "linux",
       config: {
-        User: "node",
-        Cmd: ["node", "dist/index.js"],
+        User: options.badUser ? "root" : "node",
+        Cmd: options.badCommand ? ["sh"] : ["node", "dist/index.js"],
         Labels: {
           ...(options.badLabel ? {} : { [ownershipLabel]: serverName }),
           "org.opencontainers.image.version": options.badVersion
@@ -259,7 +273,9 @@ function imageFixture(
           "org.opencontainers.image.revision": options.badRevision
             ? "b".repeat(40)
             : (options.revision ?? revision),
-          "org.opencontainers.image.source": `https://github.com/${repository}`,
+          "org.opencontainers.image.source": options.badSource
+            ? "https://example.invalid/other"
+            : `https://github.com/${repository}`,
         },
       },
     });
@@ -293,7 +309,11 @@ function imageFixture(
       return {
         digest,
         mediaType: "application/vnd.in-toto+json",
-        annotations: { "in-toto.io/predicate-type": predicateType },
+        annotations: {
+          "in-toto.io/predicate-type": options.wrongPredicate
+            ? "https://example.invalid/predicate"
+            : predicateType,
+        },
       };
     };
     const build = {
@@ -329,7 +349,11 @@ function imageFixture(
         statement("https://spdx.dev/Document", {
           SPDXID: options.badSbom ? "invalid" : "SPDXRef-DOCUMENT",
           spdxVersion: "SPDX-2.3",
-          packages: [{ name: "node" }],
+          packages: options.emptySbom
+            ? []
+            : options.unnamedPackages
+              ? [{}]
+              : [{ name: "node" }],
         }),
       );
     return [
@@ -360,7 +384,12 @@ function imageFixture(
   });
   const digest = store("manifests", {
     annotations: options.badIndex ? {} : { [ownershipLabel]: serverName },
-    manifests: [...platforms, ...attestations],
+    manifests: [
+      ...platforms,
+      ...attestations,
+      ...(options.duplicatePlatform ? [platforms[0]] : []),
+      ...(options.duplicateAttestation ? [attestations[0]] : []),
+    ],
   });
   objects.set(
     `manifests/${options.version ?? manifest.version}`,
@@ -402,6 +431,10 @@ describe("public immutable image verification", () => {
     { badLabel: true },
     { badIndex: true },
     { missingPlatform: true },
+    { extraPlatform: true },
+    { duplicatePlatform: true },
+    { duplicateAttestation: true },
+    { wrongPredicate: true },
     { badRevision: true },
     { badVersion: true },
     { missingAttestation: true },
@@ -414,11 +447,19 @@ describe("public immutable image verification", () => {
     { wrongReference: true },
     { wrongManifestSubject: true },
     { badSbom: true },
+    { unnamedPackages: true },
+    { emptySbom: true },
+    { badSource: true },
+    { badUser: true },
+    { badCommand: true },
     { corruptLayer: true },
   ])("rejects an existing invalid image: %j", async (options) => {
     const fixture = imageFixture(options);
     await expect(
       verifyImage(manifest, revision, undefined, fixture.fetcher),
+    ).rejects.toThrow();
+    await expect(
+      verifyImageCommand(imageArgs(fixture.digest), fixture.fetcher),
     ).rejects.toThrow();
   });
 
@@ -468,6 +509,193 @@ describe("public immutable image verification", () => {
     await expect(
       verifyImage(manifest, revision, undefined, fixture.fetcher),
     ).rejects.toThrow("HTTP 500");
+  });
+});
+
+function imageArgs(digest: string, version = manifest.version): string[] {
+  return ["--version", version, "--revision", revision, "--digest", digest];
+}
+
+describe("read-only operator image verification", () => {
+  it("reports both platforms and the limits of metadata verification using only anonymous GETs", async () => {
+    // Explicit inputs work independently of this checkout's manifest version.
+    const fixture = imageFixture({ version: "2.3.4", provenanceV1: true });
+    const evidence = JSON.parse(
+      await verifyImageCommand(
+        imageArgs(fixture.digest, "2.3.4"),
+        fixture.fetcher,
+      ),
+    );
+    expect(evidence).toMatchObject({
+      image: `${imageName}@${fixture.digest}`,
+      version: "2.3.4",
+      revision,
+      digest: fixture.digest,
+    });
+    expect(
+      evidence.platforms.map(
+        (platform: { platform: string }) => platform.platform,
+      ),
+    ).toEqual(["linux/amd64", "linux/arm64"]);
+    for (const platform of evidence.platforms) {
+      expect(platform).toMatchObject({
+        digest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+        configDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+        sbom: { spdxVersion: "SPDX-2.3", packages: 1 },
+        provenance: {
+          predicateType: "https://slsa.dev/provenance/v1",
+          buildSteps: 1,
+        },
+      });
+      expect(platform.attestationManifests).toHaveLength(1);
+    }
+    expect(evidence.publisherAuthentication).toContain("Not verified");
+    expect(evidence.limitations).toContain("No filesystem layer download");
+    expect(evidence.limitations).toContain("SBOM completeness");
+    expect(fixture.fetcher).toHaveBeenCalledTimes(12);
+    for (const [url, init] of fixture.fetcher.mock.calls) {
+      expect(String(url)).toMatch(
+        /^https:\/\/ghcr\.io\/(token\?|v2\/enthouan\/trello-mcp\/(manifests|blobs)\/)/,
+      );
+      expect(init?.method ?? "GET").toBe("GET");
+      expect(init?.body).toBeUndefined();
+    }
+    expect(fixture.fetcher.mock.calls[0]?.[1]?.headers).toBeUndefined();
+  });
+
+  it.each([
+    [],
+    ["--version", "1.0.3"],
+    ...["latest", "v1.0.3", "01.0.3", "1.0.3-rc.1", "../other"].map((value) =>
+      imageArgs(`sha256:${"a".repeat(64)}`, value),
+    ),
+    ...["abc", "A".repeat(40), "g".repeat(40)].map((value) => [
+      "--version",
+      "1.0.3",
+      "--revision",
+      value,
+      "--digest",
+      `sha256:${"a".repeat(64)}`,
+    ]),
+    ...[
+      "sha256:abc",
+      "a".repeat(64),
+      `sha512:${"a".repeat(64)}`,
+      `sha256:${"A".repeat(64)}`,
+    ].map((value) => imageArgs(value)),
+    [...imageArgs(`sha256:${"a".repeat(64)}`), "--publish"],
+    [...imageArgs(`sha256:${"a".repeat(64)}`), "--version", "1.0.4"],
+    [...imageArgs(`sha256:${"a".repeat(64)}`), "extra"],
+  ])("rejects invalid arguments before network access: %j", async (...args) => {
+    const fetcher = vi.fn<typeof fetch>();
+    await expect(verifyImageCommand(args, fetcher)).rejects.toThrow("Usage:");
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it("fails for absence, a mismatched index, or corrupt referenced manifests", async () => {
+    const fixture = imageFixture();
+    await expect(
+      verifyImageCommand(
+        imageArgs(`sha256:${"0".repeat(64)}`),
+        fixture.fetcher,
+      ),
+    ).rejects.toThrow("digest");
+    const index = JSON.parse(
+      fixture.objects.get(`manifests/${fixture.digest}`) ?? "",
+    );
+    fixture.objects.set(`manifests/${index.manifests[0].digest}`, "{}");
+    await expect(
+      verifyImageCommand(imageArgs(fixture.digest), fixture.fetcher),
+    ).rejects.toThrow("digest");
+    fixture.objects.delete(`manifests/${manifest.version}`);
+    await expect(
+      verifyImageCommand(imageArgs(fixture.digest), fixture.fetcher),
+    ).rejects.toThrow("not publicly available");
+  });
+
+  it.each([401, 403, 429, 500, "network", "malformed"] as const)(
+    "fails on token or image read errors: %s",
+    async (failure) => {
+      for (const phase of ["token", "image"]) {
+        const fixture = imageFixture();
+        if (phase === "image")
+          fixture.fetcher.mockImplementationOnce(async () =>
+            reply({ token: "anonymous" }),
+          );
+        fixture.fetcher.mockImplementationOnce(async () => {
+          if (failure === "network") throw new Error("network unavailable");
+          return failure === "malformed"
+            ? new Response("not JSON")
+            : reply({}, failure);
+        });
+        await expect(
+          verifyImageCommand(imageArgs(fixture.digest), fixture.fetcher),
+        ).rejects.toThrow();
+      }
+    },
+  );
+
+  it("runs the CLI without release or Trello setup, writes no release outputs, and exits nonzero on failure", async () => {
+    const directory = await mkdtemp(
+      join(tmpdir(), "trello-image-verification-"),
+    );
+    const fixture = imageFixture();
+    const preload = join(directory, "fetch.mjs");
+    const output = join(directory, "release-output");
+    try {
+      await writeFile(
+        preload,
+        `
+        const objects = new Map(${JSON.stringify([...fixture.objects])});
+        globalThis.fetch = async (url, init) => {
+          if ((init?.method ?? 'GET') !== 'GET' || init?.body) throw new Error('Unexpected write');
+          if (url === 'https://ghcr.io/token?service=ghcr.io&scope=repository:enthouan/trello-mcp:pull')
+            return Response.json({ token: 'anonymous' });
+          const prefix = 'https://ghcr.io/v2/enthouan/trello-mcp/';
+          if (!url.startsWith(prefix)) throw new Error('Unexpected network call');
+          return new Response(objects.get(url.slice(prefix.length)) ?? '{}', { status: objects.has(url.slice(prefix.length)) ? 200 : 404 });
+        };
+      `,
+      );
+      const run = (args: string[]) =>
+        spawnSync(
+          process.execPath,
+          [
+            "--import",
+            "tsx",
+            "--import",
+            preload,
+            "scripts/verify-image.ts",
+            ...args,
+          ],
+          {
+            encoding: "utf8",
+            env: {
+              PATH: process.env.PATH,
+              GITHUB_OUTPUT: output,
+              GITHUB_STEP_SUMMARY: output,
+            },
+            timeout: 15_000,
+          },
+        );
+      const success = run(imageArgs(fixture.digest));
+      expect(success.status, success.stderr).toBe(0);
+      expect(JSON.parse(success.stdout).digest).toBe(fixture.digest);
+      for (const args of [[], imageArgs(fixture.digest, "9.9.9")]) {
+        const failure = run(args);
+        expect(failure.status).toBe(1);
+        expect(failure.stdout).toBe("");
+        expect(failure.stderr).toContain("Image verification failed");
+      }
+      await expect(readFile(output)).rejects.toMatchObject({ code: "ENOENT" });
+      // The operator entrypoint must not import release setup or execution paths.
+      const source = await read("scripts/verify-image.ts");
+      expect(source).not.toMatch(
+        /child_process|src\/trello|GITHUB_|repairImageTags|publishAndVerify|registryEntry/,
+      );
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
   });
 });
 
