@@ -54,6 +54,14 @@ Local attachment uploads are disabled unless `TRELLO_ATTACHMENT_UPLOAD_ROOT` is 
 
 Docker and self-hosted deployments inherit the security posture of the host, container runtime, network, reverse proxy, secrets manager, and log storage. Do not publish the service beyond trusted networks unless you have added appropriate transport security and access control.
 
+For container supply-chain boundaries, see the
+[image trust and read-only verification guide](https://github.com/enthouan/trello-mcp/blob/main/docs/mcp-registry.md#image-trust-and-verification).
+GHCR releases carry SBOM/provenance metadata checked for digest integrity and
+consistency. These checks do not authenticate the publisher or establish a
+vulnerability-free image; maintainer image signing is deferred. Docker-built
+catalog images have a separate, pending trust path. Operators requiring publisher
+authentication must enforce that policy before deployment.
+
 ## Credential Handling And Redaction
 
 Project code should keep credential handling centralized and should not log:

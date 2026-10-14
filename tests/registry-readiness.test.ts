@@ -52,7 +52,7 @@ describe("Docker MCP Registry readiness audit", () => {
     );
     expect(audit).toContain("`mcp/trello-mcp`");
     expect(audit).toContain("self-provided GHCR fallback");
-    expect(audit).toContain("owns the outstanding trust plan");
+    expect(audit).toContain("mcp-registry.md#image-trust-and-verification");
     expect(audit).toContain("actually produces after acceptance");
     expect(audit).toContain(REPOSITORY_REVISION);
     expect(audit).toContain(REFRESHED_REGISTRY_REVISION);
@@ -273,7 +273,7 @@ describe("Docker MCP Registry readiness audit", () => {
       "does not complete #60's original acceptance criteria",
       "No local live run is included in the current submission approval",
       "No merge is authorized",
-      "#60's unperformed criteria and #61's trust work remain open",
+      "#60's unperformed criteria now belong to #62",
       "No such Gateway harness is provided by this submission",
       "Merely setting these variables does not gate Docker Gateway",
       "before permitting any `tools/call`",
@@ -320,8 +320,8 @@ describe("Docker MCP Registry readiness audit", () => {
     const expected = [
       ["#58", "Create `server.yaml`"],
       ["#59", "Generate and test credential-independent `tools.json`"],
-      ["#60", "Convert the local catalog"],
-      ["#61", "Define the pre-submission trust plan"],
+      ["#60", "Historical local catalog validation evidence"],
+      ["#61", "Image trust plan and digest-pinned GHCR verification"],
       ["#62", "Open and complete the external Docker MCP Registry submission"],
     ] as const;
 
@@ -330,6 +330,83 @@ describe("Docker MCP Registry readiness audit", () => {
         1,
       );
       expect(ownership).toContain(responsibility);
+    }
+    expect(ownership).toContain("Closed as superseded");
+    expect(ownership).toContain("not completed");
+    expect(ownership).toContain(
+      "remains open for Docker post-acceptance evidence",
+    );
+    expect(ownership).toContain("blocked awaiting Docker confirmation");
+    expect(ownership).not.toContain("The issue stays open");
+  });
+});
+
+describe("image trust documentation", () => {
+  it("distinguishes metadata integrity, publisher authentication, and Docker's trust root", async () => {
+    const guide = await readFile(
+      new URL("../docs/mcp-registry.md", import.meta.url),
+      "utf8",
+    );
+    const text = normalizeWhitespace(guide);
+    for (const marker of [
+      "The official Registry does not rebuild or sign the image",
+      "Registry OIDC login is not container signing",
+      "not cryptographic publisher authentication",
+      "A populated SBOM is not exhaustive",
+      "not a clean vulnerability scan",
+      "not the truth of every provenance field or a SLSA level",
+      "defer maintainer-controlled GHCR signing",
+      "mcp/signatures",
+      "not verified by this Gateway policy",
+      "#61 remains open",
+      "source.commit",
+      "key source/fingerprint",
+      "verifier/tool versions",
+      "An upstream update promise is not observed update behavior",
+      "does not make images byte-for-byte reproducible",
+    ])
+      expect(text).toContain(marker);
+    expect(guide).toContain(
+      `/blob/${GATEWAY_REVISION}/pkg/signatures/signatures.go`,
+    );
+    expect(guide).toContain(
+      `/blob/${REFRESHED_REGISTRY_REVISION}/CONTRIBUTING.md`,
+    );
+    expect(guide).toContain("issues/225");
+    expect(guide).toContain("actions/runs/37866552644");
+  });
+
+  it("links a credential-independent operator command separately from release verification", async () => {
+    const guide = await readFile(
+      new URL("../docs/mcp-registry.md", import.meta.url),
+      "utf8",
+    );
+    const text = normalizeWhitespace(guide);
+    expect(text).toContain(
+      "registry:release verify` checks Registry metadata, not image signatures",
+    );
+    expect(text).toContain(
+      "`registry:release verify-image` remains release-event-gated",
+    );
+    expect(text).toContain("no Docker daemon, login, Trello credentials");
+    expect(text).toContain("network/authentication errors also fail");
+    const examples = guide.match(/```[\s\S]*?```/g)?.join("\n") ?? "";
+    expect(examples).toContain("corepack pnpm image:verify");
+    expect(examples).toContain(`--revision ${REPOSITORY_REVISION}`);
+    expect(examples).toContain(
+      "--digest sha256:198f6758ea06fb786622a5335ad68d6a618adf3e20d1dda1094754d4a02b48a6",
+    );
+    expect(examples).not.toMatch(
+      /verify-signatures=false|GITHUB_EVENT_NAME=|cosign sign/,
+    );
+    for (const path of ["README.md", "SECURITY.md", "CONTRIBUTING.md"]) {
+      const source = await readFile(
+        new URL(`../${path}`, import.meta.url),
+        "utf8",
+      );
+      expect(source).toContain(
+        "docs/mcp-registry.md#image-trust-and-verification",
+      );
     }
   });
 });

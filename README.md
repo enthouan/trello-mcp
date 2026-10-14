@@ -151,15 +151,18 @@ protocol responsiveness. Compose inherits this image health check.
 
 Keep the Trello rate-limit and retry values at their defaults unless logs show `trello rate limit wait` or `trello request rate limited; retrying` during large workflows. Lower the capacity for shared tokens or constrained deployments; raise it carefully only after narrowing the workflow's board, card, field, and pagination scope.
 
-For reproducible deployments, prefer an exact `X.Y.Z` tag. Published Docker
-image tags use these conventions:
+For repeatable deployments, select a release and pin its verified index digest.
+See [image trust and read-only verification](docs/mcp-registry.md#image-trust-and-verification)
+for SBOM/provenance inspection, the GHCR signing policy, and the separate
+Docker-built catalog path. Metadata integrity checks do not authenticate a
+publisher. Published Docker image tags use these conventions:
 
 | Tag | Use case |
 | --- | --- |
 | `latest` | Follows the current `main` branch build. Use it when you intentionally want the newest main-branch image. |
 | `X.Y` | Follows the newest patch release in a minor line, moving to the image built from the latest matching `vX.Y.Z` tag. |
-| `X.Y.Z` | Pins to one exact release. Use this for the most reproducible deployments. |
-| `sha-<commit>` | Pins to one exact commit image from the release workflow. Use this for debugging or audit trails. |
+| `X.Y.Z` | Identifies an exact release, preserved by project policy. Pin its verified digest for immutable bytes. |
+| `sha-<commit>` | Identifies a commit build; a stable release can repair this alias to its verified release digest. |
 
 You can also run the published image directly without Compose:
 
