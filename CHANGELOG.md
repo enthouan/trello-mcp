@@ -1,5 +1,33 @@
 # Changelog
 
+## v1.0.4
+
+Maintenance release improving MCP tool guidance, registry catalog accuracy, and
+image verification. The server retains its 77 tools, existing Trello request
+behavior, and configuration.
+
+### Tool Guidance And Registry Catalog
+
+- Clarify permanent deletion, duplicate creation, cross-board movement, and
+  server-local attachment upload behavior in tool descriptions.
+- Explain custom field value selection, Trello search operators, result scope,
+  and pagination in tool and input descriptions.
+- Preserve numeric and boolean type hints for nullable arguments in the
+  generated Docker MCP Registry catalog.
+
+### Image Verification And Distribution Documentation
+
+- Add a read-only `image:verify` command that checks an exact GHCR image version,
+  revision, and digest and reports platform configuration, SPDX SBOM, and maximum
+  BuildKit provenance evidence without running Docker or contacting Trello.
+- Strengthen release image verification for supported platforms, attestation
+  references, entrypoint, working directory, and named SBOM packages.
+- Add an isolated MCP discovery harness for source and matching images, with
+  initialization, tool catalog, protocol output, and secret-leak checks.
+- Document image trust limits and the signing deferral, refresh Docker Registry
+  and Glama submission evidence, and keep their remaining external validation
+  and acceptance work explicit.
+
 ## v1.0.3
 
 Packaging release preparing official MCP Registry distribution for the existing
