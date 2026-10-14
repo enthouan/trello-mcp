@@ -48,8 +48,9 @@ The index has exactly these two runnable platforms and two `unknown/unknown`
 attestation descriptors. Those descriptors are metadata, not runnable platforms.
 Both configurations declare version `1.0.3`, the revision above, source
 `https://github.com/enthouan/trello-mcp`, ownership
-`io.github.enthouan/trello-mcp`, command `["node", "dist/index.js"]`, and user
-`node`. The verifier compares these fields and checks SHA-256 bytes from the
+`io.github.enthouan/trello-mcp`, command `["node", "dist/index.js"]`, inherited
+entrypoint `["docker-entrypoint.sh"]`, working directory `/app`, and user `node`.
+The verifier compares these fields and checks SHA-256 bytes from the
 index through platform/configuration and attestation manifests to statement
 blobs. It requires each in-toto subject to match its platform digest and any
 advertised predicate type to match the statement. It does not download filesystem
@@ -108,8 +109,8 @@ docker buildx imagetools inspect ghcr.io/enthouan/trello-mcp:1.0.3
 Then perform actual **metadata integrity verification** against the expected
 identity. Missing, malformed, mismatched, or incomplete evidence fails nonzero;
 network/authentication errors also fail, and are not proof that an image or
-signature is absent. Success prints both platform identities, statement digests,
-SBOM counts, provenance format, and the verification limits.
+signature is absent. Success prints both platform identities, container invocation
+fields, statement digests, SBOM counts, provenance format, and the verification limits.
 
 ```bash
 corepack pnpm image:verify \

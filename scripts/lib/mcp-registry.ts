@@ -359,6 +359,8 @@ export async function verifyImageEvidence(
           Labels: z.record(z.string(), z.string()),
           Cmd: z.array(z.string()),
           User: z.literal("node"),
+          Entrypoint: z.tuple([z.literal("docker-entrypoint.sh")]),
+          WorkingDir: z.literal("/app"),
         }),
       })
       .parse(configObject?.body).config;
@@ -384,6 +386,12 @@ export async function verifyImageEvidence(
       platform: `linux/${architecture}`,
       digest: platform.digest,
       configDigest,
+      configuration: {
+        user: config.User,
+        entrypoint: config.Entrypoint,
+        command: config.Cmd,
+        workingDirectory: config.WorkingDir,
+      },
       ...attestations,
     });
   }

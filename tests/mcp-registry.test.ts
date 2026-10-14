@@ -240,6 +240,10 @@ function imageFixture(
     badSource?: boolean;
     badUser?: boolean;
     badCommand?: boolean;
+    badEntrypoint?: boolean;
+    missingEntrypoint?: boolean;
+    badWorkingDir?: boolean;
+    missingWorkingDir?: boolean;
     corruptLayer?: boolean;
     legacyAttestation?: boolean;
     provenanceV1?: boolean;
@@ -265,6 +269,16 @@ function imageFixture(
       config: {
         User: options.badUser ? "root" : "node",
         Cmd: options.badCommand ? ["sh"] : ["node", "dist/index.js"],
+        ...(options.missingEntrypoint
+          ? {}
+          : {
+              Entrypoint: options.badEntrypoint
+                ? ["sh", "-c"]
+                : ["docker-entrypoint.sh"],
+            }),
+        ...(options.missingWorkingDir
+          ? {}
+          : { WorkingDir: options.badWorkingDir ? "/" : "/app" }),
         Labels: {
           ...(options.badLabel ? {} : { [ownershipLabel]: serverName }),
           "org.opencontainers.image.version": options.badVersion
@@ -452,6 +466,10 @@ describe("public immutable image verification", () => {
     { badSource: true },
     { badUser: true },
     { badCommand: true },
+    { badEntrypoint: true },
+    { missingEntrypoint: true },
+    { badWorkingDir: true },
+    { missingWorkingDir: true },
     { corruptLayer: true },
   ])("rejects an existing invalid image: %j", async (options) => {
     const fixture = imageFixture(options);
@@ -541,6 +559,12 @@ describe("read-only operator image verification", () => {
       expect(platform).toMatchObject({
         digest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
         configDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+        configuration: {
+          user: "node",
+          entrypoint: ["docker-entrypoint.sh"],
+          command: ["node", "dist/index.js"],
+          workingDirectory: "/app",
+        },
         sbom: { spdxVersion: "SPDX-2.3", packages: 1 },
         provenance: {
           predicateType: "https://slsa.dev/provenance/v1",
