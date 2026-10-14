@@ -10,6 +10,236 @@ Initial publication and observed production automation are tracked in
 Registry [#62](https://github.com/enthouan/trello-mcp/issues/62) and Glama
 [#66](https://github.com/enthouan/trello-mcp/issues/66) are separate submissions.
 
+## Image trust and verification
+
+Trust review: **2026-10-14 UTC**. GHCR provides inspectable SBOM/provenance and
+digest integrity. The Release workflow does not establish a maintainer image
+signature or independently authenticated build identity. Operators must decide
+whether the repository/GitHub/GHCR publication controls meet their policy before
+running an image; a successful metadata check alone cannot make that decision.
+
+| Artifact and publisher | Available guarantees and evidence | Consumer boundary |
+| --- | --- | --- |
+| Maintainer-built `ghcr.io/enthouan/trello-mcp` | Release builds explicitly enable `sbom: true` and `provenance: mode=max`. Stable releases verify both platforms and reuse existing exact images. v1.0.3 evidence is recorded below. | Anonymous metadata checks and digest pinning are available. Publisher signatures are not verified; plain Docker pulls do not enforce the project's metadata policy. |
+| Proposed Docker-built `mcp/trello-mcp` | Docker's [contribution guide](https://github.com/docker/mcp-registry/blob/49b643ce3fc73e6ee80bb962719b6e2990e3d397/CONTRIBUTING.md) describes Docker-controlled builds, signatures, SBOM/provenance, and security updates. | These remain expectations for this server until an accepted artifact is published and inspected. The [submission](https://github.com/docker/mcp-registry/pull/5625) is still open. A Docker rebuild need not share a GHCR digest even from the same source. |
+| Official MCP Registry entry `io.github.enthouan/trello-mcp` | The exact active metadata payload references the versioned GHCR image. GitHub OIDC authorizes publication in the Registry namespace. | The official Registry does not rebuild or sign the image. Registry OIDC login is not container signing; `registry:release verify` checks Registry metadata, not image signatures. |
+
+### Verified GHCR artifact and limits
+
+The existing verifier and the read-only command below independently retrieved
+v1.0.3 anonymously on 2026-10-14 UTC, without running a container or contacting
+Trello. The expected identity comes from the maintainer's
+[v1.0.3 completion record](https://github.com/enthouan/trello-mcp/issues/225)
+and [successful stable-tag Release run](https://github.com/enthouan/trello-mcp/actions/runs/37866552644),
+cross-checked against the annotated tag's target. This relies on trusted access
+to the repository and GitHub evidence; it is not cryptographic publisher
+authentication. An annotated Git tag is not necessarily a cryptographically
+signed tag. Fetching a digest and its metadata from the same registry is not an
+independent source of trust for who built it.
+
+| Identity | Value |
+| --- | --- |
+| Version / source revision | `1.0.3` / `d7c22c78223b60ccabe269ae3af2415957fed861` |
+| GHCR index | `sha256:198f6758ea06fb786622a5335ad68d6a618adf3e20d1dda1094754d4a02b48a6` |
+| linux/amd64 manifest | `sha256:545d7be568b51bf650539f910dbabbde4876bb8c1f95a83c176b19b2d51da797` |
+| linux/arm64 manifest | `sha256:bf18952220551e705dace424a7f79c8dbf8356e889661ed56de5bb13962f6d94` |
+
+The index has exactly these two runnable platforms and two `unknown/unknown`
+attestation descriptors. Those descriptors are metadata, not runnable platforms.
+Both configurations declare version `1.0.3`, the revision above, source
+`https://github.com/enthouan/trello-mcp`, ownership
+`io.github.enthouan/trello-mcp`, command `["node", "dist/index.js"]`, inherited
+entrypoint `["docker-entrypoint.sh"]`, working directory `/app`, and user `node`.
+The verifier compares these fields and checks SHA-256 bytes from the
+index through platform/configuration and attestation manifests to statement
+blobs. It requires each in-toto subject to match its platform digest and any
+advertised predicate type to match the statement. It does not download filesystem
+layers; their digests are referenced by the checked platform manifests.
+
+Both SPDX 2.3 documents contain **345 package records**, including Debian
+`base-files`, Node `24.21.0`, `trello-mcp` `1.0.3`, MCP SDK `1.31.0`, Pino
+`10.3.1`, and Zod `4.6.5`. They report Syft `1.51.0` and BuildKit `0.33.1` as
+tools. The [default SBOM scope](https://docs.docker.com/build/metadata/attestations/sbom/)
+is the final image stage; this Dockerfile does not opt into scanning the build
+context or earlier stages. A populated SBOM is not exhaustive evidence of all
+build dependencies and is not a clean vulnerability scan. Validation requires
+SPDX 2.x, its document identifier, and a nonempty inventory of named packages;
+it is not full SPDX conformance or package-to-filesystem verification.
+
+The retrieved provenance uses `https://slsa.dev/provenance/v1`, with maximum-mode
+LLB build steps, Dockerfile data, base/frontend/scanner materials, and the
+release run URL as builder ID. Its VCS fields declare the expected repository
+and revision, while `buildkit_completeness.resolvedDependencies` is `false`.
+These build/source fields were inspected for consistency; they are producer
+claims, not independently authenticated source provenance. The automated
+verifier enforces the supported BuildKit v0.2/v1 format and nonempty maximum-mode
+build configuration, not the truth of every provenance field or a SLSA level.
+
+The build and inspection need no Trello credentials. The Dockerfile has no
+credential `ARG`/`ENV` inputs, and the workflows pass none to the build. The
+reviewed `.dockerignore` excludes `.env`/`.env.*` (except placeholder examples),
+local client credential configuration, Git metadata, logs, and local build output.
+The inspected build parameters contain public labels/VCS data; no secret build
+input was found. Maximum-mode provenance can expose build arguments and source
+data: never pass secrets through build arguments or image environment layers.
+Review attestations and build records for sensitive content before sharing raw
+files. These checks are not a forensic claim that every image byte is secret-free.
+See Docker's [Actions attestation guidance](https://docs.docker.com/build/ci/github-actions/attestations/)
+and [provenance modes](https://docs.docker.com/build/metadata/attestations/slsa-provenance/)
+(mutable documentation reviewed on 2026-10-14 UTC).
+
+### Read-only operator commands
+
+Use a reviewed checkout containing `image:verify`, Node 24.x, and pnpm 10.34.1;
+install its locked dependencies with `corepack pnpm install --frozen-lockfile`.
+Explicit version/revision/digest inputs can describe a different release than
+the checkout. This command shares the stable-release verification library and
+uses anonymous pull access only; no Docker daemon, login, Trello credentials,
+tool handlers, image execution, publishing, signing, or tag repair is involved.
+
+First resolve the release tag for inspection and compare its displayed digest
+with the separately reviewed release evidence above. A tag read alone is not
+authentication. Stop on any mismatch; do not replace the expected digest merely
+to make verification pass.
+
+```bash
+docker buildx imagetools inspect ghcr.io/enthouan/trello-mcp:1.0.3
+```
+
+Then perform actual **metadata integrity verification** against the expected
+identity. Missing, malformed, mismatched, or incomplete evidence fails nonzero;
+network/authentication errors also fail, and are not proof that an image or
+signature is absent. Success prints both platform identities, container invocation
+fields, statement digests, SBOM counts, provenance format, and the verification limits.
+
+```bash
+corepack pnpm image:verify \
+  --version 1.0.3 \
+  --revision d7c22c78223b60ccabe269ae3af2415957fed861 \
+  --digest sha256:198f6758ea06fb786622a5335ad68d6a618adf3e20d1dda1094754d4a02b48a6
+```
+
+Use the verified `ghcr.io/enthouan/trello-mcp@sha256:...` reference in the chosen
+deployment configuration to keep the selected bytes pinned. These additional
+commands are **extraction/inspection**, not signature verification. Buildx
+`v0.37.2` was used for this example; `jq` is needed for JSON inspection.
+
+```bash
+IMAGE=ghcr.io/enthouan/trello-mcp@sha256:198f6758ea06fb786622a5335ad68d6a618adf3e20d1dda1094754d4a02b48a6
+docker buildx imagetools inspect "$IMAGE" --raw | jq .
+docker buildx imagetools inspect ghcr.io/enthouan/trello-mcp@sha256:545d7be568b51bf650539f910dbabbde4876bb8c1f95a83c176b19b2d51da797 --raw | jq .
+docker buildx imagetools inspect ghcr.io/enthouan/trello-mcp@sha256:bf18952220551e705dace424a7f79c8dbf8356e889661ed56de5bb13962f6d94 --raw | jq .
+for platform in linux/amd64 linux/arm64; do
+  docker buildx imagetools inspect "$IMAGE" \
+    --format "{{ json (index .SBOM \"$platform\").SPDX }}"
+  docker buildx imagetools inspect "$IMAGE" \
+    --format "{{ json (index .Provenance \"$platform\").SLSA }}"
+done
+```
+
+The index's `vnd.docker.reference.digest` connects each attestation manifest to
+its runnable platform. Inspect either returned `attestationManifests` digest
+with `imagetools inspect --raw` to see the statement blob descriptors and
+advertised predicates. Buildx's SPDX/SLSA views extract predicates, omitting
+the in-toto envelope; the shared verifier reads the actual statement blobs and
+checks their subjects and digest chains. See Docker's
+[storage format](https://docs.docker.com/build/metadata/attestations/attestation-storage/).
+A checksum proves consistency with the expected bytes, not who published them.
+
+`registry:release verify-image` remains release-event-gated and also runs offline
+container discovery. Do not spoof GitHub Actions environment variables to use
+it for inspection. A cache-only PR build proves buildability, not publication
+of attestations. Manual Release image dispatch is main-only; use ordinary PR
+validation for this readiness work.
+
+### Signing decision and consumer policy
+
+**Decision: defer maintainer-controlled GHCR signing**, tracked by
+[#61](https://github.com/enthouan/trello-mcp/issues/61), with maintainers owning
+reconsideration. Existing SBOM/provenance production is retained. No additional
+generator, scanner, signing service, or long-lived key is required by the
+selected Docker-built submission. Signing GHCR would supply a separate
+maintainer identity; it would not satisfy Docker's managed signing policy.
+Operators requiring publisher authentication must not treat `image:verify` as
+satisfying that requirement. No permissive signature-verification workaround
+is part of this policy.
+
+Revisit before adopting the self-provided catalog fallback, or when a concrete
+GHCR consumer requires authenticated publisher identity. A separately reviewed
+and approved signing change must define keyless CI identity, an exact workflow
+and stable-tag ref policy, the GitHub Actions OIDC issuer, a pinned official
+tool, job-scoped permissions, failure handling, and identity-constrained consumer
+verification. Sign only the already verified index digest after release gates;
+exclude PRs, forks, arbitrary branches, and no-push builds. Retry against the
+same immutable image without rebuilding; do not silently sign historical
+releases. The [Sigstore CI guide](https://docs.sigstore.dev/quickstart/quickstart-ci/)
+and [verification guide](https://docs.sigstore.dev/cosign/verifying/verify/)
+(reviewed 2026-10-14 UTC) describe the identity/issuer constraints to evaluate.
+An authenticated index signature would transitively bind its referenced platform
+and attestation bytes through their hashes; it would not prove provenance claims
+true, an exhaustive SBOM, reproducible builds, or absence of vulnerabilities.
+
+### Docker-built verification after acceptance
+
+The Docker Registry contribution rules were refreshed at
+`49b643ce3fc73e6ee80bb962719b6e2990e3d397`. Docker's
+[FAQ](https://docs.docker.com/ai/mcp-catalog-and-toolkit/faqs/) describes build
+attestations, source provenance, and signed SBOMs (observed 2026-10-14 UTC).
+These are upstream statements, not observed trello-mcp guarantees or endorsement.
+[#62](https://github.com/enthouan/trello-mcp/issues/62) is blocked awaiting
+Docker confirmation and upstream workflow authorization; neither acceptance of
+new submissions nor a 24-hour publication deadline is assumed.
+
+At Gateway revision `a34df45d4ec0e941a9853ad768c4f6cd818966b3`, the
+[security policy](https://github.com/docker/mcp-gateway/blob/a34df45d4ec0e941a9853ad768c4f6cd818966b3/docs/security.md#image-verification)
+requires digest references and enables signature verification by default for
+Docker Hub's `mcp/` images. The
+[implementation](https://github.com/docker/mcp-gateway/blob/a34df45d4ec0e941a9853ad768c4f6cd818966b3/pkg/signatures/signatures.go)
+uses Docker's embedded public key, the separate `mcp/signatures` repository,
+and Rekor bundle verification. Third-party images outside that signing namespace
+are **not verified by this Gateway policy**; passing through that path is not a
+successful Docker signature verification. Re-audit the installed version and
+Docker's documented key distribution before checking a published artifact.
+
+The repository readiness work can merge now. **#61 remains open** and owns the
+following evidence; #62 owns acceptance and the deferred Desktop/Gateway checks
+transferred from closed-as-superseded #60. A readiness PR uses `Refs #61`.
+Transferring this artifact obligation or closing #61 requires an explicit owner
+decision recorded with the receiving issue and these acceptance criteria.
+
+- [ ] Confirm the accepted catalog record, `source.commit`, Dockerfile, image
+  repository, and publisher. The pending submission selects `mcp/trello-mcp`
+  from `d7c22c78223b60ccabe269ae3af2415957fed861`; record any accepted change.
+- [ ] Record the immutable Docker index and every runnable platform digest;
+  compare architectures, source/revision, configuration, and build metadata
+  against the accepted record, without assuming equality with GHCR.
+- [ ] Retrieve SBOM/provenance and verify descriptor/blob digests, subjects,
+  predicates, package inventory and scope, and source/build declarations.
+  Record missing or conflicting evidence as a failure, not an assumed benefit.
+- [ ] Verify the exact published digest using Docker's actual trust root and
+  signature location; retain the key source/fingerprint, signature subject,
+  bundle result, verifier/tool versions, exact successful commands, and date.
+  Distinguish a signature over the index from a separately signed SBOM.
+  Network or authentication failures are inconclusive failures, not absence.
+- [ ] Confirm the applicable Gateway policy is enabled for the selected image
+  and the verified digest is the one selected for use. Never use
+  `--verify-signatures=false` as a production recommendation or acceptance test;
+  earlier local-development exceptions remain dated historical evidence only.
+- [ ] Document observed rebuild and update behavior: Docker may rebuild pinned
+  source with changed base/dependency inputs; catalog source changes and image
+  rebuilds are separate events. Record catalog/profile changes and the operator
+  action that actually adopts a new digest, reverify it, and retain the previous
+  digest for rollback. An upstream update promise is not observed update behavior.
+
+GHCR exact releases remain immutable by project policy: reruns verify and reuse
+existing images, and conflicts fail. Main pushes update `latest` and the commit
+image; stable tags publish an exact version then repair commit/minor aliases
+from the verified digest, preserving newer minor releases. None of this updates
+an already pinned deployment automatically. A frozen dependency install alone
+does not make images byte-for-byte reproducible; mutable base tags and build
+inputs still matter. Changing a released artifact requires the normal future
+release process, not rebuilding or retrofitting an existing exact version.
+
 ## Manifest and installation
 
 The root `server.json` uses the official `2025-12-11` schema. Its server version,

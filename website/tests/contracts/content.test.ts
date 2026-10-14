@@ -63,6 +63,19 @@ const OFFICIAL_REST_GROUPS = [
 ] as const;
 
 describe("independent-project and support content", () => {
+  it("links generated security and contributor pages to the image trust policy", async () => {
+    for (const route of [
+      "/reference/security-policy/",
+      "/reference/contributing/",
+    ]) {
+      const page = await readRoute(route);
+      expect(anchorHrefs(page.document)).toContain(
+        "https://github.com/enthouan/trello-mcp/blob/main/docs/mcp-registry.md#image-trust-and-verification",
+      );
+      expect(routeText(page)).toMatch(/signing is (explicitly )?deferred/);
+    }
+  });
+
   it("shows the independent-project notice only where intended", async () => {
     for (const route of ["/", "/getting-started/"]) {
       const page = await readRoute(route);

@@ -2,6 +2,15 @@
 
 Last verified: **2026-10-11**
 
+Trust/status refresh: **2026-10-14 UTC**. The selected Docker-built path is
+unchanged. PR #5625 is still open and #62 is blocked awaiting Docker
+confirmation and upstream workflow authorization. On 2026-10-12, #60 was closed
+as superseded and its unfinished Desktop/Gateway validation moved to #62;
+those checks did not pass. #61 retains the Docker artifact verification
+obligation. See [image trust and verification](mcp-registry.md#image-trust-and-verification)
+for the independently rechecked GHCR release, signing deferral, operator commands,
+and exact post-acceptance criteria. Historical validation below keeps its dates.
+
 Decision: submit `trello-mcp` as a **Docker-built local server** with the
 registry image name `mcp/trello-mcp`. Keep the existing GHCR image as a viable
 self-provided fallback, but do not treat the two paths as having the same
@@ -111,9 +120,9 @@ updates, and post-acceptance publishing in the Docker Hub `mcp` namespace
 
 Those are upstream-stated path benefits, not evidence that a particular
 `trello-mcp` artifact already has them. [Issue #61](https://github.com/enthouan/trello-mcp/issues/61)
-owns the outstanding trust plan and must inspect the artifacts Docker
-actually produces after acceptance and document the realized trust and update
-model before the project claims supply-chain readiness.
+owns the [trust plan](mcp-registry.md#image-trust-and-verification) and must inspect
+the artifacts Docker actually produces after acceptance and document the realized
+trust and update model before claiming Docker artifact verification is complete.
 
 ### Path comparison
 
@@ -228,14 +237,15 @@ Additional metadata decisions:
 - [x] Declare both Trello secrets with `required: true` and clearly synthetic
   `<YOUR_...>` examples that do not resemble real keys or tokens.
 - [ ] Confirm the two fields are presented as required credential inputs in
-  Docker Desktop during issue #60's Toolkit validation.
+  Docker Desktop during the Toolkit validation transferred from #60 to #62.
 
 The refreshed upstream formatting check and
 `task validate -- --name trello-mcp` both passed with the draft copied into a
 temporary checkout at the recorded registry revision. The metadata validator
 does not require `tools.json` for a local server. The broader build and catalog
 stages do require working tool discovery or the adjacent artifact; those stages
-remain owned by #59 and #60, so #58 did not add a placeholder file.
+were assigned to #59 and #60, so #58 did not add a placeholder file. Unfinished
+#60 validation now belongs to #62.
 
 Required pull-request CI is separate from that metadata-validation scope. After
 the #58 PR opened, the repository's existing gated Live Trello Smoke workflow
@@ -313,8 +323,9 @@ demonstrated build prerequisite without changing runtime behavior.
 
 ### 4. Upstream validation and current Toolkit behavior — issue #60
 
-[Issue #60](https://github.com/enthouan/trello-mcp/issues/60) owns Docker
-Desktop/Toolkit validation and any live, credentialed Trello smoke test. The
+[Issue #60](https://github.com/enthouan/trello-mcp/issues/60) originally owned Docker
+Desktop/Toolkit validation and any live, credentialed Trello smoke test. It is
+closed as superseded; #62 now owns its unfinished checks. The
 initial 2026-08-29 credential-independent pass used Docker Desktop `4.88.0`
 build `237115`. On 2026-08-30, Desktop had updated to `4.88.1` build `237512`;
 the fresh upstream validation, catalog conversion, profile setup, and
@@ -552,7 +563,7 @@ pending continuation cleanup; this historical checklist is not current state.
   profile, catalog, trusted copy, secrets, captures, checkout, and containers,
   then compare the sanitized inventory with the continuation baseline.
 - [ ] Post the final sanitized evidence, including the remaining manual gates if
-  authorization is unavailable, to issue #60.
+  authorization is unavailable, to issue #60 (now superseded by #62).
 
 For an external pull request, upstream CI currently builds validation tools
 from registry `main`, runs Go tests against the PR, identifies changed server
@@ -565,7 +576,8 @@ before submission.
 The owner authorized #62's upstream PR with the remaining authenticated
 Gateway, positive-network, and Desktop credential-form checks deferred. No
 real credentials were used or shared, and no successful live Gateway workflow
-is claimed. #60 stays open under its original acceptance criteria.
+is claimed. #60's original criteria were still pending at this observation;
+they were transferred to #62 when #60 closed as superseded on 2026-10-12.
 
 The refreshed candidate pins merged `v1.0.3` source `d7c22c7`, not the old
 `17679f1` test image. Against unchanged Registry revision `49b643ce`,
@@ -641,18 +653,18 @@ Release `v1.0.3` already publishes to the separate official MCP Registry and
 provides per-platform SPDX SBOM and BuildKit provenance for the GHCR image
 ([release implementation](https://github.com/enthouan/trello-mcp/pull/226)).
 That work does not publish a Docker MCP Catalog entry or establish Docker's
-managed-image signature/update guarantees. #61 should reuse the existing GHCR
-evidence and focus its remaining plan on those Docker-specific questions.
+managed-image signature/update guarantees. #61 reuses that implementation and
+records [current GHCR evidence and trust limits](mcp-registry.md#verified-ghcr-artifact-and-limits).
 
-- [ ] [Issue #61](https://github.com/enthouan/trello-mcp/issues/61) still owns
-  documenting the expected Docker-built trust properties, the digest-pinned GHCR
-  fallback, and the exact post-acceptance checks for SBOM, provenance,
-  signatures, source revision, and update handling. This is a readiness plan,
-  not proof of a Docker-managed artifact that does not exist yet.
+- [x] [Issue #61](https://github.com/enthouan/trello-mcp/issues/61) documents
+  expected Docker-built trust properties, the digest-pinned GHCR identity,
+  signing policy, and [exact post-acceptance checks](mcp-registry.md#docker-built-verification-after-acceptance)
+  for SBOM, provenance, signatures, source revision, and updates. This completes
+  repository readiness documentation, not the pending Docker artifact evidence.
 - [x] The owner approved opening
   [issue #62](https://github.com/enthouan/trello-mcp/issues/62)'s external PR on
   2026-10-11 with the remaining live/Desktop checks explicitly deferred.
-  #60's unperformed criteria and #61's trust work remain open; neither is
+  #60's unperformed criteria now belong to #62; #61's artifact checks remain open. Neither is
   represented as completed by this submission approval.
   Opening the PR does not wait for post-acceptance inspection of an artifact
   that Docker has not yet published.
@@ -665,10 +677,11 @@ evidence and focus its remaining plan on those Docker-specific questions.
   file.
 - [ ] Address automated failures and Docker-team review. Do not treat an open
   PR, passing local commands, or a requested credential form as acceptance.
-- [ ] After merge, verify the accepted catalog record, Docker Desktop Toolkit
-  entry, Docker Hub `mcp/trello-mcp` image, exact source revision, and the
-  upstream-stated processing window. The current guide says accepted entries
-  become available within 24 hours ([post-acceptance processing][registry-post-acceptance]).
+- [ ] If Docker accepts and merges the submission, verify the catalog record,
+  Docker Desktop Toolkit entry, published `mcp/trello-mcp` image, and source
+  revision. The guide's [24-hour statement][registry-post-acceptance] is not a
+  publication promise for this pending submission. #62 records uncertainty about
+  acceptance of new entries and the outstanding workflow authorization.
 - [ ] After #62 records upstream acceptance and Docker publishes the managed
   image, #61 verifies the actual image digest, SBOM, provenance, signatures,
   source revision, and update behavior. Keep #61 open until that evidence is
@@ -676,13 +689,13 @@ evidence and focus its remaining plan on those Docker-specific questions.
 
 ## Downstream issue ownership
 
-| Issue | Owns | Status at the 2026-10-11 submission |
+| Issue | Owns | Status refreshed 2026-10-14 UTC |
 | --- | --- | --- |
 | [#58](https://github.com/enthouan/trello-mcp/issues/58) | Create `server.yaml`; finalize title, description, tags, icon, source pin, stdio runtime, secrets, and host allowlist | The metadata draft and its offline contract are complete; #62 owns the external submission |
 | [#59](https://github.com/enthouan/trello-mcp/issues/59) | Generate and test credential-independent `tools.json` from the explicit `allTools`-derived initial catalog, excluding the disabled upload tool | The 76-tool artifact, generator, deterministic checks, offline `tools/list` parity, and upstream fallback build are complete |
-| [#60](https://github.com/enthouan/trello-mcp/issues/60) | Convert the local catalog through the installed Toolkit's supported path and verify configuration, discovery, outbound access, and minimal live behavior through the opt-in live-validation workflow | Offline evidence is recorded for its exact tested revisions; Desktop credential-form and live/positive-network checks are deferred by the owner, not passed. Temporary state has been cleaned up. The issue stays open |
-| [#61](https://github.com/enthouan/trello-mcp/issues/61) | Define the pre-submission trust plan and digest-pinned fallback; after acceptance, verify the actual Docker-published image and final trust/update model | `v1.0.3` provides GHCR SBOM/provenance; Docker-specific trust, signing, and post-acceptance artifact verification remain open |
-| [#62](https://github.com/enthouan/trello-mcp/issues/62) | Open and complete the external Docker MCP Registry submission and verify acceptance | [Upstream PR #5625](https://github.com/docker/mcp-registry/pull/5625) is open against the refreshed source pin and unchanged fallback; review, acceptance, and publication remain pending. No review credentials were shared |
+| [#60](https://github.com/enthouan/trello-mcp/issues/60) | Historical local catalog validation evidence | Closed as superseded on 2026-10-12, not completed; unfinished checks transferred to #62 |
+| [#61](https://github.com/enthouan/trello-mcp/issues/61) | Image trust plan and digest-pinned GHCR verification; after acceptance, verify the actual Docker-published image and final trust/update model | GHCR evidence and signing deferral documented; remains open for Docker post-acceptance evidence unless the owner explicitly transfers that obligation |
+| [#62](https://github.com/enthouan/trello-mcp/issues/62) | Open and complete the external Docker MCP Registry submission, verify acceptance, and complete #60's transferred Desktop/Gateway validation | [Upstream PR #5625](https://github.com/docker/mcp-registry/pull/5625) is open; blocked awaiting Docker confirmation and workflow authorization. Deferred Desktop/live/positive-network checks remain unpassed. No review credentials were shared |
 
 ## Blockers and open questions
 
@@ -698,11 +711,11 @@ deliberately assigned rather than silently assumed:
   unsigned-local-image exception, and non-blocking unhealthy stdio container
   at the historical source pin. Current main has a transport-aware health
   check; that change does not retroactively alter the pinned-image evidence.
-  Its original acceptance still requires Docker Desktop credential-form
+  Its original acceptance, now owned by #62, still requires Docker Desktop credential-form
   confirmation and an authorized positive Gateway call against a confirmed
   disposable board. The owner deferred these on 2026-10-11 to allow #62's PR
   to proceed. No CI run or CLI metadata snapshot substitutes for that evidence.
-- #61 retains the trust-plan work and must verify the actual Docker-published
+- #61 documents the trust plan and must still verify the actual Docker-published
   artifacts and update behavior after acceptance. The owner's submission-first
   decision is not a completed security or trust review. If the
   self-provided GHCR fallback is selected later, it must use a digest and
@@ -720,7 +733,7 @@ deliberately assigned rather than silently assumed:
 The owner approved the submission-first sequence on 2026-10-11. The following
 local live steps are deferred, not prerequisites for opening the upstream PR.
 
-1. If resuming the deferred #60 checks, in Docker Desktop open a fresh Trello
+1. If resuming the deferred #60 checks now tracked in #62, in Docker Desktop open a fresh Trello
    profile and confirm the API key and token fields. Inventory secret names
    first; if either canonical name already exists, do not overwrite it.
    Arrange an isolated or owner-directed setup instead. Save test credentials
@@ -743,19 +756,18 @@ local live steps are deferred, not prerequisites for opening the upstream PR.
    before removing only run-created secrets and temporary state, then verify
    cleanup against the baseline. No local live run is included in the current
    submission approval.
-3. Complete #61's outstanding trust plan, including the exact GHCR fallback
-   digest and how Docker-published signatures, SBOM, provenance, source, and
-   updates will be checked after acceptance.
-4. Proceed with #62 under the recorded owner approval: refresh the source pin
-   and fallback, validate the candidate, and open a focused fork PR in
-   `docker/mcp-registry` with the live/Desktop limitations disclosed. No merge
+3. Use #61's [image trust plan](mcp-registry.md#image-trust-and-verification),
+   including the exact GHCR digest and the Docker post-acceptance checklist.
+4. Proceed with #62 under the recorded owner approval only when Docker confirms
+   that the submission can proceed and authorizes upstream checks. PR #5625 is
+   already open; preserve its selected path and disclosed limitations. No merge
    is authorized. The repository owner
    handles temporary review credentials through Docker's official form if
    required by the review process.
 5. Address upstream CI and Docker-team review. After acceptance, verify the
    public catalog record, Docker Desktop discovery, and Docker Hub
-   `mcp/trello-mcp` artifact. Upstream documents availability within 24 hours;
-   observe the actual result rather than treating that window as proof.
+   `mcp/trello-mcp` artifact. Observe actual publication rather than assuming
+   acceptance or a publication deadline.
 6. Finish #61's post-acceptance artifact checks. Local catalog creation,
    pushing this repository's branch, and official MCP Registry publication
    do not themselves create the public Docker Catalog listing.

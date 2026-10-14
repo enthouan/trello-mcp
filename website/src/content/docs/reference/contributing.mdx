@@ -109,7 +109,7 @@ The release workflow publishes Docker images to GHCR with these tag conventions:
 | `latest` | Current `main` branch image. |
 | `X.Y` | Moving minor-line tag for the newest patch in that release line. |
 | `X.Y.Z` | Exact release image for the pushed `vX.Y.Z` tag. |
-| `sha-<commit>` | Exact commit image from the workflow run. |
+| `sha-<commit>` | Commit image alias; stable releases can repair it to the verified release digest. |
 
 Stable tag releases also publish `server.json` to the official MCP Registry
 after verifying the exact public image and offline stdio tool discovery. Bump
@@ -117,6 +117,13 @@ the manifest version and image identifier with `package.json`, and run
 `corepack pnpm registry:check` before opening the release PR. The Registry job
 uses GitHub OIDC and verifies the full production payload. Existing release
 images are verified and reused on reruns.
+
+Use the [image trust and read-only verification guide](https://github.com/enthouan/trello-mcp/blob/main/docs/mcp-registry.md#image-trust-and-verification)
+to inspect existing artifacts with `corepack pnpm image:verify`. Retain SBOM
+and maximum-mode provenance production, immutable-image reuse, and release-only
+gates. Never pass credentials through Docker build arguments or image environment
+layers. Maintainer GHCR signing is explicitly deferred under #61; enabling it
+requires a reviewed trust policy and owner approval.
 
 Follow the [official MCP Registry release and recovery guide](https://github.com/enthouan/trello-mcp/blob/main/docs/mcp-registry.md)
 and the [repository release skill](https://github.com/enthouan/trello-mcp/blob/main/.agents/skills/trello-mcp-release/SKILL.md).

@@ -10,6 +10,11 @@ export const imageName = `ghcr.io/${repository}`;
 export const ownershipLabel = "io.modelcontextprotocol.server.name";
 const stableVersion = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 const digestSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/);
+export const imageVerificationInput = z.strictObject({
+  version: z.string().regex(stableVersion),
+  revision: z.string().regex(/^[a-f0-9]{40}$/),
+  digest: digestSchema,
+});
 const description = z.string().min(1).max(100);
 const secret = (name: string) =>
   z.strictObject({
@@ -269,11 +274,23 @@ async function imageReader(fetcher: Fetcher) {
 }
 
 export async function verifyImage(
-  manifest: Manifest,
+  manifest: Pick<Manifest, "version">,
   revision: string,
   expectedDigest?: string,
   fetcher: Fetcher = fetch,
 ): Promise<string | undefined> {
+  return (
+    await verifyImageEvidence(manifest, revision, expectedDigest, fetcher)
+  )?.digest;
+}
+
+export async function verifyImageEvidence(
+  manifest: Pick<Manifest, "version">,
+  revision: string,
+  expectedDigest?: string,
+  fetcher: Fetcher = fetch,
+) {
+  z.string().regex(stableVersion).parse(manifest.version);
   if (!/^[a-f0-9]{40}$/.test(revision))
     throw new Error("Expected an exact release commit SHA.");
   if (expectedDigest !== undefined) digestSchema.parse(expectedDigest);
@@ -287,8 +304,34 @@ export async function verifyImage(
   const index = indexSchema.parse(image.body);
   if (index.annotations?.[ownershipLabel] !== serverName)
     throw new Error("Image index lacks the MCP ownership annotation.");
+  const runnable = index.manifests.filter(
+    (entry) =>
+      entry.annotations?.["vnd.docker.reference.type"] !==
+      "attestation-manifest",
+  );
+  if (
+    runnable.some(
+      (entry) =>
+        entry.platform.os !== "linux" ||
+        !["amd64", "arm64"].includes(entry.platform.architecture),
+    )
+  )
+    throw new Error("Unexpected runnable image platform.");
+  for (const entry of index.manifests) {
+    if (
+      entry.annotations?.["vnd.docker.reference.type"] ===
+        "attestation-manifest" &&
+      !runnable.some(
+        (platform) =>
+          platform.digest ===
+          entry.annotations?.["vnd.docker.reference.digest"],
+      )
+    )
+      throw new Error("Attestation descriptor references an unknown platform.");
+  }
+  const platforms = [];
   for (const architecture of ["amd64", "arm64"]) {
-    const candidates = index.manifests.filter(
+    const candidates = runnable.filter(
       (entry) =>
         entry.platform.os === "linux" &&
         entry.platform.architecture === architecture,
@@ -316,6 +359,8 @@ export async function verifyImage(
           Labels: z.record(z.string(), z.string()),
           Cmd: z.array(z.string()),
           User: z.literal("node"),
+          Entrypoint: z.tuple([z.literal("docker-entrypoint.sh")]),
+          WorkingDir: z.literal("/app"),
         }),
       })
       .parse(configObject?.body).config;
@@ -332,9 +377,25 @@ export async function verifyImage(
       throw new Error(
         "Image command does not match the stdio installation contract.",
       );
-    await verifyAttestations(index, platform.digest, readObject);
+    const attestations = await verifyAttestations(
+      index,
+      platform.digest,
+      readObject,
+    );
+    platforms.push({
+      platform: `linux/${architecture}`,
+      digest: platform.digest,
+      configDigest,
+      configuration: {
+        user: config.User,
+        entrypoint: config.Entrypoint,
+        command: config.Cmd,
+        workingDirectory: config.WorkingDir,
+      },
+      ...attestations,
+    });
   }
-  return image.digest;
+  return { digest: image.digest, platforms };
 }
 
 type ReadImageObject = Awaited<ReturnType<typeof imageReader>>;
@@ -356,8 +417,8 @@ async function verifyAttestations(
         "attestation-manifest" &&
       entry.annotations["vnd.docker.reference.digest"] === platformDigest,
   );
-  let provenance = 0;
-  let sbom = 0;
+  const provenance = [];
+  const sbom = [];
   for (const entry of attestations) {
     if (
       entry.platform.os !== "unknown" ||
@@ -424,30 +485,50 @@ async function verifyAttestations(
         const buildType = v1
           ? "https://github.com/moby/buildkit/blob/master/docs/attestations/slsa-definitions.md"
           : "https://mobyproject.org/buildkit@v1";
-        if (
-          definition.buildType !== buildType ||
-          !z
-            .object({ llbDefinition: z.array(record).min(1) })
-            .safeParse(buildConfig).success
-        )
+        const configuration = z
+          .object({ llbDefinition: z.array(record).min(1) })
+          .safeParse(buildConfig);
+        if (definition.buildType !== buildType || !configuration.success)
           throw new Error(
             "Expected maximum BuildKit provenance with build configuration.",
           );
-        provenance++;
+        provenance.push({
+          digest: layer.digest,
+          predicateType: statement.predicateType,
+          buildSteps: configuration.data.llbDefinition.length,
+        });
       } else if (statement.predicateType === spdxType) {
-        z.object({
-          SPDXID: z.literal("SPDXRef-DOCUMENT"),
-          spdxVersion: z.string().regex(/^SPDX-2\./),
-          packages: z.array(record).min(1),
-        }).parse(statement.predicate);
-        sbom++;
+        const inventory = z
+          .object({
+            SPDXID: z.literal("SPDXRef-DOCUMENT"),
+            spdxVersion: z.string().regex(/^SPDX-2\./),
+            packages: z
+              .array(z.object({ name: z.string().trim().min(1) }))
+              .min(1),
+          })
+          .parse(statement.predicate);
+        sbom.push({
+          digest: layer.digest,
+          spdxVersion: inventory.spdxVersion,
+          packages: inventory.packages.length,
+        });
       }
     }
   }
-  if (provenance !== 1 || sbom !== 1)
+  if (
+    provenance.length !== 1 ||
+    sbom.length !== 1 ||
+    !provenance[0] ||
+    !sbom[0]
+  )
     throw new Error(
       "Each image platform requires one maximum provenance statement and one SPDX SBOM.",
     );
+  return {
+    attestationManifests: attestations.map((entry) => entry.digest),
+    provenance: provenance[0],
+    sbom: sbom[0],
+  };
 }
 
 function compareVersions(left: string, right: string): number {
