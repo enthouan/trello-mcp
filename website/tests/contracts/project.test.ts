@@ -61,11 +61,11 @@ describe("website package and command boundaries", () => {
     });
     expect(websitePackage.devDependencies).toMatchObject({
       "@astrojs/check": "0.9.10",
-      "@astrojs/markdown-remark": "7.3.1",
-      "@astrojs/starlight": "0.42.4",
+      "@astrojs/markdown-remark": "7.3.2",
+      "@astrojs/starlight": "0.42.6",
       "@fortawesome/free-brands-svg-icons": "7.3.1",
       "@fortawesome/free-solid-svg-icons": "7.3.1",
-      astro: "7.3.5",
+      astro: "7.3.8",
       "cross-env": "10.1.0",
       sharp: "0.35.5",
       typescript: "6.0.3",
@@ -95,7 +95,7 @@ describe("website package and command boundaries", () => {
       expect(runtimePackages).not.toHaveProperty(packageName);
     }
     expect(rootPackage.devDependencies).toMatchObject({
-      "@playwright/test": "1.63.0",
+      "@playwright/test": "1.64.1",
       parse5: "8.0.1",
       typescript: "7.0.2",
       vitest: "4.1.11",
