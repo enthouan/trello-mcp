@@ -180,7 +180,7 @@ describe("website package and command boundaries", () => {
     expect(workflow).toContain("pnpm website:check");
     expect(
       workflow.match(
-        /actions\/setup-node@[0-9a-f]{40} # v7\.0\.0\n\s+with:\n\s+node-version-file: \.nvmrc\n\s+cache: pnpm/g,
+        /actions\/setup-node@[0-9a-f]{40} # v7\.1\.0\n\s+with:\n\s+node-version-file: \.nvmrc\n\s+cache: pnpm/g,
       ),
     ).toHaveLength(2);
     expect(workflow).toContain(
