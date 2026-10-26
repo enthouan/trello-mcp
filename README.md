@@ -27,6 +27,7 @@ The complete project documentation is available at [trello-mcp.com](https://trel
 - [Operate a running deployment](https://trello-mcp.com/guides/operations/)
 - [Troubleshoot an installation](https://trello-mcp.com/guides/troubleshooting/)
 - [Official MCP Registry installation, releases, and recovery](docs/mcp-registry.md)
+- [Glama listing](https://glama.ai/mcp/servers/enthouan/trello-mcp) ([validation status](docs/glama-readiness.md#acceptance-checklist))
 
 ## Features
 

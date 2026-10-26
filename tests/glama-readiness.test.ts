@@ -34,8 +34,12 @@ describe("Glama readiness evidence", () => {
       .split("## External validation record\n")[1]
       ?.split("\n## Pinned evidence")[0];
     expect(externalRecord).toBeDefined();
+    const acceptanceChecklist = externalRecord
+      ?.split("### Acceptance checklist\n")[1]
+      ?.split("\n### ")[0];
+    expect(acceptanceChecklist).toBeDefined();
     const milestones = [
-      ...(externalRecord ?? "").matchAll(/^\| ([^|]+) \| ([^|]+) \|/gm),
+      ...(acceptanceChecklist ?? "").matchAll(/^\| ([^|]+) \| ([^|]+) \|/gm),
     ].map((match) => match[1]?.trim());
     expect(milestones).toEqual([
       "Milestone",

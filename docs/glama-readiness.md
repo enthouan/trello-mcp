@@ -1,148 +1,115 @@
 # Glama MCP registry readiness audit
 
-Last verified: **2026-10-12**. Preparation: [#65](https://github.com/enthouan/trello-mcp/issues/65).
+Last verified: **2026-10-24**. Preparation: [#65](https://github.com/enthouan/trello-mcp/issues/65).
 External execution: [#66](https://github.com/enthouan/trello-mcp/issues/66).
 
 ## Readiness decision and disposition
 
-The repository has a **locally verified candidate Glama-compatible build and
-stdio discovery path**. Built source, its Docker image, and the published
-`v1.0.3` image initialize without functional credentials and enumerate all 77
-intended tools under network isolation. This is not a Glama acceptance, indexing,
-security, or TDQS result. Actual Glama configuration remains unobserved.
+The accepted [Glama listing](https://glama.ai/mcp/servers/enthouan/trello-mcp)
+has verified ownership and a published **1.0.4** release. Its source build,
+public catalog and actual browser Inspector passed initialization and complete
+**77-tool** discovery. Quality findings have follow-up issues below; an
+image-specific security report was unavailable and is not claimed passed.
 
-| Disposition | Evidence / decision |
-| --- | --- |
-| Already satisfied | Public personal repository, MIT license, README/install/configuration documentation, Node 24 frozen build, non-root Docker runtime, stdio/Streamable HTTP, transport-aware health, centralized Trello client, disabled-by-default local upload. |
-| Completed readiness changes | Corrected understated permanent deletion and upload transmission, distinguished label creation from assignment, exposed custom-field conditional requirements, and replaced misleading natural-language search wording. Added reproducible full-schema discovery and zero-request regression coverage; replaced the August audit and obsolete prose assertions. |
-| Local proof needed, now executed | Source, source-image, and immutable-release discovery; stdout/stderr and synthetic-value checks; exact tool/schema comparisons; source network-denial negative control; real image health in stdio and HTTP; clean shutdown and scoped cleanup. See the matrix below. |
-| External execution in progress | [#66](https://github.com/enthouan/trello-mcp/issues/66): submission received/pending review and GitHub account association verified. Exact-profile ownership, approved build instructions, actual Glama discovery, score/security findings and listing/search verification remain open; see the independent checklist below. |
-| Specifically tracked gaps | [#182](https://github.com/enthouan/trello-mcp/issues/182): typed runtime annotations, catalog alignment, sibling ergonomics and richer parameter/result guidance. [#206](https://github.com/enthouan/trello-mcp/issues/206): deliberate output schemas and structured results after the SDK work. Neither is absorbed into #65. |
-
-No evidence establishes a need for new package metadata, `bin`/npx packaging,
-cosmetic titles, or a root `glama.json`. No dependencies, transports, handlers,
-release metadata, or Docker health behavior changed. The Docker fallback was
-regenerated only because its descriptions derive from the runtime definitions;
-its separate upstream submission is outside this work.
+The earlier #65 preparation audit and isolated source/image checks are retained
+below as a dated baseline. The following external results supersede the pending
+submission state recorded in [#229](https://github.com/enthouan/trello-mcp/pull/229).
 
 ## External validation record
 
-### Prerequisite and identity
+### Submission and ownership
 
-Readiness PR [#228](https://github.com/enthouan/trello-mcp/pull/228) is merged,
-and #65 is closed. Freshly fetched `origin/main` is
-`0a08476783adebaebdb43342ca3bde387a7ebecf`; its tree equals the reviewed
-`b69bf6fc730669ae5bc346f715f3c2576b97f96b` tree. The post-merge
-[Build and Test](https://github.com/enthouan/trello-mcp/actions/runs/38321005955)
-and [CodeQL](https://github.com/enthouan/trello-mcp/actions/runs/38321005562)
-runs passed. No repository PR was open when execution began. The latest
-versioned release remains [v1.0.3](https://github.com/enthouan/trello-mcp/releases/tag/v1.0.3).
-The source/image discovery matrix below remains supporting evidence for that
-unchanged runtime; it is not an external Glama result.
-
-The exact source is [enthouan/trello-mcp](https://github.com/enthouan/trello-mcp),
-a public personal repository with an MIT license. GitHub's repository permission
-API independently returned **admin** for `enthouan`. After the owner approved
-opening the account-association flow, Glama's Connected Accounts changed from
-**GitHub Not connected** to **GitHub enthouan**, with a Disconnect control.
-No new permission-consent screen appeared. This verifies account association;
-it does not establish ownership of a server profile that has not been identified.
-No Hosting GitHub App was installed and no ownership file was needed for this
-association.
+Readiness PR [#228](https://github.com/enthouan/trello-mcp/pull/228) is merged
+and #65 is closed. The exact public, MIT-licensed repository is
+[enthouan/trello-mcp](https://github.com/enthouan/trello-mcp). One owner-approved
+**Runs from source** submission was received on **2026-10-12 at 23:40 UTC**;
+Glama approved it on **2026-10-14 at 19:41 PDT**. Private receipt contents are
+omitted. GitHub independently confirmed admin access for `enthouan`; Glama
+shows the matching connected account, editable profile administration and
+**Author verified**. No ownership file or Hosting GitHub App was needed.
 
 ### Acceptance checklist
 
-These states are independent. A receipt or documented review wait does not
-complete the Inspector requirement or the whole issue.
+These are independent, dated observations for this repository and release.
 
-| Milestone | Status | Evidence and remaining action |
+| Milestone | Status | Evidence |
 | --- | --- | --- |
-| Submission | Passed; pending review | Submitted once with owner approval on 2026-10-12 at 23:40:44 UTC. Glama's receipt identifies the exact repository and pending-review state; it does not establish acceptance. |
-| Maintainer ownership | Partially passed | GitHub admin permission and Glama GitHub association verified; exact-profile maintainer/claim state remains unverified. |
-| Build and MCP introspection | Unverified | Actual Glama source revision, build context, Dockerfile selection, runtime command, transport, environment and health configuration have not been supplied. |
-| Public listing | Unverified | No exact public profile found. Review/acceptance has not been established; no README or website listing link is justified. |
-| Glama Inspector | Unverified | No connection to this project's listing and no project tool discovery. The built-in demo is unrelated. |
-| Quality/security findings | Unverified | No actual project score or security report available to classify. Existing metadata gaps remain in #182 and #206, not reported as Glama findings. |
-| Search visibility | Unverified | Owner search returned no servers; exact-URL and name searches returned other projects. No exact match was observed. |
+| Submission | Passed | Single submission received 2026-10-12; approved 2026-10-14. |
+| Maintainer ownership | Passed | Matching GitHub account, repository admin permission, profile administration and Author verified. |
+| Build and MCP introspection | Passed | Successful 2026-10-24 build; complete published catalog matches the pinned source below. |
+| Public listing | Passed | Accepted profile and full Schema page accessible anonymously; Glama 1.0.4 published. |
+| Glama Inspector | Passed | Actual browser initialization and two complete 77-tool discovery responses; temporary instance removed. |
+| Quality/security findings | Reviewed | Quality feedback mapped to follow-ups below. No image-specific security report exposed; that result remains unverified. |
+| Search visibility | Passed | Exact profile found in anonymous [owner-filtered search](https://glama.ai/mcp/servers?query=author%3Aenthouan) on 2026-10-16. |
 
-### Duplicate search and submission fields
+### Build, publication and catalog
 
-On 2026-10-12, the signed-in directory was searched for
-`https://github.com/enthouan/trello-mcp`, `enthouan`, and `trello-mcp`.
-The source links on the `rilolabs/trello-mcp` and
-`KharalDipendra/trello-mcp` candidate profiles point to those other GitHub
-repositories. The direct route `/mcp/servers/enthouan/trello-mcp` displayed
-**MCP server not found**; this is a lookup observation, not a verified canonical
-listing URL. Narrow incoming Glama email searches found no matching earlier
-receipt or review result. The authenticated MCP Deployments page showed no
-installed servers, but that hosting inventory is not a pending-submission
-register. No separate submission-history view was exposed in the inspected
-account navigation. These checks found no duplicate; they do not prove the
-absence of every private backend submission.
+[Glama build 01a16ed2-199b-720f-862e-a8fd5768ce4c](https://glama.ai/mcp/servers/enthouan/trello-mcp/admin/dockerfile/tests/01a16ed2-199b-720f-862e-a8fd5768ce4c)
+passed on **2026-10-24 at 09:51 PDT** in **1m 16.7s**, using source
+[`b854a3bb377b540e348646944f6f6a501a48e112`](https://github.com/enthouan/trello-mcp/commit/b854a3bb377b540e348646944f6f6a501a48e112).
+The approved configuration used Debian Bookworm, Node 24, Python 3.15,
+Corepack/pnpm 10.34.1, a frozen install and TypeScript build, and
+`env TRANSPORT=stdio node dist/index.js` through Glama's `mcp-proxy` 6.7.16.
+The repository Dockerfile and health checks were unchanged.
 
-The live signed-in Add Server form, read on the same date, asks for:
+The [Glama release](https://glama.ai/mcp/servers/enthouan/trello-mcp/admin/releases)
+was published as **1.0.4 at 11:57 PDT** from that successful build, after
+separate owner approval. **Auto-Release is off**. No additional GitHub release
+or version bump was made.
 
-- **Type:** Runs from source.
-- **Name:** trello-mcp.
-- **GitHub repository:** `https://github.com/enthouan/trello-mcp`.
-- **Description:** An independent, self-hostable MCP server for Trello that
-  lets MCP clients discover boards and workspaces, search, and manage cards,
-  lists, labels, checklists, comments, and attachments. Supports stdio and
-  Streamable HTTP with user-provided Trello API key/token authentication.
+The [public Schema page](https://glama.ai/mcp/servers/enthouan/trello-mcp/schema)
+returned HTTP 200 without credentials. All **77 complete tool definitions**,
+including descriptions, nested input schemas and execution metadata, match local
+discovery from the pinned source. Initialization identifies `trello-mcp 1.0.4`,
+protocol `2025-11-25` and `tools.listChanged: true`. Runtime annotations and
+output schemas are absent, as in source. The catalog includes the disabled-by-default
+`card_attachment_upload`; the separate 76-tool Docker fallback is not this catalog.
 
-The owner approved these exact fields, and **Submit for Review** was clicked
-once on **2026-10-12 at 23:40:44 UTC (16:40:44 PDT)**. The modal closed without
-a durable on-page acknowledgment. A narrowly retrieved incoming receipt,
-dated at the same time, explicitly identifies
-`https://github.com/enthouan/trello-mcp` as received and **pending review**.
-The forwarded message's authentication chain reports passing original-domain
-authentication for `glama.ai`. Private addresses, message identifiers, headers
-and email contents are omitted here. No duplicate submission was made.
+Sorting object keys while preserving array order gives catalog SHA-256
+`b8c0d59a46852d018cabc5a0d9dc7d05ead6e179b4138435f082180e83638b40`.
+Future comparisons must use the actual indexed source, not a later `main`.
 
-The form says Dockerfile instructions arrive by email after approval and that
-search indexing follows successful automated safety/quality checks. It exposes
-no source ref or build/runtime configuration at this stage. The receipt promises
-a decision by email but supplies no review deadline, build configuration,
-indexed revision, accepted profile URL or score.
+### Inspector validation and cleanup
 
-### Inspector and catalog limits
+The owner-approved temporary [Glama browser Inspector](https://glama.ai/mcp/inspector)
+test passed on **2026-10-24 at 12:09 PDT**. Actual `initialize`,
+`notifications/initialized` and two `tools/list` exchanges succeeded; both full
+catalog responses match the published catalog, exact source and hash above.
+Only synthetic `TRELLO_API_KEY` / `TRELLO_TOKEN` values and `LOG_LEVEL=info`
+were supplied. No `tools/call` request or real Trello credential was used, and
+attachment upload remained disabled. This validates MCP discovery, not live
+Trello operations.
 
-The [online Inspector](https://glama.ai/mcp/inspector), inspected on 2026-10-12,
-opened Glama's built-in test endpoint with 11 demo tools. This is not
-`enthouan/trello-mcp` and supplies no acceptance evidence for #66. Its documented
-remote path uses Streamable HTTP/SSE; its local stdio instructions propose a
-public tunnel. No tunnel, hosted endpoint or project deployment was created.
-The exact listing's available Inspector path remains to be observed after
-review. Synthetic configuration must suffice for initialization and discovery;
-no real Trello credential has been supplied to Glama and no Trello-backed tool
-has been invoked through it. Attachment upload remains disabled.
+Only tools were advertised. The UI showed zero resources, templates and prompts;
+no resource/prompt listing requests were made, so those counts do not establish
+empty-array method responses. After disconnecting and removing the Inspector
+server, the temporary instance was separately deleted. Its detail page returned
+Not Found and the deployment inventory showed **No installed MCP servers**.
+The published release remained intact. Temporary access URLs and tokens are
+omitted.
 
-For the merged readiness source, the expected complete catalog remains **77
-tools**, including disabled-by-default `card_attachment_upload`, with the full
-input schemas and descriptions captured below. Runtime annotations, titles and
-output schemas are absent; `resources/list` and `prompts/list` return `-32601`.
-The 76-tool Docker Registry fallback is a different artifact. Compare any
-future Glama capture to its actual indexed commit, including full definitions,
-not just names/count or whatever `main` becomes later.
+### Quality findings and follow-ups
 
-### Next trigger and ownership of remaining work
+The [v1.0.4 TDQS report](https://glama.ai/mcp/servers/enthouan/trello-mcp/admin/tdqs)
+evaluated **77/77 tools**, averaging **3.7/5**. The lowest score was
+`workspace_boards`, **C / 2.6**. The separate Discovery score showed **75%**
+profile completion, **B** tool quality and **B** coherence; aggregates may lag
+a release.
 
-A Glama review decision and actual build instructions are the next external
-trigger. Submission approval has been fulfilled; do not submit again while
-waiting. Inspect the decision and instructions and obtain approval for any
-required build configuration or rescan before applying it. Record its indexed
-commit, real MCP exchange, profile metadata and maintainer, and actual findings.
-Classify findings against that source as defects, intended behavior, stale
-indexing, or focused follow-ups; reuse [#182](https://github.com/enthouan/trello-mcp/issues/182)
-and [#206](https://github.com/enthouan/trello-mcp/issues/206) only where applicable.
-Verify the canonical accepted profile before adding a public link, and verify
-search distribution separately. The Inspector criterion remains open until the
-project itself connects and completes safe discovery in Glama.
+| Finding | Disposition |
+| --- | --- |
+| Missing annotations; clearer parameter and sibling-tool guidance, including workspace_boards | [#182](https://github.com/enthouan/trello-mcp/issues/182) tracks runtime metadata and catalog guidance. |
+| Missing output schemas and predictable result shapes | [#206](https://github.com/enthouan/trello-mcp/issues/206) tracks structured results and output schemas. |
+| Catalog size and overlapping operations | [#90](https://github.com/enthouan/trello-mcp/issues/90) tracks optional exposure profiles. Preserve existing names and behavior; no runtime failure was demonstrated. |
+| Incomplete board/custom-field-definition mutation coverage | Intended bounded API coverage; complete Trello REST coverage is not claimed. |
+| Incorrect npm package association | [#235](https://github.com/enthouan/trello-mcp/issues/235) tracks removal/correction. The linked npm package belongs to another repository and is not an installation method for this project. |
 
-At submission, issue #66 was **In progress** in the GitHub Project. The grouped
-distribution roadmap remains in Doing; the independent Docker Registry submission and other
-distribution work retain their own status. An evidence PR uses `Refs #66` while
-these criteria remain incomplete and requires separate approval to merge.
+Glama reported maintenance **A**, no critical/high vulnerability alerts and no
+code scanning findings. These are repository signals; no image-specific security
+report was exposed, so no image scan or security certification is claimed.
+Optional usage, related-server and ownership-file signals do not negate
+**Author verified** or require new packaging. The initial validation is complete;
+the linked issues own the remaining improvements and directory correction.
 
 ## Pinned evidence and current requirements
 
@@ -183,8 +150,8 @@ other registries.
 The #65 preparation established no authenticated directory/API identity. The
 planning API HTTP 401 is an authentication failure, not evidence of absence.
 The August claim that no listing exists is withdrawn. #66's exact-repository
-search and single submission are recorded above. No badge or accepted-listing
-link is justified yet.
+search and single submission are recorded above. The dated absence observation
+was superseded by the 2026-10-14 approval and direct public profile verification.
 
 ## Credential-independent validation matrix
 
