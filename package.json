@@ -53,7 +53,7 @@
     "docs:tools": "tsx scripts/generate-tool-docs.ts"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "1.32.1",
+    "@modelcontextprotocol/sdk": "1.32.2",
     "pino": "10.4.0",
     "zod": "4.6.7"
   },
