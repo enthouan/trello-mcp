@@ -36,6 +36,28 @@ test("dark theme meets color contrast across every public route", async ({
   }
 });
 
+for (const { platform, shortcut } of [
+  { platform: "Linux x86_64", shortcut: "Control+K" },
+  { platform: "MacIntel", shortcut: "Meta+K" },
+]) {
+  test(`search label includes its visible shortcut on ${platform}`, async ({
+    page,
+  }) => {
+    await page.addInitScript((platform) => {
+      Object.defineProperty(navigator, "platform", { value: platform });
+    }, platform);
+    await gotoLoaded(page, "/");
+
+    const searchButton = page.locator("button[data-open-modal]");
+    await expect(searchButton).toHaveAttribute("aria-keyshortcuts", shortcut);
+    const accessibility = await new AxeBuilder({ page })
+      .include("site-search")
+      .withRules(["label-content-name-mismatch"])
+      .analyze();
+    expect(accessibility.violations).toEqual([]);
+  });
+}
+
 test("skip link and focus indicators work from the keyboard", async ({
   page,
 }) => {
