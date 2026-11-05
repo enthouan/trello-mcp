@@ -25,6 +25,11 @@ updates:
         update-types:
           - "minor"
           - "patch"
+      # Vitest and its coverage provider require matching versions, including majors.
+      vitest:
+        patterns:
+          - "vitest"
+          - "@vitest/*"
       development-minor-patch:
         dependency-type: "development"
         update-types:
