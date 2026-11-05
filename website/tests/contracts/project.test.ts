@@ -102,7 +102,7 @@ describe("website package and command boundaries", () => {
       "@playwright/test": "1.64.1",
       parse5: "8.0.1",
       typescript: "7.0.2",
-      vitest: "4.1.11",
+      vitest: "5.0.3",
     });
     expect(websitePackage.devDependencies.typescript).toBe("6.0.3");
     expect(websiteReadme).toMatch(
