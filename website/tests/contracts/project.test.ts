@@ -46,6 +46,7 @@ describe("website package and command boundaries", () => {
     const workspaceConfig = parse(workspace) as {
       packages: string[];
       overrides: Record<string, string>;
+      patchedDependencies: Record<string, string>;
     };
     const websiteReadme = await source(websiteFile("README.md"));
 
@@ -60,12 +61,12 @@ describe("website package and command boundaries", () => {
       },
     });
     expect(websitePackage.devDependencies).toMatchObject({
-      "@astrojs/check": "0.9.10",
-      "@astrojs/markdown-remark": "7.3.2",
-      "@astrojs/starlight": "0.42.6",
+      "@astrojs/check": "0.9.12",
+      "@astrojs/markdown-remark": "7.3.5",
+      "@astrojs/starlight": "0.42.8",
       "@fortawesome/free-brands-svg-icons": "7.3.1",
       "@fortawesome/free-solid-svg-icons": "7.3.1",
-      astro: "7.3.8",
+      astro: "7.4.4",
       "cross-env": "10.1.0",
       sharp: "0.35.5",
       typescript: "6.0.3",
@@ -75,6 +76,9 @@ describe("website package and command boundaries", () => {
       overrides: {
         "fast-uri@>=3.0.0 <3.1.8": "3.1.8",
         "qs@>=2.2.5 <6.16.0": "6.16.0",
+      },
+      patchedDependencies: {
+        "@astrojs/starlight@0.42.8": "patches/@astrojs__starlight@0.42.8.patch",
       },
     });
     expect(rootPackage.files).toEqual([
