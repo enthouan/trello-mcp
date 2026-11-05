@@ -81,7 +81,8 @@ Use `corepack pnpm test:coverage` when changing core behavior, error handling, o
 ## Formatting And Linting
 
 - Biome is the formatter/linter.
-- The configured Biome version is `@biomejs/biome@2.5.15`; keep it aligned with `biome.json`.
+- The configured Biome version is `@biomejs/biome@2.6.4`; keep it aligned with `biome.json`.
+- Markdown formatting remains disabled to preserve canonical and generated documentation formatting.
 - Run `corepack pnpm lint` to check formatting and lint rules.
 - To format, run:
 
@@ -284,7 +285,7 @@ If changing CI:
 - Avoid dependency churn.
 - Keep top-level dependency ranges pinned to exact versions for release reproducibility.
 - Keep the root runtime toolchain on TypeScript 7. The separate, non-publishable website workspace
-  intentionally pins TypeScript 6.0.3 because `@astrojs/check@0.9.10` currently
+  intentionally pins TypeScript 6.0.3 because `@astrojs/check@0.9.12` currently
   requires TypeScript 5 or 6; do not downgrade the root package to satisfy that
   website-only peer dependency.
 - If a dependency update is required, update and commit `pnpm-lock.yaml`.
