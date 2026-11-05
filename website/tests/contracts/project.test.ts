@@ -46,6 +46,7 @@ describe("website package and command boundaries", () => {
     const workspaceConfig = parse(workspace) as {
       packages: string[];
       overrides: Record<string, string>;
+      patchedDependencies: Record<string, string>;
     };
     const websiteReadme = await source(websiteFile("README.md"));
 
@@ -75,6 +76,9 @@ describe("website package and command boundaries", () => {
       overrides: {
         "fast-uri@>=3.0.0 <3.1.8": "3.1.8",
         "qs@>=2.2.5 <6.16.0": "6.16.0",
+      },
+      patchedDependencies: {
+        "@astrojs/starlight@0.42.8": "patches/@astrojs__starlight@0.42.8.patch",
       },
     });
     expect(rootPackage.files).toEqual([

@@ -8,6 +8,11 @@ overrides:
   fast-uri@>=3.0.0 <3.1.8: 3.1.8
   qs@>=2.2.5 <6.16.0: 6.16.0
 
+patchedDependencies:
+  '@astrojs/starlight@0.42.8':
+    hash: c4eb939f376607692de8c1d5556e433add9baa5e50fe2fd60cd8f655572f84e0
+    path: patches/@astrojs__starlight@0.42.8.patch
+
 importers:
 
   .:
@@ -72,7 +77,7 @@ importers:
         version: 7.3.5
       '@astrojs/starlight':
         specifier: 0.42.8
-        version: 0.42.8(@astrojs/markdown-remark@7.3.5)(astro@7.4.4(@astrojs/markdown-remark@7.3.5)(@types/node@24.19.2)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))(typescript@6.0.3)
+        version: 0.42.8(patch_hash=c4eb939f376607692de8c1d5556e433add9baa5e50fe2fd60cd8f655572f84e0)(@astrojs/markdown-remark@7.3.5)(astro@7.4.4(@astrojs/markdown-remark@7.3.5)(@types/node@24.19.2)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))(typescript@6.0.3)
       '@fortawesome/free-brands-svg-icons':
         specifier: 7.3.1
         version: 7.3.1
@@ -3844,7 +3849,7 @@ snapshots:
       sitemap: 9.0.1
       zod: 4.6.7
 
-  '@astrojs/starlight@0.42.8(@astrojs/markdown-remark@7.3.5)(astro@7.4.4(@astrojs/markdown-remark@7.3.5)(@types/node@24.19.2)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))(typescript@6.0.3)':
+  '@astrojs/starlight@0.42.8(patch_hash=c4eb939f376607692de8c1d5556e433add9baa5e50fe2fd60cd8f655572f84e0)(@astrojs/markdown-remark@7.3.5)(astro@7.4.4(@astrojs/markdown-remark@7.3.5)(@types/node@24.19.2)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))(typescript@6.0.3)':
     dependencies:
       '@astrojs/markdown-satteri': 0.4.6
       '@astrojs/mdx': 8.1.2(@astrojs/markdown-remark@7.3.5)(@astrojs/markdown-satteri@0.4.6)(astro@7.4.4(@astrojs/markdown-remark@7.3.5)(@types/node@24.19.2)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))
