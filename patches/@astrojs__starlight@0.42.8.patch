@@ -1,13 +1,20 @@
 diff --git a/dist/components/Search.astro b/dist/components/Search.astro
-index d8c80d826995d6c8ce598aa618ddf7ea575ecadc..b15915ac8086cc6208a01016608b726356bd398b 100644
+index d8c80d826995d6c8ce598aa618ddf7ea575ecadc..9e4174fb58bf6dabdf4dc00bd9103289cb601dca 100644
 --- a/dist/components/Search.astro
 +++ b/dist/components/Search.astro
-@@ -24,7 +24,7 @@ if (project.trailingSlash === 'never') dataAttributes['data-strip-trailing-slash
+@@ -19,12 +19,12 @@ if (project.trailingSlash === 'never') dataAttributes['data-strip-trailing-slash
+ 	<button
+ 		data-open-modal
+ 		disabled
+-		aria-label={Astro.locals.t('search.label')}
++		aria-labelledby="starlight__search-label starlight__search-shortcut"
+ 		aria-keyshortcuts="Control+K"
  	>
  		<Icon name="magnifier" />
- 		<span class="sl-hidden md:sl-block" aria-hidden="true">{Astro.locals.t('search.label')}</span>
+-		<span class="sl-hidden md:sl-block" aria-hidden="true">{Astro.locals.t('search.label')}</span>
 -		<kbd class="sl-hidden md:sl-flex" style="display: none;">
-+		<kbd class="sl-hidden md:sl-flex" style="display: none;" aria-hidden="true">
++		<span id="starlight__search-label" class="sl-hidden md:sl-block" aria-hidden="true">{Astro.locals.t('search.label')}</span>
++		<kbd id="starlight__search-shortcut" class="sl-hidden md:sl-flex" style="display: none;">
  			<kbd>{Astro.locals.t('search.ctrlKey')}</kbd><kbd>K</kbd>
  		</kbd>
  	</button>
