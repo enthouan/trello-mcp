@@ -47,6 +47,7 @@ describe("website package and command boundaries", () => {
       packages: string[];
       overrides: Record<string, string>;
       patchedDependencies: Record<string, string>;
+      allowUnusedPatches: boolean;
     };
     const websiteReadme = await source(websiteFile("README.md"));
 
@@ -77,6 +78,7 @@ describe("website package and command boundaries", () => {
         "fast-uri@>=3.0.0 <3.1.8": "3.1.8",
         "qs@>=2.2.5 <6.16.0": "6.16.0",
       },
+      allowUnusedPatches: true,
       patchedDependencies: {
         "@astrojs/starlight@0.42.8": "patches/@astrojs__starlight@0.42.8.patch",
       },
