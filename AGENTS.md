@@ -81,7 +81,7 @@ Use `corepack pnpm test:coverage` when changing core behavior, error handling, o
 ## Formatting And Linting
 
 - Biome is the formatter/linter.
-- The configured Biome version is `@biomejs/biome@2.6.4`; keep it aligned with `biome.json`.
+- The configured Biome version is `@biomejs/biome@2.6.7`; keep it aligned with `biome.json`.
 - Markdown formatting remains disabled to preserve canonical and generated documentation formatting.
 - Run `corepack pnpm lint` to check formatting and lint rules.
 - To format, run:

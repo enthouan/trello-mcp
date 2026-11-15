@@ -9,9 +9,9 @@ overrides:
   qs@>=2.2.5 <6.16.0: 6.16.0
 
 patchedDependencies:
-  '@astrojs/starlight@0.42.8':
-    hash: e5957c6dc763f8fbcf1c44044889e916ee6ebace863d8bdf11eb624b26a920da
-    path: patches/@astrojs__starlight@0.42.8.patch
+  '@astrojs/starlight@0.43.1':
+    hash: 5b1f6ad1bde0dddfadb4364d0d9eb12ebc09d93c79622ab2bd795961bb9cc167
+    path: patches/@astrojs__starlight@0.43.1.patch
 
 importers:
 
@@ -77,7 +77,7 @@ importers:
         version: 7.3.9
       '@astrojs/starlight':
         specifier: 0.43.1
-        version: 0.43.1(@astrojs/markdown-remark@7.3.9)(astro@7.4.12(@astrojs/markdown-remark@7.3.9)(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))(typescript@6.0.3)
+        version: 0.43.1(patch_hash=5b1f6ad1bde0dddfadb4364d0d9eb12ebc09d93c79622ab2bd795961bb9cc167)(@astrojs/markdown-remark@7.3.9)(astro@7.4.12(@astrojs/markdown-remark@7.3.9)(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))(typescript@6.0.3)
       '@emnapi/runtime':
         specifier: 1.11.3
         version: 1.11.3
@@ -3847,7 +3847,7 @@ snapshots:
       sitemap: 10.0.0
       zod: 4.6.7
 
-  '@astrojs/starlight@0.43.1(@astrojs/markdown-remark@7.3.9)(astro@7.4.12(@astrojs/markdown-remark@7.3.9)(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))(typescript@6.0.3)':
+  '@astrojs/starlight@0.43.1(patch_hash=5b1f6ad1bde0dddfadb4364d0d9eb12ebc09d93c79622ab2bd795961bb9cc167)(@astrojs/markdown-remark@7.3.9)(astro@7.4.12(@astrojs/markdown-remark@7.3.9)(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))(typescript@6.0.3)':
     dependencies:
       '@astrojs/markdown-satteri': 0.4.10
       '@astrojs/mdx': 8.1.6(@astrojs/markdown-remark@7.3.9)(@astrojs/markdown-satteri@0.4.10)(astro@7.4.12(@astrojs/markdown-remark@7.3.9)(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))

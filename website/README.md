@@ -11,6 +11,9 @@ Website diagnostics keep TypeScript 6 in this workspace while the root toolchain
 The explicit `@emnapi/runtime` dependency keeps the Astro checker’s WebAssembly runtime on 1.11.3,
 matching its `@emnapi/core`; resolving that peer to a 2.x beta prevents the checker from loading.
 
+The site explicitly retains Astro’s `where` scoped-style strategy when upgrading Starlight,
+so component styles keep the selector specificity used before Starlight 0.43.
+
 The sidebar is organized into **Get started**, **Guides**, and **Reference**. Canonical long-form
 documentation remains under `docs/`, while `docs/setup-recipes.ts` is the typed source for client and
 installation recipes. The website mirrors and tool documentation are generated deterministically;
