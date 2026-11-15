@@ -65,6 +65,8 @@ function makeScrollableTablesKeyboardAccessible() {
 
 export default defineConfig({
   output: "static",
+  // Preserve component selector specificity when upgrading from Starlight <0.43.
+  scopedStyleStrategy: "where",
   site: CANONICAL_WEBSITE_URL,
   trailingSlash: "always",
   redirects: {

@@ -63,12 +63,12 @@ describe("website package and command boundaries", () => {
     });
     expect(websitePackage.devDependencies).toMatchObject({
       "@astrojs/check": "0.9.12",
-      "@astrojs/markdown-remark": "7.3.5",
-      "@astrojs/starlight": "0.42.8",
+      "@astrojs/markdown-remark": "7.3.9",
+      "@astrojs/starlight": "0.43.1",
       "@emnapi/runtime": "1.11.3",
       "@fortawesome/free-brands-svg-icons": "7.3.1",
       "@fortawesome/free-solid-svg-icons": "7.3.1",
-      astro: "7.4.7",
+      astro: "7.4.12",
       "cross-env": "10.1.0",
       sharp: "0.35.5",
       typescript: "6.0.3",
@@ -81,7 +81,7 @@ describe("website package and command boundaries", () => {
       },
       allowUnusedPatches: true,
       patchedDependencies: {
-        "@astrojs/starlight@0.42.8": "patches/@astrojs__starlight@0.42.8.patch",
+        "@astrojs/starlight@0.43.1": "patches/@astrojs__starlight@0.43.1.patch",
       },
     });
     expect(rootPackage.files).toEqual([
@@ -102,10 +102,10 @@ describe("website package and command boundaries", () => {
       expect(runtimePackages).not.toHaveProperty(packageName);
     }
     expect(rootPackage.devDependencies).toMatchObject({
-      "@playwright/test": "1.64.1",
-      parse5: "8.0.1",
+      "@playwright/test": "1.65.1",
+      parse5: "8.1.1",
       typescript: "7.0.2",
-      vitest: "5.0.3",
+      vitest: "5.1.0",
     });
     expect(websitePackage.devDependencies.typescript).toBe("6.0.3");
     expect(websiteReadme).toMatch(
