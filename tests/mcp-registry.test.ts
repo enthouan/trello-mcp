@@ -1200,6 +1200,12 @@ describe("release workflow safety", () => {
     const image = workflow.jobs.image;
     const registry = workflow.jobs.registry;
     const policy = workflow.jobs["release-policy"];
+    const deploy = workflow.jobs.deploy;
+    expect(deploy.needs).toBe("image");
+    expect(deploy.if).toBe(
+      "github.event_name == 'push' && github.ref == 'refs/heads/main'",
+    );
+    expect(deploy.permissions).toEqual({});
     expect(policy.permissions).toEqual({ contents: "read" });
     expect(image.needs).toBe("release-policy");
     expect(registry.needs).toBe("image");
