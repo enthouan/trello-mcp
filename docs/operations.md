@@ -91,6 +91,27 @@ sessions, and exits. A client whose request was interrupted should inspect the
 target in Trello before retrying; the server does not provide a cross-tool
 transaction or automatic rollback.
 
+## Automate container updates
+
+The `latest` image tag follows successful `main` branch builds. A Git push
+starts image publishing; it does not itself update a running container.
+
+If a deployment manager such as Komodo receives GitHub push webhooks, target
+the stack's deployment operation rather than a repository clone or pull
+operation. Restrict deployments to the intended branch and ensure the stack
+pulls its configured image even when the Compose file has not changed.
+
+A push webhook can arrive before the new image is available in GHCR. Use a
+deployment trigger after successful image publication, or enable image polling
+and automatic updates, so an early webhook does not leave the old image
+running. Verify the deployed image's `org.opencontainers.image.revision` label
+against the intended commit, then repeat the health, readiness, and read-only
+MCP checks above. A successful webhook response alone is not deployment proof.
+
+Keep webhook secrets and deployment URLs in the deployment manager's private
+configuration. Retain the previous image digest for rollback, and expect MCP
+clients to reconnect after an automatic update.
+
 ## Roll back
 
 Rollback changes the server version, not Trello mutations that already
