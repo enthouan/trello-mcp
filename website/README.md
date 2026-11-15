@@ -7,6 +7,10 @@ Its dependencies live in the separate `website` workspace and remain outside the
 and production image. The `"private": true` setting in `website/package.json` prevents accidental
 registry publication of that package; it does not require the GitHub repository to be private.
 
+Website diagnostics keep TypeScript 6 in this workspace while the root toolchain uses TypeScript 7.
+The explicit `@emnapi/runtime` dependency keeps the Astro checker’s WebAssembly runtime on 1.11.3,
+matching its `@emnapi/core`; resolving that peer to a 2.x beta prevents the checker from loading.
+
 The sidebar is organized into **Get started**, **Guides**, and **Reference**. Canonical long-form
 documentation remains under `docs/`, while `docs/setup-recipes.ts` is the typed source for client and
 installation recipes. The website mirrors and tool documentation are generated deterministically;
