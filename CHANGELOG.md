@@ -1,5 +1,29 @@
 # Changelog
 
+## v1.0.5
+
+Maintenance release refreshing runtime, documentation, and development
+dependencies. Trello API behavior, configuration, and the public 77-tool surface
+are unchanged.
+
+### Runtime Dependencies
+
+- Update the MCP SDK from 1.31.0 to 1.32.2, Pino from 10.3.1 to 10.4.0, and
+  Zod from 4.6.5 to 4.6.7.
+
+### Documentation And Development Tooling
+
+- Update Astro from 7.3.5 to 7.4.12, Starlight from 0.42.4 to 0.43.1, and
+  `@astrojs/markdown-remark` from 7.3.1 to 7.3.9; preserve website styling and
+  align the search button's accessible name with its visible label and shortcut.
+- Upgrade Vitest and its V8 coverage provider from 4.1.11 to 5.1.0 and refresh
+  Biome, Playwright, accessibility checks, Node.js types, Lighthouse, Chrome
+  Launcher, `parse5`, and `smol-toml` development dependencies.
+- Refresh pinned pnpm setup, Node.js setup, and Docker login GitHub Actions.
+- Include dependency patches in the Docker build's frozen install and allow
+  Dependabot updates beyond patched Starlight versions.
+- Document automated container updates and record Glama listing validation.
+
 ## v1.0.4
 
 Maintenance release improving MCP tool guidance, registry catalog accuracy, and
