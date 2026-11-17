@@ -255,7 +255,7 @@ describe("canonical publication source contracts", () => {
       );
     }
     expect(contributing).toContain(
-      "Cloudflare Pages should run `corepack pnpm website:build`",
+      "Cloudflare Pages should run `(git fetch --unshallow || true) && pnpm website:build`",
     );
     expect(contributing).toMatch(
       /no website environment\s+variable is required/,

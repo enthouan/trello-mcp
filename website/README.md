@@ -94,12 +94,17 @@ corepack pnpm website:og
 
 Every build targets the canonical origin `https://trello-mcp.com/`. Astro emits canonical and Open
 Graph URLs, the sitemap, robots metadata, and absolute `llms.txt` links without a website environment
-variable. Local development uses `corepack pnpm website:dev`; production and Cloudflare preview
-deployments both use:
+variable. Local development uses `corepack pnpm website:dev`, and local production builds use
+`corepack pnpm website:build`. Production and Cloudflare preview deployments both use this Cloudflare
+Pages build command:
 
 ```bash
-corepack pnpm website:build
+(git fetch --unshallow || true) && pnpm website:build
 ```
+
+Cloudflare clones only the latest commit, which made Starlight's "Last updated" show the latest deploy
+date on every page. Fetching the full history restores per-page dates, and `|| true` keeps the build
+working if the fetch is ever refused.
 
 Cloudflare Pages [automatically sends `X-Robots-Tag: noindex` on preview
 deployments](https://developers.cloudflare.com/pages/configuration/preview-deployments/), so previews

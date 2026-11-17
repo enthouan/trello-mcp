@@ -35,8 +35,10 @@ corepack pnpm website:build
 corepack pnpm website:preview
 ```
 
-Cloudflare Pages should run `corepack pnpm website:build` and publish
-`website/dist`. The canonical URL is built in, so no website environment
+Cloudflare Pages should run `(git fetch --unshallow || true) && pnpm website:build`
+and publish `website/dist`. The unshallow fetch restores the full history that
+Cloudflare's latest-commit clone omits, so Starlight's "Last updated" dates stay
+per page. The canonical URL is built in, so no website environment
 variable is required.
 
 The normal pull-request gate runs the complete browser suite in Chromium plus a
