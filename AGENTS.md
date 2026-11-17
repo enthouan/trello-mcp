@@ -261,9 +261,12 @@ Cloudflare Pages handles production website builds and deployment outside GitHub
 Actions. Keep `Build and Test` focused on validation; it must not require
 Cloudflare credentials or invoke a production deployment.
 
-Configure Cloudflare Pages to run `corepack pnpm website:build` and publish
-`website/dist`. The canonical production URL is built in, so no website
-environment variable is required.
+Configure Cloudflare Pages to run
+`(git fetch --unshallow || true) && pnpm website:build` and publish
+`website/dist`. The unshallow fetch restores the full history that Cloudflare's
+latest-commit clone omits, so Starlight's "Last updated" dates stay per page.
+The canonical production URL is built in, so no website environment variable is
+required.
 
 If changing CI:
 
