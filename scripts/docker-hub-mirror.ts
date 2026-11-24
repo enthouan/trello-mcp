@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { appendFileSync, mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -42,16 +43,20 @@ type Run = (
   file: string,
   args: string[],
   env: NodeJS.ProcessEnv,
-  input?: string,
-) => boolean;
-const regctl: Run = (file, args, env, input) => {
+  input?: string | Buffer,
+  captureOutput?: boolean,
+) => Buffer | null;
+const regctl: Run = (file, args, env, input, captureOutput = false) => {
   const result = spawnSync(file, args, {
     env,
     input,
-    stdio: ["pipe", "ignore", "ignore"],
+    stdio: ["pipe", captureOutput ? "pipe" : "ignore", "ignore"],
+    maxBuffer: 4 * 1024 * 1024,
     timeout: 10 * 60_000,
   });
-  return result.status === 0 && !result.error;
+  return result.status === 0 && !result.error
+    ? (result.stdout ?? Buffer.alloc(0))
+    : null;
 };
 
 // Only the login process receives the token on stdin. Neither git, regctl nor
@@ -92,6 +97,23 @@ export async function copyImage(
       ),
       "regctl isolation failed",
     );
+    // Fetch before login so this is an anonymous read of the already verified Hub graph.
+    let index: Buffer | undefined;
+    if (tag === "latest") {
+      const raw = run(
+        file,
+        ["manifest", "get", "--format", "raw-body", `${destination}@${digest}`],
+        isolated,
+        undefined,
+        true,
+      );
+      assert(raw, "Unable to read the public Docker Hub index for latest");
+      assert(
+        `sha256:${createHash("sha256").update(raw).digest("hex")}` === digest,
+        "Docker Hub index bytes differ from the verified release digest",
+      );
+      index = raw;
+    }
     assert(
       run(
         file,
@@ -109,16 +131,34 @@ export async function copyImage(
       "Docker Hub login failed",
     );
     await guard();
-    return run(
-      file,
-      [
-        "image",
-        "copy",
-        "--force-recursive",
-        `${imageName}@${digest}`,
-        `${destination}:${tag}`,
-      ],
-      isolated,
+    if (index) {
+      return (
+        run(
+          file,
+          [
+            "manifest",
+            "put",
+            "--content-type",
+            "application/vnd.oci.image.index.v1+json",
+            `${destination}:latest`,
+          ],
+          isolated,
+          index,
+        ) !== null
+      );
+    }
+    return (
+      run(
+        file,
+        [
+          "image",
+          "copy",
+          "--force-recursive",
+          `${imageName}@${digest}`,
+          `${destination}:${tag}`,
+        ],
+        isolated,
+      ) !== null
     );
   } finally {
     rmSync(directory, { recursive: true, force: true });

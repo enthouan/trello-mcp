@@ -93,16 +93,6 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Check main still owns the GHCR latest tag
-        id: main-head
-        if: github.ref == 'refs/heads/main'
-        shell: bash
-        run: |
-          set -euo pipefail
-          remote=$(git ls-remote --exit-code origin refs/heads/main)
-          if [[ "${remote%%[[:space:]]*}" == "$GITHUB_SHA" ]]; then
-            echo 'current=true' >> "$GITHUB_OUTPUT"
-          fi
       - uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         id: meta
         with:
@@ -110,11 +100,11 @@ jobs:
           flavor: |
             latest=false
           tags: |
-            type=raw,value=latest,enable=${{ steps.main-head.outputs.current == 'true' }}
             type=sha,format=long
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
           labels: |
+            ${{ github.ref == 'refs/heads/main' && 'org.opencontainers.image.version=latest' || '' }}
             org.opencontainers.image.title=trello-mcp
             org.opencontainers.image.description=Self-hostable MCP server for Trello, built for LLM clients and local workflows.
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
@@ -144,6 +134,27 @@ jobs:
           annotations: ${{ steps.meta.outputs.annotations }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      - name: Promote the built main digest to GHCR latest
+        id: main-latest
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || inputs.push)
+        shell: bash
+        env:
+          IMAGE: ghcr.io/${{ github.repository }}
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          set -euo pipefail
+          [[ "$IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          remote=$(git ls-remote --exit-code origin refs/heads/main)
+          if [[ "$remote" != "$GITHUB_SHA"$'\t'refs/heads/main ]]; then
+            echo "Skipped GHCR latest because main advanced during or before this build."
+            exit 0
+          fi
+          docker buildx imagetools create --tag "$IMAGE:latest" "$IMAGE@$IMAGE_DIGEST"
+          checksum=$(docker buildx imagetools inspect --raw "$IMAGE:latest" | shasum -a 256)
+          if [[ "sha256:${checksum%% *}" != "$IMAGE_DIGEST" ]]; then
+            echo "GHCR latest differs from the built main index." >&2
+            exit 1
+          fi
       - name: Verify public image ownership, version, digest, and offline tool discovery
         id: verify
         if: steps.release.outputs.stable == 'true'

@@ -197,7 +197,8 @@ git push origin vX.Y.Z
 ```
 
 Watch release workflows for both the merged `main` push and the tag push. The
-main workflow publishes `latest` and `sha-<full-main-sha>`; the tag workflow
+main workflow publishes `sha-<full-main-sha>` first. It promotes that digest
+to `latest` after the build if the remote main head still matches. The tag workflow
 publishes only `X.Y.Z` initially, verifies the image and its attestations, then
 repairs `sha-<full-main-sha>` and minor `X.Y` from the verified digest. A retry
 of an older release leaves a newer release's minor line untouched. Repository-wide

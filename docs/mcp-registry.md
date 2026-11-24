@@ -355,8 +355,10 @@ checks and writes cannot race another main or tag run. The shared concurrency
 group uses `queue: max` with `cancel-in-progress: false` to preserve pending
 releases instead of replacing them with later pushes. GitHub allows up to 100
 pending runs; further arrivals are canceled when the queue is full. Release jobs
-never intentionally replace an existing exact release image. `latest` is updated only on main;
-a queued main build checks the current remote head before claiming that alias. Stable
+never intentionally replace an existing exact release image. A main build publishes
+its commit image first. Once the build finishes, the image job checks the current
+remote main head immediately before assigning the built digest to `latest` and
+reads the alias back. A superseded build keeps its commit tag. Stable
 release retries repair the commit alias and the minor alias when the release
 still owns that minor line. Retry the newer release to repair a minor alias it
 owns, even when an older release's Registry publication remains outstanding.

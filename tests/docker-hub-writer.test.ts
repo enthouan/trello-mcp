@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import {
   existsSync,
   mkdtempSync,
@@ -48,7 +49,7 @@ describe("Docker Hub writer", () => {
           file: string,
           args: string[],
           child: NodeJS.ProcessEnv,
-          input?: string,
+          input?: string | Buffer,
         ) => {
           order.push(args[0] ?? "");
           expect(file).toBe(join(root, "regctl"));
@@ -72,7 +73,7 @@ describe("Docker Hub writer", () => {
               "enthouan",
               "--pass-stdin",
             ]);
-            return outcome !== "login denied";
+            return outcome === "login denied" ? null : Buffer.alloc(0);
           }
           if (args[0] === "image") {
             expect(args).toEqual([
@@ -82,7 +83,7 @@ describe("Docker Hub writer", () => {
               `ghcr.io/enthouan/trello-mcp@${identity.digest}`,
               `${destination}:${identity.version}`,
             ]);
-            return outcome !== "uncertain write";
+            return outcome === "uncertain write" ? null : Buffer.alloc(0);
           }
           expect(args).toEqual([
             "config",
@@ -90,7 +91,7 @@ describe("Docker Hub writer", () => {
             "--docker-cred=false",
             "--docker-cert=false",
           ]);
-          return true;
+          return Buffer.alloc(0);
         },
       );
       try {
@@ -115,6 +116,116 @@ describe("Docker Hub writer", () => {
         } else {
           expect(await result).toBe(outcome === "success");
           expect(order).toEqual(["config", "registry", "guard", "image"]);
+        }
+        expect(existsSync(directory)).toBe(false);
+      } finally {
+        rmSync(root, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it.each([
+    "success",
+    "read failed",
+    "digest mismatch",
+    "guard failed",
+    "uncertain PUT",
+  ])(
+    "sets latest with just the original Hub index bytes after the ownership guard (%s)",
+    async (outcome) => {
+      // Keep the final newline and whitespace that reserializing the JSON would lose.
+      const index = Buffer.from(
+        '{  "schemaVersion": 2, "mediaType": "application/vnd.oci.image.index.v1+json", "manifests": [] }\n',
+      );
+      const digest = `sha256:${createHash("sha256").update(index).digest("hex")}`;
+      const root = mkdtempSync(join(tmpdir(), "test-regctl-latest-"));
+      const token = "test-only-token";
+      const env = {
+        PATH: "/usr/bin",
+        MIRROR_TEMP: root,
+        DOCKERHUB_USERNAME: "enthouan",
+        DOCKERHUB_TOKEN: token,
+        DOCKERHUB_CONFIRMED_REPOSITORY: destination,
+      };
+      const order: string[] = [];
+      let directory = "";
+      const run = (
+        file: string,
+        args: string[],
+        child: NodeJS.ProcessEnv,
+        input?: string | Buffer,
+        capture?: boolean,
+      ) => {
+        const command = args.slice(0, 2).join(" ");
+        order.push(command);
+        directory = child.HOME ?? "";
+        expect(file).toBe(join(root, "regctl"));
+        expect(Object.values(child)).not.toContain(token);
+        expect(args.join(" ")).not.toContain(token);
+        if (command === "manifest get") {
+          expect(args).toEqual([
+            "manifest",
+            "get",
+            "--format",
+            "raw-body",
+            `${destination}@${digest}`,
+          ]);
+          expect(input).toBeUndefined();
+          expect(capture).toBe(true);
+          if (outcome === "read failed") return null;
+          return outcome === "digest mismatch"
+            ? Buffer.from(index.toString().trimEnd())
+            : index;
+        }
+        expect(capture).toBeUndefined();
+        if (command === "manifest put") {
+          expect(args).toEqual([
+            "manifest",
+            "put",
+            "--content-type",
+            "application/vnd.oci.image.index.v1+json",
+            `${destination}:latest`,
+          ]);
+          expect(input).toEqual(index);
+          return outcome === "uncertain PUT" ? null : Buffer.alloc(0);
+        }
+        expect(["config set", "registry login"]).toContain(command);
+        expect(input).toBe(command === "registry login" ? token : undefined);
+        return Buffer.alloc(0);
+      };
+      try {
+        const result = copyImage(
+          { ...identity, digest },
+          "latest",
+          env,
+          async () => {
+            order.push("guard");
+            if (outcome === "guard failed") throw new Error("newer release");
+          },
+          run,
+        );
+        if (outcome === "read failed" || outcome === "digest mismatch") {
+          await expect(result).rejects.toThrow(
+            outcome === "read failed" ? "Unable to read" : "index bytes differ",
+          );
+          expect(order).toEqual(["config set", "manifest get"]);
+        } else if (outcome === "guard failed") {
+          await expect(result).rejects.toThrow("newer release");
+          expect(order).toEqual([
+            "config set",
+            "manifest get",
+            "registry login",
+            "guard",
+          ]);
+        } else {
+          expect(await result).toBe(outcome === "success");
+          expect(order).toEqual([
+            "config set",
+            "manifest get",
+            "registry login",
+            "guard",
+            "manifest put",
+          ]);
         }
         expect(existsSync(directory)).toBe(false);
       } finally {

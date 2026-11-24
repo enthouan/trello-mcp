@@ -1263,54 +1263,94 @@ describe("release workflow safety", () => {
     expect(cleanup.run).toBe('rm -f "$HOME/.config/mcp-publisher/token.json"');
   });
 
-  it("gives the GHCR latest alias only to the current main commit inside the image lock", async () => {
+  it("promotes only the still-current main digest after building, then verifies GHCR latest", async () => {
     const { jobs } = parse(await read(".github/workflows/release.yml"));
     const steps = jobs.image.steps;
-    const gate = steps.find((step: { id?: string }) => step.id === "main-head");
-    expect(gate.if).toBe("github.ref == 'refs/heads/main'");
-    expect(
-      steps.find((step: { id?: string }) => step.id === "meta").with.tags,
-    ).toContain(
-      `type=raw,value=latest,enable=${expression("steps.main-head.outputs.current == 'true'")}`,
+    const meta = steps.find((step: { id?: string }) => step.id === "meta");
+    const build = steps.find((step: { id?: string }) => step.id === "build");
+    const publish = steps.find(
+      (step: { id?: string }) => step.id === "main-latest",
     );
+    expect(meta.with.tags).toContain("type=sha,format=long");
+    expect(meta.with.tags).not.toContain("latest");
+    expect(meta.with.flavor.trim()).toBe("latest=false");
+    expect(steps.indexOf(publish)).toBeGreaterThan(steps.indexOf(build));
+    expect(publish.if).toBe(
+      "github.ref == 'refs/heads/main' && (github.event_name == 'push' || inputs.push)",
+    );
+    expect(publish.env).toEqual({
+      IMAGE: `ghcr.io/${expression("github.repository")}`,
+      IMAGE_DIGEST: expression("steps.build.outputs.digest"),
+    });
     const tmp = await mkdtemp(join(tmpdir(), "trello-main-alias-"));
     const git = (...args: string[]) =>
-      execFileSync("git", args, {
+      execFileSync(
+        "git",
+        [
+          "-c",
+          "core.hooksPath=/dev/null",
+          "-c",
+          "commit.gpgsign=false",
+          "-c",
+          "user.name=Test",
+          "-c",
+          "user.email=test@example.invalid",
+          ...args,
+        ],
+        {
+          cwd: tmp,
+          encoding: "utf8",
+          stdio: "pipe",
+        },
+      ).trim();
+    const index = '{"schemaVersion":2,"manifests":[]}';
+    const digest = `sha256:${createHash("sha256").update(index).digest("hex")}`;
+    const log = join(tmp, "calls");
+    const run = (sha: string, content = index) =>
+      execFileSync("bash", ["-c", publish.run], {
         cwd: tmp,
         encoding: "utf8",
         stdio: "pipe",
-      }).trim();
+        env: {
+          PATH: `${tmp}:${process.env.PATH}`,
+          GITHUB_SHA: sha,
+          IMAGE: imageName,
+          IMAGE_DIGEST: digest,
+          INDEX: content,
+          LOG: log,
+        },
+      });
     try {
       git("init", "--initial-branch=main");
       git("remote", "add", "origin", tmp);
-      git(
-        "-c",
-        "core.hooksPath=/dev/null",
-        "-c",
-        "commit.gpgsign=false",
-        "-c",
-        "user.name=Test",
-        "-c",
-        "user.email=test@example.invalid",
-        "commit",
-        "--allow-empty",
-        "-m",
-        "main",
+      git("commit", "--allow-empty", "-m", "main build starts");
+      const initial = git("rev-parse", "HEAD");
+      // Advance remote main during the build, before the post-build step executes.
+      git("commit", "--allow-empty", "-m", "main advances");
+      const current = git("rev-parse", "HEAD");
+      await writeFile(log, "");
+      await writeFile(
+        join(tmp, "docker"),
+        `#!/bin/sh
+echo "$*" >> "$LOG"
+case "$3" in
+  create) exit 0 ;;
+  inspect) printf '%s' "$INDEX" ;;
+  *) exit 1 ;;
+esac
+`,
+        { mode: 0o700 },
       );
-      const head = git("rev-parse", "HEAD");
-      const output = join(tmp, "output");
-      for (const [sha, expected] of [
-        ["a".repeat(40), ""],
-        [head, "current=true\n"],
-      ]) {
-        await writeFile(output, "");
-        execFileSync("bash", ["-c", gate.run], {
-          cwd: tmp,
-          env: { ...process.env, GITHUB_OUTPUT: output, GITHUB_SHA: sha },
-          stdio: "pipe",
-        });
-        expect(await readFile(output, "utf8")).toBe(expected);
-      }
+      expect(run(initial)).toContain("Skipped GHCR latest");
+      expect(await readFile(log, "utf8")).toBe("");
+      run(current);
+      expect((await readFile(log, "utf8")).trim().split("\n")).toEqual([
+        `buildx imagetools create --tag ${imageName}:latest ${imageName}@${digest}`,
+        `buildx imagetools inspect --raw ${imageName}:latest`,
+      ]);
+      expect(() => run(current, "different index")).toThrow(
+        /GHCR latest differs/,
+      );
     } finally {
       await rm(tmp, { recursive: true, force: true });
     }
