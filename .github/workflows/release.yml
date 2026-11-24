@@ -209,6 +209,9 @@ jobs:
     permissions:
       contents: read
     uses: ./.github/workflows/docker-hub-mirror.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
     with:
       tag: ${{ github.ref_name }}
       tag-object: ${{ needs.image.outputs.tag-object }}

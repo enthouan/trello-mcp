@@ -276,7 +276,14 @@ describe("Docker Hub workflow integration", () => {
       "needs.image.outputs.stable == 'true'",
     ])
       expect(release.jobs["docker-hub"].if).toContain(gate);
-    expect(release.jobs["docker-hub"].secrets).toBeUndefined();
+    expect(release.jobs["docker-hub"].secrets).toEqual({
+      DOCKERHUB_USERNAME: expression("secrets.DOCKERHUB_USERNAME"),
+      DOCKERHUB_TOKEN: expression("secrets.DOCKERHUB_TOKEN"),
+    });
+    expect(mirror.on.workflow_call.secrets).toEqual({
+      DOCKERHUB_USERNAME: { required: true },
+      DOCKERHUB_TOKEN: { required: true },
+    });
     expect(release.jobs.image.outputs.revision).toBe(
       expression("steps.verify.outputs.revision"),
     );

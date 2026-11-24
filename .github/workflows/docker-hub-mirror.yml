@@ -2,6 +2,11 @@ name: Docker Hub stable mirror
 
 on:
   workflow_call:
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_TOKEN:
+        required: true
     inputs:
       tag-object:
         type: string
