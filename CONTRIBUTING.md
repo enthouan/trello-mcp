@@ -126,3 +126,7 @@ Follow the [official MCP Registry release and recovery guide](https://github.com
 and the [repository release skill](https://github.com/enthouan/trello-mcp/blob/main/.agents/skills/trello-mcp-release/SKILL.md).
 A release is complete only after the image and Registry jobs succeed, the exact
 live Registry entry matches the manifest, and the GitHub Release exists.
+
+Report Docker Hub separately. The mirror consumes the verified GHCR digest after
+the image job. Its environment review or failure leaves the primary release
+process independent. Follow the [Docker Hub mirror runbook](https://github.com/enthouan/trello-mcp/blob/main/docs/docker-hub-mirror.md) for mirror-only recovery.

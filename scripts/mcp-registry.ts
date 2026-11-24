@@ -1,10 +1,7 @@
 import { execFile } from "node:child_process";
-import { randomUUID } from "node:crypto";
 import { appendFile, readFile } from "node:fs/promises";
 import { setTimeout } from "node:timers/promises";
 import { promisify } from "node:util";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { z } from "zod";
 import { allTools } from "../src/trello/tools.js";
 import {
@@ -20,6 +17,7 @@ import {
   verifyImage,
   versionUrl,
 } from "./lib/mcp-registry.js";
+import { discoverReleaseImage } from "./lib/release-discovery.js";
 
 const exec = promisify(execFile);
 const root = new URL("../", import.meta.url);
@@ -77,77 +75,10 @@ async function releaseCommit(): Promise<string> {
   return revision;
 }
 
-async function discover(image: string) {
-  const container = `trello-mcp-registry-${randomUUID()}`;
-  const client = new Client({
-    name: "trello-mcp-registry-check",
-    version: "1.0.0",
-  });
-  const transport = new StdioClientTransport({
-    command: "docker",
-    args: [
-      "run",
-      "--rm",
-      "-i",
-      "--network=none",
-      "--name",
-      container,
-      "-e",
-      "TRANSPORT=stdio",
-      "-e",
-      "TRELLO_API_KEY=synthetic-offline-api-key",
-      "-e",
-      "TRELLO_TOKEN=synthetic-offline-token",
-      image,
-    ],
-    stderr: "pipe",
-  });
-  transport.stderr?.on("data", () => undefined);
-  try {
-    await client.connect(transport, { timeout: 30_000 });
-    if (client.getServerVersion()?.version !== manifest.version)
-      throw new Error("Container package version differs from server.json.");
-    const tools = await client.listTools(undefined, { timeout: 30_000 });
-    const expected = allTools.map((tool) => tool.name).sort();
-    const actual = tools.tools.map((tool) => tool.name).sort();
-    if (JSON.stringify(actual) !== JSON.stringify(expected) || tools.nextCursor)
-      throw new Error(
-        "Container tool discovery differs from the release source.",
-      );
-    // Keep the actual image health check enabled and wait for Docker to run it.
-    for (let attempt = 0; ; attempt++) {
-      const health = JSON.parse(
-        (
-          await exec("docker", [
-            "inspect",
-            "--format",
-            "{{json .State.Health}}",
-            container,
-          ])
-        ).stdout,
-      ) as unknown;
-      const status = z
-        .object({ Status: z.enum(["starting", "healthy", "unhealthy"]) })
-        .parse(health).Status;
-      if (status === "healthy") break;
-      if (status === "unhealthy" || attempt >= 25)
-        throw new Error(
-          "The stdio container did not pass its image-defined health check.",
-        );
-      await setTimeout(2_000);
-    }
-    console.log(
-      `Offline stdio discovery and Docker health passed: ${actual.length} tools; container networking disabled.`,
-    );
-  } finally {
-    try {
-      await client.close();
-      await transport.close();
-    } finally {
-      await exec("docker", ["rm", "-f", container]).catch(() => undefined);
-    }
-  }
-}
+const runtimeExpectations = {
+  version: manifest.version,
+  names: allTools.map((tool) => tool.name),
+};
 
 async function requiredImage(revision: string): Promise<string> {
   const expected = z
@@ -202,10 +133,17 @@ async function main() {
   } else if (command === "verify-image") {
     const revision = await releaseCommit();
     const digest = await requiredImage(revision);
-    await exec("docker", ["pull", `${imageName}@${digest}`]);
-    await discover(`${imageName}@${digest}`);
+    const runtime = await discoverReleaseImage(
+      `${imageName}@${digest}`,
+      runtimeExpectations,
+    );
+    const tagObject = (
+      await exec("git", ["rev-parse", `refs/tags/v${releaseVersion}`])
+    ).stdout.trim();
+    await output("tag-object", tagObject);
+    await output("revision", revision);
     await output("digest", digest);
-    const evidence = `## Verified release image\n\n- Version: ${manifest.version}\n- Commit: ${revision}\n- Public image: ${imageName}@${digest}\n- Ownership, version, revision, maximum provenance, and SPDX SBOM verified on linux/amd64 and linux/arm64, bound to each platform digest.\n- Offline stdio initialization, ${allTools.length}-tool discovery, and image-defined health check passed.\n`;
+    const evidence = `## Verified release image\n\n- Version: ${manifest.version}\n- Commit: ${revision}\n- Public image: ${imageName}@${digest}\n- Ownership, version, revision, maximum provenance, and SPDX SBOM verified on linux/amd64 and linux/arm64, bound to each platform digest.\n- Native ${runtime.platform} offline stdio initialization, ${runtime.toolCount}-tool discovery, and image-defined health check passed.\n`;
     console.log(evidence);
     if (process.env.GITHUB_STEP_SUMMARY)
       await appendFile(process.env.GITHUB_STEP_SUMMARY, evidence);
@@ -238,7 +176,12 @@ async function main() {
       await appendFile(process.env.GITHUB_STEP_SUMMARY, evidence);
   } else if (command === "discover") {
     const image = z.string().min(1).parse(process.argv[3]);
-    await discover(image);
+    const runtime = await discoverReleaseImage(image, runtimeExpectations, {
+      localOrTagged: true,
+    });
+    console.log(
+      `Offline stdio discovery passed: ${runtime.toolCount} tools, image-defined health ${runtime.health}.`,
+    );
   } else if (command === "verify") {
     if ((await registryEntry(manifest)) !== "identical")
       throw new Error("Exact Registry version is absent.");

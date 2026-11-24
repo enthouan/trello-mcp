@@ -301,6 +301,17 @@ export async function verifyImageEvidence(
     true,
   );
   if (!image) return undefined;
+  return verifyImageGraph(manifest.version, revision, image, readObject);
+}
+
+// Apply the same Trello identity, runtime and attestation policy to both registries.
+// Callers supply content-addressed reads and choose whether to also stream filesystem layers.
+export async function verifyImageGraph(
+  version: string,
+  revision: string,
+  image: { digest: string; body: unknown },
+  readObject: ReadImageObject,
+) {
   const index = indexSchema.parse(image.body);
   if (index.annotations?.[ownershipLabel] !== serverName)
     throw new Error("Image index lacks the MCP ownership annotation.");
@@ -366,7 +377,7 @@ export async function verifyImageEvidence(
       .parse(configObject?.body).config;
     for (const [key, value] of Object.entries({
       [ownershipLabel]: serverName,
-      "org.opencontainers.image.version": manifest.version,
+      "org.opencontainers.image.version": version,
       "org.opencontainers.image.revision": revision,
       "org.opencontainers.image.source": `https://github.com/${repository}`,
     })) {
@@ -531,7 +542,7 @@ async function verifyAttestations(
   };
 }
 
-function compareVersions(left: string, right: string): number {
+export function compareVersions(left: string, right: string): number {
   if (!stableVersion.test(left) || !stableVersion.test(right))
     throw new Error("Expected canonical stable image versions.");
   const a = left.split(".").map(BigInt);
@@ -544,7 +555,10 @@ function compareVersions(left: string, right: string): number {
   return 0;
 }
 
-async function imageIdentity(body: unknown, readObject: ReadImageObject) {
+export async function imageIdentity(
+  body: unknown,
+  readObject: ReadImageObject,
+) {
   const index = indexSchema.parse(body);
   const identities = [];
   for (const architecture of ["amd64", "arm64"]) {

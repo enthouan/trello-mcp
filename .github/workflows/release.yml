@@ -15,12 +15,6 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  # Serialize shared minor/commit image tags across main and release-tag runs.
-  group: release-${{ github.repository }}
-  queue: max
-  cancel-in-progress: false
-
 jobs:
   release-policy:
     runs-on: ubuntu-latest
@@ -53,6 +47,11 @@ jobs:
           fi
 
   image:
+    concurrency:
+      # Serialize shared minor/commit image tags across main and release-tag runs.
+      group: release-${{ github.repository }}
+      queue: max
+      cancel-in-progress: false
     needs: release-policy
     # Manual image builds are for main only. Recovery uses the original tag run.
     if: github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main'
@@ -64,6 +63,8 @@ jobs:
     outputs:
       stable: ${{ steps.release.outputs.stable }}
       digest: ${{ steps.verify.outputs.digest }}
+      revision: ${{ steps.verify.outputs.revision }}
+      tag-object: ${{ steps.verify.outputs.tag-object }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -99,11 +100,11 @@ jobs:
           flavor: |
             latest=false
           tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
             type=sha,format=long
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
           labels: |
+            ${{ github.ref == 'refs/heads/main' && 'org.opencontainers.image.version=latest' || '' }}
             org.opencontainers.image.title=trello-mcp
             org.opencontainers.image.description=Self-hostable MCP server for Trello, built for LLM clients and local workflows.
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
@@ -133,6 +134,27 @@ jobs:
           annotations: ${{ steps.meta.outputs.annotations }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      - name: Promote the built main digest to GHCR latest
+        id: main-latest
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || inputs.push)
+        shell: bash
+        env:
+          IMAGE: ghcr.io/${{ github.repository }}
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          set -euo pipefail
+          [[ "$IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          remote=$(git ls-remote --exit-code origin refs/heads/main)
+          if [[ "$remote" != "$GITHUB_SHA"$'\t'refs/heads/main ]]; then
+            echo "Skipped GHCR latest because main advanced during or before this build."
+            exit 0
+          fi
+          docker buildx imagetools create --tag "$IMAGE:latest" "$IMAGE@$IMAGE_DIGEST"
+          checksum=$(docker buildx imagetools inspect --raw "$IMAGE:latest" | shasum -a 256)
+          if [[ "sha256:${checksum%% *}" != "$IMAGE_DIGEST" ]]; then
+            echo "GHCR latest differs from the built main index." >&2
+            exit 1
+          fi
       - name: Verify public image ownership, version, digest, and offline tool discovery
         id: verify
         if: steps.release.outputs.stable == 'true'
@@ -178,3 +200,20 @@ jobs:
         if: always()
         # Publisher v1.8.1 uses this path and does not honor XDG_CONFIG_HOME.
         run: rm -f "$HOME/.config/mcp-publisher/token.json"
+
+  docker-hub:
+    needs: image
+    if: >-
+      github.repository == 'enthouan/trello-mcp' && github.event_name == 'push' &&
+      startsWith(github.ref, 'refs/tags/v') && needs.image.outputs.stable == 'true'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/docker-hub-mirror.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+    with:
+      tag: ${{ github.ref_name }}
+      tag-object: ${{ needs.image.outputs.tag-object }}
+      revision: ${{ needs.image.outputs.revision }}
+      digest: ${{ needs.image.outputs.digest }}

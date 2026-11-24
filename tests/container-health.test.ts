@@ -67,7 +67,7 @@ describe("image-defined container health", () => {
       >[])
         expect(service.healthcheck).toBeUndefined();
     }
-    expect(await read("scripts/mcp-registry.ts")).not.toContain(
+    expect(await read("scripts/lib/release-discovery.ts")).not.toContain(
       "--no-healthcheck",
     );
   });
