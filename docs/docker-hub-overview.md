@@ -1,6 +1,4 @@
-# Trello MCP
-
-<img src="https://trello-mcp.com/favicon.svg" alt="Trello MCP split-card mark" width="96" height="96">
+# ![Trello MCP](https://raw.githubusercontent.com/enthouan/trello-mcp/23c8560d29195ec055fec03b74e7aacabc73de7c/docs/assets/trello-mcp-wordmark.svg)
 
 A self-hostable Model Context Protocol server for Trello boards, lists, cards, checklists and more. Connect an MCP client over stdio or Streamable HTTP. This independent, community-maintained project is unaffiliated with Trello and Atlassian. [Source repository](https://github.com/enthouan/trello-mcp) · [Setup and client guides](https://trello-mcp.com/getting-started/clients/)
 
