@@ -201,14 +201,14 @@ main workflow publishes `latest` and `sha-<full-main-sha>`; the tag workflow
 publishes only `X.Y.Z` initially, verifies the image and its attestations, then
 repairs `sha-<full-main-sha>` and minor `X.Y` from the verified digest. A retry
 of an older release leaves a newer release's minor line untouched. Repository-wide
-Release concurrency serializes these shared alias checks and writes, using
+GHCR image-job concurrency serializes these shared alias checks and writes, using
 `queue: max` with `cancel-in-progress: false` to preserve up to 100 pending runs.
 
 ```bash
 gh run list --repo enthouan/trello-mcp --workflow Release --limit 10 \
   --json databaseId,name,headBranch,headSha,status,conclusion,event,createdAt,url
 gh run watch --repo enthouan/trello-mcp <MAIN_RUN_ID> --exit-status
-gh run watch --repo enthouan/trello-mcp <TAG_RUN_ID> --exit-status
+gh run view --repo enthouan/trello-mcp <TAG_RUN_ID> --json jobs --jq '.jobs[] | [.name,.status,.conclusion,.url]'
 gh run view --repo enthouan/trello-mcp <TAG_RUN_ID> --log-failed
 ```
 
@@ -225,7 +225,7 @@ If any publish step fails, report the failed step and sanitized error before
 trying manual repair. Prefer a follow-up PR for workflow fixes; never repush
 the same release tag. Follow Registry Recovery below when GHCR succeeded.
 
-Create the GitHub Release only after the tag workflow, GHCR image checks, and
+Create the GitHub Release only after the tag policy, GHCR image checks, and
 exact official Registry payload verification pass. Use the title `vX.Y.Z` exactly, without `release` or any other suffix,
 and use the changelog section as notes.
 
@@ -242,7 +242,7 @@ verified GHCR tags and digest, exact public Registry API URL and matching active
 payload result, offline discovery result, and GitHub Release URL. Distinguish
 local/static checks from an observed successful production OIDC run.
 
-If the release completes a milestone, close it only after the tag workflow,
+If the release completes a milestone, close it only after the tag policy,
 GHCR image checks, and exact live Registry verification have passed and its other
 issues are complete. A packaging patch can belong to the distribution milestone
 without completing unrelated catalog submissions. Use non-closing PR references
@@ -301,6 +301,23 @@ This anonymously reads the production API at
 compares all publisher metadata with `server.json`, and requires active status.
 A Registry search result or `latest` alias alone is insufficient. Include this
 evidence in the tracking issue before closing it.
+
+## Docker Hub mirror and recovery
+
+Report the primary GHCR image and official Registry entry as each completes.
+The secondary mirror consumes the verified image independently. Poll the tag
+run’s individual jobs while the mirror waits for approval. Proceed with normal
+GitHub Release creation once the primary gates pass. A pending or failed mirror
+has its own status and recovery path.
+
+Follow the [Docker Hub runbook](../../../docs/docker-hub-mirror.md). A mirror-only
+dispatch from reviewed main defaults to preview. Supply the original stable tag,
+full revision and verified GHCR index digest. Review the destination and latest
+decision before requesting a backfill. Use the authorized environment for the
+copy. Record exact and alias read-back, both platform digests, native discovery,
+health and exact-tag reuse separately. Keep the mirror issue open for genuine
+production evidence. Credential provisioning and overview publication require
+their own owner authorization.
 
 ## Registry Recovery
 

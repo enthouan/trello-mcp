@@ -1192,7 +1192,8 @@ describe("release workflow safety", () => {
     expect(workflow.on.pull_request).toBeUndefined();
     expect(workflow.on.push.tags).toEqual(["v*.*.*"]);
     expect(workflow.permissions).toEqual({ contents: "read" });
-    expect(workflow.concurrency).toEqual({
+    expect(workflow.concurrency).toBeUndefined();
+    expect(workflow.jobs.image.concurrency).toEqual({
       group: `release-${expression("github.repository")}`,
       queue: "max",
       "cancel-in-progress": false,
@@ -1260,6 +1261,59 @@ describe("release workflow safety", () => {
     const cleanup = registry.steps.at(-1);
     expect(cleanup.if).toBe("always()");
     expect(cleanup.run).toBe('rm -f "$HOME/.config/mcp-publisher/token.json"');
+  });
+
+  it("gives the GHCR latest alias only to the current main commit inside the image lock", async () => {
+    const { jobs } = parse(await read(".github/workflows/release.yml"));
+    const steps = jobs.image.steps;
+    const gate = steps.find((step: { id?: string }) => step.id === "main-head");
+    expect(gate.if).toBe("github.ref == 'refs/heads/main'");
+    expect(
+      steps.find((step: { id?: string }) => step.id === "meta").with.tags,
+    ).toContain(
+      `type=raw,value=latest,enable=${expression("steps.main-head.outputs.current == 'true'")}`,
+    );
+    const tmp = await mkdtemp(join(tmpdir(), "trello-main-alias-"));
+    const git = (...args: string[]) =>
+      execFileSync("git", args, {
+        cwd: tmp,
+        encoding: "utf8",
+        stdio: "pipe",
+      }).trim();
+    try {
+      git("init", "--initial-branch=main");
+      git("remote", "add", "origin", tmp);
+      git(
+        "-c",
+        "core.hooksPath=/dev/null",
+        "-c",
+        "commit.gpgsign=false",
+        "-c",
+        "user.name=Test",
+        "-c",
+        "user.email=test@example.invalid",
+        "commit",
+        "--allow-empty",
+        "-m",
+        "main",
+      );
+      const head = git("rev-parse", "HEAD");
+      const output = join(tmp, "output");
+      for (const [sha, expected] of [
+        ["a".repeat(40), ""],
+        [head, "current=true\n"],
+      ]) {
+        await writeFile(output, "");
+        execFileSync("bash", ["-c", gate.run], {
+          cwd: tmp,
+          env: { ...process.env, GITHUB_OUTPUT: output, GITHUB_SHA: sha },
+          stdio: "pipe",
+        });
+        expect(await readFile(output, "utf8")).toBe(expected);
+      }
+    } finally {
+      await rm(tmp, { recursive: true, force: true });
+    }
   });
 
   it("runs the actual read-only policy against fresh main, older main, and an unmerged commit", async () => {

@@ -301,7 +301,7 @@ The exact release PR review remains the single normal approval boundary.
    restricted to `main` and keep their existing dry-run default.
 4. A read-only `release-policy` job checks out `github.sha`, requires an
    annotated tag object (lightweight tags fail), freshly fetches `origin/main`,
-   and rejects tags whose commits are not on main before either publishing job
+   and rejects tags whose commits are not on main before the image job
    starts. All jobs use the exact event commit. The release scripts also require
    an annotated tag and the checkout, tag target, and event SHA to agree.
 5. Before any image build, read the exact Registry version with
@@ -350,15 +350,23 @@ The exact release PR review remains the single normal approval boundary.
    Registry-managed response envelope. The workflow summary records version,
    commit, digest, exact API URL, and publication/reuse outcome.
 
-Release workflow runs serialize across the repository so shared image alias
+The GHCR `image` jobs serialize across the repository so shared image alias
 checks and writes cannot race another main or tag run. The shared concurrency
 group uses `queue: max` with `cancel-in-progress: false` to preserve pending
 releases instead of replacing them with later pushes. GitHub allows up to 100
 pending runs; further arrivals are canceled when the queue is full. Release jobs
 never intentionally replace an existing exact release image. `latest` is updated only on main;
+a queued main build checks the current remote head before claiming that alias. Stable
 release retries repair the commit alias and the minor alias when the release
 still owns that minor line. Retry the newer release to repair a minor alias it
 owns, even when an older release's Registry publication remains outstanding.
+
+The stable release also starts a separate [Docker Hub mirror](docker-hub-mirror.md)
+from the successful image job’s verified revision and digest. Its writer uses
+a separate queue and environment. Record the GHCR image, official Registry
+entry and secondary mirror outcomes individually. Complete the primary release
+once its existing gates pass, including when the mirror needs approval or repair.
+Use mirror-only recovery for a secondary failure.
 
 The ancestry gate verifies release lineage for this workflow. Registry OIDC
 authorizes the owner's namespace, so repository write access must remain
@@ -437,7 +445,7 @@ GitHub documents [`queue: max`](https://docs.github.com/en/actions/how-tos/write
 but actionlint v1.7.12 rejects that key
 ([upstream compatibility issue](https://github.com/rhysd/actionlint/issues/680)).
 Until the installed version supports it, ignore only the exact unsupported-key
-diagnostic on `release.yml`. Keep every other diagnostic and workflow enabled.
+diagnostic on `release.yml` and `docker-hub-mirror.yml`. Keep every other diagnostic and workflow enabled.
 `tests/mcp-registry.test.ts` requires the shared group, `queue: max`, and
 `cancel-in-progress: false`; do not remove the queue to appease an older linter.
 Remove the exception when actionlint gains support.
@@ -446,7 +454,7 @@ Remove the exception when actionlint gains support.
 corepack pnpm exec vitest run tests/mcp-registry.test.ts tests/workflow-actions.test.ts
 set -euo pipefail
 for workflow in .github/workflows/*.yml; do
-  if [ "$workflow" = ".github/workflows/release.yml" ]; then
+  if [[ "$workflow" == .github/workflows/release.yml || "$workflow" == .github/workflows/docker-hub-mirror.yml ]]; then
     actionlint -ignore '^unexpected key "queue" for "concurrency" section\. expected one of "cancel-in-progress", "group"$' "$workflow"
   else
     actionlint "$workflow"
