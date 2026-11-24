@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="164" height="32" viewBox="0 0 164 32" role="img" aria-labelledby="title">
+  <title id="title">Trello MCP</title>
+  <style>
+    text { fill: #1b2430; font: 600 22px system-ui, sans-serif; }
+    @media (prefers-color-scheme: dark) { text { fill: #f1f5f9; } }
+  </style>
+  <svg x="0" y="3" width="26" height="26" viewBox="0 0 64 64">
+    <rect width="64" height="64" rx="14" fill="#0052cc" />
+    <rect x="11.43" y="11.43" width="18.29" height="28.57" rx="4.57" fill="#fff" />
+    <rect x="34.29" y="24" width="18.29" height="28.57" rx="4.57" fill="#fff" />
+  </svg>
+  <text x="35" y="24">Trello MCP</text>
+</svg>

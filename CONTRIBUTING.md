@@ -127,6 +127,8 @@ and the [repository release skill](https://github.com/enthouan/trello-mcp/blob/m
 A release is complete only after the image and Registry jobs succeed, the exact
 live Registry entry matches the manifest, and the GitHub Release exists.
 
-Report Docker Hub separately. The mirror consumes the verified GHCR digest after
-the image job. Its environment review or failure leaves the primary release
-process independent. Follow the [Docker Hub mirror runbook](https://github.com/enthouan/trello-mcp/blob/main/docs/docker-hub-mirror.md) for mirror-only recovery.
+Report Docker Hub separately. After the approved stable release tag passes its
+image checks, the mirror publishes the verified GHCR digest under the exact
+version and advances `latest` if eligible. Manual runs on `main` can preview
+the destination. For a failed tag run or an emergency historical backfill,
+follow the [Docker Hub mirror runbook](https://github.com/enthouan/trello-mcp/blob/main/docs/docker-hub-mirror.md).
