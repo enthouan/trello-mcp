@@ -9,17 +9,17 @@ import {
   planMirrorTag,
   publishMirrorTag,
   selectedRelease,
-} from "./lib/docker-hub-mirror.js";
+} from "./lib/dockerhub-policy.js";
+import {
+  type MirrorIdentity,
+  PublicRegistry,
+  requirePublicHub,
+} from "./lib/dockerhub-registry.js";
 import {
   imageName,
   imageVerificationInput,
   repository,
 } from "./lib/mcp-registry.js";
-import {
-  type MirrorIdentity,
-  PublicRegistry,
-  requirePublicHub,
-} from "./lib/mirror-registry.js";
 import { discoverReleaseImage } from "./lib/release-discovery.js";
 import schema from "./schemas/mcp-server-2025-12-11.schema.json" with {
   type: "json",
@@ -72,7 +72,7 @@ export async function copyImage(
   assert(tag === version || tag === "latest", "Unexpected Docker Hub tag");
   assert(
     env.DOCKERHUB_CONFIRMED_REPOSITORY === destination,
-    "Confirm the public Docker Hub repository in the mirror environment",
+    `Set DOCKERHUB_CONFIRMED_REPOSITORY to ${destination} in the dockerhub environment`,
   );
   assert(
     env.DOCKERHUB_USERNAME === "enthouan" &&

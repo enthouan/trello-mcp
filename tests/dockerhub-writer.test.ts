@@ -10,7 +10,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { parse } from "yaml";
-import { copyImage } from "../scripts/docker-hub-mirror.js";
+import { copyImage } from "../scripts/dockerhub.js";
 
 const identity = {
   version: "12.0.3",
@@ -242,27 +242,35 @@ describe("Docker Hub writer", () => {
       DOCKERHUB_TOKEN: "test",
       MIRROR_TEMP: tmpdir(),
     };
-    for (const [tag, fields] of [
-      ["1.2", {}],
-      [identity.version, { DOCKERHUB_USERNAME: "other" }],
-      [identity.version, { DOCKERHUB_CONFIRMED_REPOSITORY: "wrong" }],
+    for (const [tag, fields, message] of [
+      ["1.2", {}, "Unexpected Docker Hub tag"],
+      [
+        identity.version,
+        { DOCKERHUB_USERNAME: "other" },
+        "Configure the mirror publisher",
+      ],
+      [
+        identity.version,
+        { DOCKERHUB_CONFIRMED_REPOSITORY: "wrong" },
+        `Set DOCKERHUB_CONFIRMED_REPOSITORY to ${destination} in the dockerhub environment`,
+      ],
     ] as const)
       await expect(
         copyImage(identity, tag, { ...env, ...fields }, async () => {}, run),
-      ).rejects.toThrow();
+      ).rejects.toThrow(message);
     expect(run).not.toHaveBeenCalled();
   });
 });
 
 describe("Docker Hub workflow integration", () => {
   const release = workflow("release.yml");
-  const mirror = workflow("docker-hub-mirror.yml");
+  const mirror = workflow("dockerhub.yml");
   const { preview, mirror: writer } = mirror.jobs;
   it("passes verified identity to an independent stable-only consumer", () => {
     expect(release.jobs["docker-hub"]).toMatchObject({
       needs: "image",
       permissions: { contents: "read" },
-      uses: "./.github/workflows/docker-hub-mirror.yml",
+      uses: "./.github/workflows/dockerhub.yml",
       with: {
         tag: expression("github.ref_name"),
         revision: expression("needs.image.outputs.revision"),
@@ -310,9 +318,15 @@ describe("Docker Hub workflow integration", () => {
     );
     expect(preview.environment).toBeUndefined();
     expect(JSON.stringify(preview)).not.toContain("secrets.");
+    expect(preview.steps).toContainEqual(
+      expect.objectContaining({
+        id: "preview",
+        run: "node --import tsx scripts/dockerhub.ts preview",
+      }),
+    );
     expect(mirror.permissions).toEqual({ contents: "read" });
     expect(writer.permissions).toBeUndefined();
-    expect(writer.environment).toBe("docker-hub-mirror");
+    expect(writer.environment).toBe("dockerhub");
     expect(writer.needs).toBe("preview");
     expect(writer.if).toBe("github.event_name == 'push' || inputs.publish");
     expect(writer.concurrency).toEqual({
@@ -345,7 +359,7 @@ describe("Docker Hub workflow integration", () => {
     };
     const steps: Step[] = writer.steps;
     const commands = steps.filter((step) =>
-      step.run?.includes("scripts/docker-hub-mirror.ts"),
+      step.run?.includes("scripts/dockerhub.ts"),
     );
     expect(commands.map((step) => step.run?.split(" ").at(-1))).toEqual([
       "exact",

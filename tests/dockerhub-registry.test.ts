@@ -1,16 +1,16 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 import {
-  ownershipLabel,
-  repository,
-  serverName,
-} from "../scripts/lib/mcp-registry.js";
-import {
   MissingContent,
   PublicRegistry,
   requirePublicHub,
   TransientRead,
-} from "../scripts/lib/mirror-registry.js";
+} from "../scripts/lib/dockerhub-registry.js";
+import {
+  ownershipLabel,
+  repository,
+  serverName,
+} from "../scripts/lib/mcp-registry.js";
 
 const version = "1.0.5";
 const revision = "a".repeat(40);

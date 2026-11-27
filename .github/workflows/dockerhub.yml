@@ -79,12 +79,12 @@ jobs:
         id: preview
         env:
           EXPECTED_TAG_OBJECT: ${{ inputs.tag-object }}
-        run: node --import tsx scripts/docker-hub-mirror.ts preview
+        run: node --import tsx scripts/dockerhub.ts preview
 
   mirror:
     needs: preview
     if: github.event_name == 'push' || inputs.publish
-    environment: docker-hub-mirror
+    environment: dockerhub
     env:
       EXPECTED_TAG_OBJECT: ${{ needs.preview.outputs.tag-object }}
     concurrency:
@@ -132,14 +132,14 @@ jobs:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
           DOCKERHUB_CONFIRMED_REPOSITORY: ${{ vars.DOCKERHUB_CONFIRMED_REPOSITORY }}
-        run: node --import tsx scripts/docker-hub-mirror.ts exact
+        run: node --import tsx scripts/dockerhub.ts exact
 
       - name: Anonymously pull the Docker Hub digest and exercise native offline MCP
-        run: node --import tsx scripts/docker-hub-mirror.ts discover
+        run: node --import tsx scripts/dockerhub.ts discover
 
       - name: Recheck release ownership and verify stable latest
         env: *publisher
-        run: node --import tsx scripts/docker-hub-mirror.ts latest
+        run: node --import tsx scripts/dockerhub.ts latest
 
       - name: Remove the job's temporary publisher files on every outcome
         if: always() && steps.regctl.outputs.directory != ''
@@ -152,4 +152,4 @@ jobs:
         env:
           MIRROR_STATUS: ${{ job.status }}
         run: |
-          echo "Docker Hub mirror: $MIRROR_STATUS. See the release run's image and registry jobs for primary publication. Recover only this mirror using docs/docker-hub-mirror.md." >> "$GITHUB_STEP_SUMMARY"
+          echo "Docker Hub mirror: $MIRROR_STATUS. See the release run's image and registry jobs for primary publication. Recover only this mirror using docs/dockerhub.md." >> "$GITHUB_STEP_SUMMARY"
