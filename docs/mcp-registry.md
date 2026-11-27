@@ -363,14 +363,14 @@ release retries repair the commit alias and the minor alias when the release
 still owns that minor line. Retry the newer release to repair a minor alias it
 owns, even when an older release's Registry publication remains outstanding.
 
-The stable release also starts a separate [Docker Hub mirror](docker-hub-mirror.md)
+The stable release also starts a separate [Docker Hub mirror](dockerhub.md)
 from the successful image job’s verified revision and digest. Its writer uses
 a separate queue and a tag-only environment with no required reviewer.
 Record the GHCR image, official Registry entry and secondary mirror outcomes
 individually. Complete the primary release once its existing gates pass.
 Retry a failed mirror job in its original stable tag run. Reviewed `main`
 supports manual previews. Historical backfills and repairs requiring newer
-tooling follow the [emergency manual publication procedure](docker-hub-mirror.md#emergency-manual-publication).
+tooling follow the [emergency manual publication procedure](dockerhub.md#emergency-manual-publication).
 
 The ancestry gate verifies release lineage for this workflow. Registry OIDC
 authorizes the owner's namespace, so repository write access must remain

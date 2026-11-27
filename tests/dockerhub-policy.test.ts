@@ -8,11 +8,11 @@ import {
   planMirrorTag,
   publishMirrorTag,
   selectedRelease,
-} from "../scripts/lib/docker-hub-mirror.js";
+} from "../scripts/lib/dockerhub-policy.js";
 import {
   type MirrorIdentity,
   MissingContent,
-} from "../scripts/lib/mirror-registry.js";
+} from "../scripts/lib/dockerhub-registry.js";
 
 const repo = "enthouan/trello-mcp";
 const upstream = `https://github.com/${repo}.git`;

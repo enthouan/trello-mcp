@@ -131,4 +131,4 @@ Report Docker Hub separately. After the approved stable release tag passes its
 image checks, the mirror publishes the verified GHCR digest under the exact
 version and advances `latest` if eligible. Manual runs on `main` can preview
 the destination. For a failed tag run or an emergency historical backfill,
-follow the [Docker Hub mirror runbook](https://github.com/enthouan/trello-mcp/blob/main/docs/docker-hub-mirror.md).
+follow the [Docker Hub mirror runbook](https://github.com/enthouan/trello-mcp/blob/main/docs/dockerhub.md).

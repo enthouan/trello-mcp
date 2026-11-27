@@ -9,17 +9,17 @@ import {
   planMirrorTag,
   publishMirrorTag,
   selectedRelease,
-} from "./lib/docker-hub-mirror.js";
+} from "./lib/dockerhub-policy.js";
+import {
+  type MirrorIdentity,
+  PublicRegistry,
+  requirePublicHub,
+} from "./lib/dockerhub-registry.js";
 import {
   imageName,
   imageVerificationInput,
   repository,
 } from "./lib/mcp-registry.js";
-import {
-  type MirrorIdentity,
-  PublicRegistry,
-  requirePublicHub,
-} from "./lib/mirror-registry.js";
 import { discoverReleaseImage } from "./lib/release-discovery.js";
 import schema from "./schemas/mcp-server-2025-12-11.schema.json" with {
   type: "json",

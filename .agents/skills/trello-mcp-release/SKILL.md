@@ -318,7 +318,7 @@ For historical releases or a repair requiring current tooling, preview on
 reviewed `main` using the original stable tag, full revision and verified GHCR
 index digest. The normal environment policy denies `main` writers. Obtain
 owner authorization for an emergency publication and follow the
-[temporary environment procedure](../../../docs/docker-hub-mirror.md#emergency-manual-publication)
+[temporary environment procedure](../../../docs/dockerhub.md#emergency-manual-publication)
 in order. Hold new stable tag pushes until tag-only access is restored. Record
 exact and alias read-back, both platform digests, native discovery, health and
 exact-tag reuse. Credential provisioning and overview publication require

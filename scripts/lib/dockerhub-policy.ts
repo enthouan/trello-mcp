@@ -1,5 +1,6 @@
 import { setTimeout } from "node:timers/promises";
 import { z } from "zod";
+import { type MirrorIdentity, MissingContent } from "./dockerhub-registry.js";
 import {
   compareVersions,
   imageName,
@@ -9,7 +10,6 @@ import {
   stableRelease,
   validateManifest,
 } from "./mcp-registry.js";
-import { type MirrorIdentity, MissingContent } from "./mirror-registry.js";
 import { releaseToolNames } from "./release-discovery.js";
 
 type Git = (args: string[]) => string;

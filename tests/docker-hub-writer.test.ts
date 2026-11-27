@@ -10,7 +10,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { parse } from "yaml";
-import { copyImage } from "../scripts/docker-hub-mirror.js";
+import { copyImage } from "../scripts/dockerhub.js";
 
 const identity = {
   version: "12.0.3",
@@ -353,7 +353,7 @@ describe("Docker Hub workflow integration", () => {
     };
     const steps: Step[] = writer.steps;
     const commands = steps.filter((step) =>
-      step.run?.includes("scripts/docker-hub-mirror.ts"),
+      step.run?.includes("scripts/dockerhub.ts"),
     );
     expect(commands.map((step) => step.run?.split(" ").at(-1))).toEqual([
       "exact",
