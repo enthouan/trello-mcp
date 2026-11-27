@@ -84,7 +84,7 @@ jobs:
   mirror:
     needs: preview
     if: github.event_name == 'push' || inputs.publish
-    environment: docker-hub-mirror
+    environment: dockerhub
     env:
       EXPECTED_TAG_OBJECT: ${{ needs.preview.outputs.tag-object }}
     concurrency:

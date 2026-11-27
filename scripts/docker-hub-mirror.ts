@@ -72,7 +72,7 @@ export async function copyImage(
   assert(tag === version || tag === "latest", "Unexpected Docker Hub tag");
   assert(
     env.DOCKERHUB_CONFIRMED_REPOSITORY === destination,
-    "Confirm the public Docker Hub repository in the mirror environment",
+    `Set DOCKERHUB_CONFIRMED_REPOSITORY to ${destination} in the dockerhub environment`,
   );
   assert(
     env.DOCKERHUB_USERNAME === "enthouan" &&

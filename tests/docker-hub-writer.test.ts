@@ -242,14 +242,22 @@ describe("Docker Hub writer", () => {
       DOCKERHUB_TOKEN: "test",
       MIRROR_TEMP: tmpdir(),
     };
-    for (const [tag, fields] of [
-      ["1.2", {}],
-      [identity.version, { DOCKERHUB_USERNAME: "other" }],
-      [identity.version, { DOCKERHUB_CONFIRMED_REPOSITORY: "wrong" }],
+    for (const [tag, fields, message] of [
+      ["1.2", {}, "Unexpected Docker Hub tag"],
+      [
+        identity.version,
+        { DOCKERHUB_USERNAME: "other" },
+        "Configure the mirror publisher",
+      ],
+      [
+        identity.version,
+        { DOCKERHUB_CONFIRMED_REPOSITORY: "wrong" },
+        `Set DOCKERHUB_CONFIRMED_REPOSITORY to ${destination} in the dockerhub environment`,
+      ],
     ] as const)
       await expect(
         copyImage(identity, tag, { ...env, ...fields }, async () => {}, run),
-      ).rejects.toThrow();
+      ).rejects.toThrow(message);
     expect(run).not.toHaveBeenCalled();
   });
 });
@@ -312,7 +320,7 @@ describe("Docker Hub workflow integration", () => {
     expect(JSON.stringify(preview)).not.toContain("secrets.");
     expect(mirror.permissions).toEqual({ contents: "read" });
     expect(writer.permissions).toBeUndefined();
-    expect(writer.environment).toBe("docker-hub-mirror");
+    expect(writer.environment).toBe("dockerhub");
     expect(writer.needs).toBe("preview");
     expect(writer.if).toBe("github.event_name == 'push' || inputs.publish");
     expect(writer.concurrency).toEqual({
