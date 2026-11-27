@@ -449,7 +449,7 @@ GitHub documents [`queue: max`](https://docs.github.com/en/actions/how-tos/write
 but actionlint v1.7.12 rejects that key
 ([upstream compatibility issue](https://github.com/rhysd/actionlint/issues/680)).
 Until the installed version supports it, ignore only the exact unsupported-key
-diagnostic on `release.yml` and `docker-hub-mirror.yml`. Keep every other diagnostic and workflow enabled.
+diagnostic on `release.yml` and `dockerhub.yml`. Keep every other diagnostic and workflow enabled.
 `tests/mcp-registry.test.ts` requires the shared group, `queue: max`, and
 `cancel-in-progress: false`; do not remove the queue to appease an older linter.
 Remove the exception when actionlint gains support.
@@ -458,7 +458,7 @@ Remove the exception when actionlint gains support.
 corepack pnpm exec vitest run tests/mcp-registry.test.ts tests/workflow-actions.test.ts
 set -euo pipefail
 for workflow in .github/workflows/*.yml; do
-  if [[ "$workflow" == .github/workflows/release.yml || "$workflow" == .github/workflows/docker-hub-mirror.yml ]]; then
+  if [[ "$workflow" == .github/workflows/release.yml || "$workflow" == .github/workflows/dockerhub.yml ]]; then
     actionlint -ignore '^unexpected key "queue" for "concurrency" section\. expected one of "cancel-in-progress", "group"$' "$workflow"
   else
     actionlint "$workflow"

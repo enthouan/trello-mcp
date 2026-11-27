@@ -28,7 +28,7 @@ For routine token rotation, update the environment secret and verify access with
 
 Retain the protected `docker-hub-mirror` environment and its four historical `main` deployments through cutover. The `v1.0.3`–`v1.0.5` tags predate the mirror workflow and were backfilled from reviewed `main`. [Backfill verification](https://github.com/enthouan/trello-mcp/issues/250#issuecomment-7140022645)
 
-GitHub reruns use the original commit and ref, so a workflow revision that names the old environment will still target it. Use the [emergency manual publication procedure](#emergency-manual-publication) for historical releases that require current tooling. [Deployment history](https://github.com/enthouan/trello-mcp/deployments/activity_log?environments_filter=docker-hub-mirror) · [GitHub rerun semantics](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/re-run-workflows-and-jobs) · [Original mirror implementation (#250)](https://github.com/enthouan/trello-mcp/issues/250)
+GitHub reruns use the original commit and ref, so a workflow revision that names the old environment will still target it. Historical manual runs used `docker-hub-mirror.yml`. To preview a historical release with current tooling, dispatch `dockerhub.yml` on reviewed `main`. Follow the [emergency manual publication procedure](#emergency-manual-publication) for a backfill. [Deployment history](https://github.com/enthouan/trello-mcp/deployments/activity_log?environments_filter=docker-hub-mirror) · [GitHub rerun semantics](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/re-run-workflows-and-jobs) · [Original mirror implementation (#250)](https://github.com/enthouan/trello-mcp/issues/250)
 
 For rollback, check pending jobs in both environments and verify that the old environment still has the tag-only protections, confirmed repository variable and owner-provisioned credentials above. Through a reviewed PR against protected `main`, point `jobs.mirror.environment`, the writer assertion, the diagnostic and the operator instructions back to `docker-hub-mirror`. Keep the tag-only policy in place. Retiring old credentials or deleting the environment requires a separate owner decision after reviewing pending jobs, historical retry needs and deployment records.
 
@@ -54,7 +54,7 @@ Use **Docker Hub stable mirror** on reviewed `main` for a read-only preview. Obt
 
 ```bash
 corepack pnpm image:verify --version "${tag#v}" --revision "$revision" --digest "$digest"
-gh workflow run docker-hub-mirror.yml --repo enthouan/trello-mcp --ref main \
+gh workflow run dockerhub.yml --repo enthouan/trello-mcp --ref main \
   -f tag="$tag" -f revision="$revision" -f digest="$digest" -f publish=false
 ```
 

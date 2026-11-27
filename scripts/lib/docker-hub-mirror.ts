@@ -78,7 +78,7 @@ export function selectedRelease(
     env.GITHUB_EVENT_NAME !== "workflow_dispatch" ||
     ref !== "refs/heads/main" ||
     env.GITHUB_WORKFLOW_REF !==
-      `${repository}/.github/workflows/docker-hub-mirror.yml@${ref}`
+      `${repository}/.github/workflows/dockerhub.yml@${ref}`
   ) {
     throw new Error(
       "Mirror recovery must run the reviewed workflow from main.",

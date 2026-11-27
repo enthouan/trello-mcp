@@ -264,13 +264,13 @@ describe("Docker Hub writer", () => {
 
 describe("Docker Hub workflow integration", () => {
   const release = workflow("release.yml");
-  const mirror = workflow("docker-hub-mirror.yml");
+  const mirror = workflow("dockerhub.yml");
   const { preview, mirror: writer } = mirror.jobs;
   it("passes verified identity to an independent stable-only consumer", () => {
     expect(release.jobs["docker-hub"]).toMatchObject({
       needs: "image",
       permissions: { contents: "read" },
-      uses: "./.github/workflows/docker-hub-mirror.yml",
+      uses: "./.github/workflows/dockerhub.yml",
       with: {
         tag: expression("github.ref_name"),
         revision: expression("needs.image.outputs.revision"),

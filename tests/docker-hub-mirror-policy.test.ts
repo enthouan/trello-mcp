@@ -47,7 +47,7 @@ const recovery = {
   EXPECTED_TAG_OBJECT: "",
   GITHUB_EVENT_NAME: "workflow_dispatch",
   GITHUB_REF: "refs/heads/main",
-  GITHUB_WORKFLOW_REF: `${repo}/.github/workflows/docker-hub-mirror.yml@refs/heads/main`,
+  GITHUB_WORKFLOW_REF: `${repo}/.github/workflows/dockerhub.yml@refs/heads/main`,
   GITHUB_SHA: newer.revision,
 };
 const schema = JSON.parse(
@@ -153,13 +153,17 @@ describe("mirror release selection", () => {
         schema,
       ),
     ).toThrow();
-    expect(() =>
-      selectedRelease(
-        { ...recovery, GITHUB_WORKFLOW_REF: releaseEnv.GITHUB_WORKFLOW_REF },
-        git,
-        schema,
-      ),
-    ).toThrow();
+    for (const workflowRef of [
+      releaseEnv.GITHUB_WORKFLOW_REF,
+      `${repo}/.github/workflows/docker-hub-mirror.yml@refs/heads/main`,
+    ])
+      expect(() =>
+        selectedRelease(
+          { ...recovery, GITHUB_WORKFLOW_REF: workflowRef },
+          git,
+          schema,
+        ),
+      ).toThrow(/reviewed workflow from main/);
     expect(() =>
       selectedRelease(recovery, mockGit(older.revision), schema),
     ).toThrow();
