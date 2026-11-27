@@ -318,6 +318,12 @@ describe("Docker Hub workflow integration", () => {
     );
     expect(preview.environment).toBeUndefined();
     expect(JSON.stringify(preview)).not.toContain("secrets.");
+    expect(preview.steps).toContainEqual(
+      expect.objectContaining({
+        id: "preview",
+        run: "node --import tsx scripts/dockerhub.ts preview",
+      }),
+    );
     expect(mirror.permissions).toEqual({ contents: "read" });
     expect(writer.permissions).toBeUndefined();
     expect(writer.environment).toBe("dockerhub");
