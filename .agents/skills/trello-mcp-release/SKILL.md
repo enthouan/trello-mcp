@@ -174,7 +174,8 @@ Run this immediately after the reviewed/approved release PR is merged and the
 main release workflow result is verified. The user's PR review approval covers
 the normal release-side effects for the exact `vX.Y.Z`: tag push, GHCR publish
 verification, official MCP Registry publication and exact-version verification,
-GitHub Release creation, and milestone closure when all milestone work is done.
+the stable Docker Hub mirror, GitHub Release creation, and milestone closure
+when all milestone work is done.
 
 Stop and ask for explicit approval only when a corrective action would rewrite
 history or replace published release state, such as moving/deleting a tag,
@@ -305,19 +306,22 @@ evidence in the tracking issue before closing it.
 
 ## Docker Hub mirror and recovery
 
-Report the primary GHCR image and official Registry entry as each completes.
-The secondary mirror consumes the verified image independently. Poll the tag
-run’s individual jobs while the mirror waits for approval. Proceed with normal
-GitHub Release creation once the primary gates pass. A pending or failed mirror
-has its own status and recovery path.
+The approved release PR authorizes the subsequent genuine stable tag push and
+its automatic Docker Hub mirror. The protected environment accepts only the tag
+pattern `v*.*.*` and has no required reviewer. After GHCR verification, the
+writer copies the exact release and promotes `latest` when that release owns it.
+Report GHCR, the official Registry and Docker Hub individually. Create the
+GitHub Release once the primary gates pass.
 
-Follow the [Docker Hub runbook](../../../docs/docker-hub-mirror.md). A mirror-only
-dispatch from reviewed main defaults to preview. Supply the original stable tag,
-full revision and verified GHCR index digest. Review the destination and latest
-decision before requesting a backfill. Use the authorized environment for the
-copy. Record exact and alias read-back, both platform digests, native discovery,
-health and exact-tag reuse separately. Keep the mirror issue open for genuine
-production evidence. Credential provisioning and overview publication require
+For a failed automatic mirror, rerun its failed job in the original tag run.
+For historical releases or a repair requiring current tooling, preview on
+reviewed `main` using the original stable tag, full revision and verified GHCR
+index digest. The normal environment policy denies `main` writers. Obtain
+owner authorization for an emergency publication and follow the
+[temporary environment procedure](../../../docs/docker-hub-mirror.md#emergency-manual-publication)
+in order. Hold new stable tag pushes until tag-only access is restored. Record
+exact and alias read-back, both platform digests, native discovery, health and
+exact-tag reuse. Credential provisioning and overview publication require
 their own owner authorization.
 
 ## Registry Recovery
